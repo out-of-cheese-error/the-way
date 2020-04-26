@@ -67,16 +67,18 @@ impl Snippet {
             };
 
         let description = utils::user_input("Description", old_description.as_deref(), false)?;
-        let language_name =
+        let language =
             utils::user_input("Language", old_language.as_deref(), false)?.to_ascii_lowercase();
         let default = Language::default();
-        let (language, extension) = if let Some(language) = languages.get(&language_name) {
-            (language_name, &language.extension)
+        let extension = if let Some(l) = languages.get(&language) {
+            &l.extension
         } else {
-            (default.name, &default.extension)
+            println!(
+                "Couldn't find language {} in the list of extensions, defaulting to .txt",
+                language
+            );
+            &default.extension
         };
-        println!("Predicted name {} extension {}", language, extension);
-
         let tags = utils::user_input("Tags (space separated)", old_tags.as_deref(), false)?;
         let source = utils::user_input("Source", old_source.as_deref(), false)?;
         let date = match old_date {
