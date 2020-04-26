@@ -8,12 +8,13 @@ use clipboard::ClipboardProvider;
 use path_abs::{PathAbs, PathDir, PathFile, PathInfo, PathOps};
 
 use crate::errors::LostTheWay;
+use crate::language::Language;
 use crate::the_way::filter::Filters;
-use crate::the_way::snippets::Snippet;
+use crate::the_way::snippet::Snippet;
 use crate::{config, utils};
 
 mod filter;
-mod snippets;
+mod snippet;
 mod stats;
 
 /// Stores
@@ -24,6 +25,7 @@ pub struct TheWay {
     dir: PathDir,
     matches: ArgMatches,
     db: sled::Db,
+    languages: HashMap<String, Language>,
 }
 
 /// Reads config file to get location of the quoth directory
@@ -88,15 +90,20 @@ impl TheWay {
     /// Initialize program with command line input.
     /// Reads `sled` trees and metadata file from the locations specified in config.
     /// (makes new ones the first time).
-    pub(crate) fn start(matches: ArgMatches) -> Result<(), Error> {
+    pub(crate) fn start(
+        matches: ArgMatches,
+        languages: HashMap<String, Language>,
+    ) -> Result<(), Error> {
         let dir = get_dir()?;
         let mut the_way = Self {
             db: Self::get_db(&dir)?,
             dir,
             matches,
+            languages,
         };
         the_way.set_merge()?;
         the_way.run()?;
+        // the_way.debug();
         Ok(())
     }
 
@@ -129,7 +136,8 @@ impl TheWay {
     }
 
     fn the_way(&mut self) -> Result<(), Error> {
-        let snippet = Snippet::from_user(self.get_current_snippet_index()? + 1, None)?;
+        let snippet =
+            Snippet::from_user(self.get_current_snippet_index()? + 1, &self.languages, None)?;
         println!("Added snippet #{}", self.add_snippet(&snippet)?);
         Ok(())
     }
@@ -174,7 +182,7 @@ impl TheWay {
         let old_snippet = self.get_snippet(index)?;
         self.delete_from_trees(&old_snippet, index)?;
 
-        let new_snippet = Snippet::from_user(index, Some(old_snippet))?;
+        let new_snippet = Snippet::from_user(index, &self.languages, Some(old_snippet))?;
         let language_key = new_snippet.language.as_bytes();
         let index_key = index.to_string();
         let index_key = index_key.as_bytes();
@@ -193,7 +201,14 @@ impl TheWay {
 
     // TODO: use syntect to display with syntax highlighting to terminal
     fn show(&self) -> Result<(), Error> {
-        unimplemented!()
+        let index = utils::get_argument_value("show", &self.matches)?
+            .ok_or(LostTheWay::OutOfCheeseError {
+                message: "Argument show not used".into(),
+            })?
+            .parse::<usize>()?;
+        let snippet = self.get_snippet(index)?;
+        println!("{:?}", snippet);
+        Ok(())
     }
 
     // Copy a snippet to clipboard
@@ -205,7 +220,7 @@ impl TheWay {
             .parse::<usize>()?;
         let snippet = self.get_snippet(index)?;
         let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
-        ctx.set_contents(snippet.code.to_owned()).unwrap();
+        ctx.set_contents(snippet.code).unwrap();
         println!("Snippet #{} copied to clipboard", index);
         Ok(())
     }
@@ -348,6 +363,10 @@ impl TheWay {
 }
 
 impl TheWay {
+    pub fn debug(&self) {
+        println!("{:?}", self.db);
+    }
+
     /// Filters a list of snippets by given language/tag/date
     fn filter_snippets(&self, filters: &Filters<'_>) -> Result<Vec<Snippet>, Error> {
         let from_date = utils::date_start(filters.from_date);

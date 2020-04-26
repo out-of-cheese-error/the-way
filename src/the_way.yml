@@ -90,7 +90,7 @@ subcommands:
             value_name: DATE
             help: Snippets on <DATE>
         - language:
-            short: a
+            short: l
             long: language
             value_name: LANGUAGE
             takes_value: true

@@ -1,7 +1,10 @@
+use std::collections::HashMap;
+
 use anyhow::Error;
 use chrono::{DateTime, Utc};
 use path_abs::{FileRead, PathFile};
 
+use crate::language::Language;
 use crate::utils;
 
 /// Stores information about a quote
@@ -45,7 +48,11 @@ impl Snippet {
         }
     }
 
-    pub fn from_user(index: usize, old_snippet: Option<Snippet>) -> Result<Snippet, Error> {
+    pub fn from_user(
+        index: usize,
+        languages: &HashMap<String, Language>,
+        old_snippet: Option<Snippet>,
+    ) -> Result<Snippet, Error> {
         let (old_description, old_language, old_tags, old_date, old_source, old_code) =
             match old_snippet {
                 Some(s) => (
@@ -59,13 +66,18 @@ impl Snippet {
                 None => (None, None, None, None, None, None),
             };
 
-        let description = utils::user_input(
-            "Description (What does it do?)",
-            old_description.as_deref(),
-            false,
-        )?;
-        let language = utils::user_input("Language", old_language.as_deref(), false)?;
-        let tags = utils::user_input("Tags (comma separated)", old_tags.as_deref(), false)?;
+        let description = utils::user_input("Description", old_description.as_deref(), false)?;
+        let language_name =
+            utils::user_input("Language", old_language.as_deref(), false)?.to_ascii_lowercase();
+        let default = Language::default();
+        let (language, extension) = if let Some(language) = languages.get(&language_name) {
+            (language_name, &language.extension)
+        } else {
+            (default.name, &default.extension)
+        };
+        println!("Predicted name {} extension {}", language, extension);
+
+        let tags = utils::user_input("Tags (space separated)", old_tags.as_deref(), false)?;
         let source = utils::user_input("Source", old_source.as_deref(), false)?;
         let date = match old_date {
             Some(_) => utils::parse_date(&utils::user_input("Date", old_date.as_deref(), true)?)?
@@ -78,7 +90,7 @@ impl Snippet {
             false,
         )?;
         if code.is_empty() {
-            code = utils::external_editor_input(old_code.as_deref(), ".rs")?;
+            code = utils::external_editor_input(old_code.as_deref(), extension)?;
         }
         Ok(Snippet::new(
             index,
@@ -130,6 +142,6 @@ impl Snippet {
 
     // TODO: Display a quote in the terminal prettily
     pub fn pretty_print(&self) {
-        unimplemented!()
+        println!("{:?}", self);
     }
 }
