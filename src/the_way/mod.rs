@@ -207,7 +207,7 @@ impl TheWay {
             })?
             .parse::<usize>()?;
         let snippet = self.get_snippet(index)?;
-        println!("{:?}", snippet);
+        snippet.pretty_print();
         Ok(())
     }
 

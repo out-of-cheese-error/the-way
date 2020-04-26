@@ -2,7 +2,9 @@ use std::collections::HashMap;
 
 use anyhow::Error;
 use chrono::{DateTime, Utc};
+use console::{pad_str, style, Alignment};
 use path_abs::{FileRead, PathFile};
+use textwrap::termwidth;
 
 use crate::language::Language;
 use crate::utils;
@@ -16,6 +18,8 @@ pub struct Snippet {
     pub description: String,
     /// Language the snippet is written in
     pub language: String,
+    /// extension
+    extension: String,
     /// Tags attached to the snippet
     pub tags: Vec<String>,
     /// Date of recording the snippet
@@ -28,10 +32,11 @@ pub struct Snippet {
 
 impl Snippet {
     /// New snippet
-    pub fn new(
+    fn new(
         index: usize,
         description: String,
         language: String,
+        extension: String,
         tags: &str,
         date: DateTime<Utc>,
         source: String,
@@ -41,10 +46,24 @@ impl Snippet {
             index,
             description,
             language,
+            extension,
             tags: utils::split_tags(tags),
             date,
             source,
             code,
+        }
+    }
+
+    fn get_extension(language_name: &str, languages: &HashMap<String, Language>) -> String {
+        let default = Language::default();
+        if let Some(l) = languages.get(language_name) {
+            l.extension.to_owned()
+        } else {
+            println!(
+                "Couldn't find language {} in the list of extensions, defaulting to .txt",
+                language_name
+            );
+            default.extension
         }
     }
 
@@ -69,16 +88,7 @@ impl Snippet {
         let description = utils::user_input("Description", old_description.as_deref(), false)?;
         let language =
             utils::user_input("Language", old_language.as_deref(), false)?.to_ascii_lowercase();
-        let default = Language::default();
-        let extension = if let Some(l) = languages.get(&language) {
-            &l.extension
-        } else {
-            println!(
-                "Couldn't find language {} in the list of extensions, defaulting to .txt",
-                language
-            );
-            &default.extension
-        };
+        let extension = Self::get_extension(&language, languages);
         let tags = utils::user_input("Tags (space separated)", old_tags.as_deref(), false)?;
         let source = utils::user_input("Source", old_source.as_deref(), false)?;
         let date = match old_date {
@@ -92,12 +102,13 @@ impl Snippet {
             false,
         )?;
         if code.is_empty() {
-            code = utils::external_editor_input(old_code.as_deref(), extension)?;
+            code = utils::external_editor_input(old_code.as_deref(), &extension)?;
         }
         Ok(Snippet::new(
             index,
             description,
             language,
+            extension,
             &tags,
             date,
             source,
@@ -144,6 +155,57 @@ impl Snippet {
 
     // TODO: Display a quote in the terminal prettily
     pub fn pretty_print(&self) {
-        println!("{:?}", self);
+        let width = termwidth() - 4;
+        println!(
+            "{}",
+            style(pad_str(
+                &utils::RAVEN.to_string(),
+                width,
+                Alignment::Center,
+                None,
+            ))
+            .dim()
+        );
+        println!(
+            "{}",
+            style(pad_str(
+                &self.description,
+                width - 4,
+                Alignment::Center,
+                None,
+            ))
+        );
+        println!(
+            "{}",
+            style(pad_str(&self.language, width - 4, Alignment::Center, None)).blue()
+        );
+        println!(
+            "{}",
+            style((0..width - 4).map(|_| '-').collect::<String>()).dim()
+        );
+        utils::highlight_code(&self.code, &self.extension);
+        let num_digits = self.index.to_string().chars().count();
+        let num_dashes = (width - 2 - num_digits - 1) / 2;
+        let dashes = (0..num_dashes).map(|_| '-').collect::<String>();
+        print!("{}", style(&dashes).dim());
+        print!("{}", style(&format!("#{}", self.index)));
+        println!("{}", style(&dashes).dim());
+        println!(
+            "{}\n",
+            style(pad_str(
+                &self.tags.join(", "),
+                width - 4,
+                Alignment::Center,
+                None,
+            ))
+            .dim()
+        );
+
+        println!(
+            "{}",
+            style(pad_str(&self.source, width - 4, Alignment::Center, None))
+                .dim()
+                .italic()
+        );
     }
 }

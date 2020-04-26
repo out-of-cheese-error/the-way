@@ -9,6 +9,10 @@ use chrono::{Date, DateTime, Datelike, Utc, MAX_DATE, MIN_DATE};
 use chrono_english::{parse_date_string, Dialect};
 use clap::{ArgMatches, Values};
 use dialoguer::{theme, Editor, Input};
+use syntect::easy::HighlightLines;
+use syntect::highlighting::{Style, ThemeSet};
+use syntect::parsing::SyntaxSet;
+use syntect::util::{as_24_bit_terminal_escaped, LinesWithEndings};
 use termion::event::Key;
 use termion::input::TermRead;
 
@@ -148,6 +152,21 @@ pub fn get_argument_values<'a>(
         }
         None => Ok(None),
     }
+}
+
+pub fn highlight_code(code: &str, extension: &str) {
+    let extension = extension.split('.').nth(1).unwrap();
+    let ps = SyntaxSet::load_defaults_newlines();
+    let ts = ThemeSet::load_defaults();
+    let syntax = ps.find_syntax_by_extension(extension).unwrap();
+    let mut h = HighlightLines::new(syntax, &ts.themes["base16-ocean.dark"]);
+    for line in LinesWithEndings::from(code) {
+        // LinesWithEndings enables use of newlines mode
+        let ranges: Vec<(Style, &str)> = h.highlight(line, &ps);
+        let escaped = as_24_bit_terminal_escaped(&ranges[..], false);
+        print!("{}", escaped);
+    }
+    println!();
 }
 
 pub fn get_months(min_date: Date<Utc>, max_date: Date<Utc>) -> Result<Vec<Date<Utc>>, Error> {
