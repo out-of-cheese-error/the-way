@@ -3,6 +3,8 @@ use std::collections::{HashMap, HashSet};
 use anyhow::Error;
 use chrono::{Date, DateTime, Datelike, Utc};
 use clap::ArgMatches;
+use clipboard::ClipboardContext;
+use clipboard::ClipboardProvider;
 use path_abs::{PathAbs, PathDir, PathFile, PathInfo, PathOps};
 
 use crate::errors::LostTheWay;
@@ -101,11 +103,13 @@ impl TheWay {
     /// Parses command-line arguments to decide which sub-command to run
     fn run(&mut self) -> Result<(), Error> {
         if self.matches.is_present("delete") {
-            self.delete_snippet()
+            self.delete()
         } else if self.matches.is_present("show") {
-            self.show_snippet()
+            self.show()
         } else if self.matches.is_present("change") {
-            self.change_snippet()
+            self.change()
+        } else if self.matches.is_present("copy") {
+            self.copy()
         } else {
             match self.matches.subcommand() {
                 ("config", Some(matches)) => self.config(matches),
@@ -127,6 +131,82 @@ impl TheWay {
     fn the_way(&mut self) -> Result<(), Error> {
         let snippet = Snippet::from_user(self.get_current_snippet_index()? + 1, None)?;
         println!("Added snippet #{}", self.add_snippet(&snippet)?);
+        Ok(())
+    }
+
+    /// Delete a snippet (and all associated data) from the trees and metadata
+    fn delete(&mut self) -> Result<(), Error> {
+        let index = utils::get_argument_value("delete", &self.matches)?.ok_or(
+            LostTheWay::OutOfCheeseError {
+                message: "Argument delete not used".into(),
+            },
+        )?;
+        let mut sure_delete;
+        loop {
+            sure_delete =
+                utils::user_input(&format!("Delete snippet #{} Y/N?", index), Some("N"), true)?
+                    .to_ascii_uppercase();
+            if sure_delete == "Y" || sure_delete == "N" {
+                break;
+            }
+        }
+        if sure_delete == "Y" {
+            let index = index.parse::<usize>()?;
+            let snippet = self.remove_snippet(index)?;
+            self.delete_from_trees(&snippet, index)?;
+            println!("Snippet #{} deleted", index);
+            Ok(())
+        } else {
+            Err(LostTheWay::DoingNothing {
+                message: "I'm a coward.".into(),
+            }
+            .into())
+        }
+    }
+
+    /// Modify a stored snippet's information
+    fn change(&mut self) -> Result<(), Error> {
+        let index = utils::get_argument_value("change", &self.matches)?
+            .ok_or(LostTheWay::OutOfCheeseError {
+                message: "Argument change not used".into(),
+            })?
+            .parse::<usize>()?;
+        let old_snippet = self.get_snippet(index)?;
+        self.delete_from_trees(&old_snippet, index)?;
+
+        let new_snippet = Snippet::from_user(index, Some(old_snippet))?;
+        let language_key = new_snippet.language.as_bytes();
+        let index_key = index.to_string();
+        let index_key = index_key.as_bytes();
+        self.add_to_language(language_key, index_key)?;
+        for tag in &new_snippet.tags {
+            let tag_key = tag.as_bytes();
+            self.tag_tree()?
+                .merge(tag_key.to_vec(), index_key.to_vec())?;
+        }
+        self.snippets_tree()?
+            .insert(index_key, new_snippet.to_bytes()?)?;
+
+        println!("Snippet #{} changed", index); // TODO: change to log?
+        Ok(())
+    }
+
+    // TODO: use syntect to display with syntax highlighting to terminal
+    fn show(&self) -> Result<(), Error> {
+        unimplemented!()
+    }
+
+    // Copy a snippet to clipboard
+    fn copy(&self) -> Result<(), Error> {
+        let index = utils::get_argument_value("copy", &self.matches)?
+            .ok_or(LostTheWay::OutOfCheeseError {
+                message: "Argument copy not used".into(),
+            })?
+            .parse::<usize>()?;
+        let snippet = self.get_snippet(index)?;
+        let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
+        ctx.set_contents(snippet.code.to_owned()).unwrap();
+        println!("Snippet #{} copied to clipboard", index);
         Ok(())
     }
 
@@ -483,67 +563,6 @@ impl TheWay {
                 .remove(index_key)?
                 .ok_or(LostTheWay::SnippetNotFound { index })?,
         )?)
-    }
-    /// Delete a snippet (and all associated data) from the trees and metadata
-    fn delete_snippet(&mut self) -> Result<(), Error> {
-        let index = utils::get_argument_value("delete", &self.matches)?.ok_or(
-            LostTheWay::OutOfCheeseError {
-                message: "Argument delete not used".into(),
-            },
-        )?;
-        let mut sure_delete;
-        loop {
-            sure_delete =
-                utils::user_input(&format!("Delete snippet #{} Y/N?", index), Some("N"), true)?
-                    .to_ascii_uppercase();
-            if sure_delete == "Y" || sure_delete == "N" {
-                break;
-            }
-        }
-        if sure_delete == "Y" {
-            let index = index.parse::<usize>()?;
-            let snippet = self.remove_snippet(index)?;
-            self.delete_from_trees(&snippet, index)?;
-            println!("Snippet #{} deleted", index);
-            Ok(())
-        } else {
-            Err(LostTheWay::DoingNothing {
-                message: "I'm a coward.".into(),
-            }
-            .into())
-        }
-    }
-
-    /// Modify a stored snippet's information
-    fn change_snippet(&mut self) -> Result<(), Error> {
-        let index = utils::get_argument_value("change", &self.matches)?
-            .ok_or(LostTheWay::OutOfCheeseError {
-                message: "Argument change not used".into(),
-            })?
-            .parse::<usize>()?;
-        let old_snippet = self.get_snippet(index)?;
-        self.delete_from_trees(&old_snippet, index)?;
-
-        let new_snippet = Snippet::from_user(index, Some(old_snippet))?;
-        let language_key = new_snippet.language.as_bytes();
-        let index_key = index.to_string();
-        let index_key = index_key.as_bytes();
-        self.add_to_language(language_key, index_key)?;
-        for tag in &new_snippet.tags {
-            let tag_key = tag.as_bytes();
-            self.tag_tree()?
-                .merge(tag_key.to_vec(), index_key.to_vec())?;
-        }
-        self.snippets_tree()?
-            .insert(index_key, new_snippet.to_bytes()?)?;
-
-        println!("Snippet #{} changed", index); // TODO: change to log?
-        Ok(())
-    }
-
-    // TODO: use syntect to display with syntax highlighting to terminal
-    fn show_snippet(&self) -> Result<(), Error> {
-        unimplemented!()
     }
 
     /// Retrieve snippets written in a given language
