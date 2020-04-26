@@ -22,6 +22,14 @@ args:
       long: show
       value_name: INDEX
       takes_value: true
+
+  - copy:
+      help: Copies snippet at <INDEX> to clipboard
+      short: y
+      long: cp
+      value_name: INDEX
+      takes_value: true
+
 subcommands:
   - search:
       about: Finds snippets matching a pattern
