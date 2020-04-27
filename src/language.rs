@@ -1,7 +1,15 @@
 use std::collections::HashMap;
 
 use anyhow::Error;
+use path_abs::{PathDir, PathFile, PathInfo, PathOps};
 use serde_yaml::Value;
+use syntect::easy::HighlightLines;
+use syntect::highlighting::{Color, Style, ThemeSet};
+use syntect::parsing::SyntaxSet;
+use syntect::util::{as_24_bit_terminal_escaped, LinesWithEndings};
+use syntect::LoadingError;
+
+use crate::errors::LostTheWay;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 struct LanguageYML {
@@ -14,7 +22,7 @@ struct LanguageYML {
 }
 
 #[derive(Debug, Clone)]
-pub struct Language {
+pub(crate) struct Language {
     pub(crate) name: String,
     pub(crate) extension: String,
     pub(crate) color: Option<String>, // TODO: use a color type from whatever you're rendering with
@@ -65,4 +73,95 @@ pub(crate) fn get_languages(yml_string: &str) -> Result<HashMap<String, Language
         }
     }
     Ok(name_to_language)
+}
+
+pub(crate) struct CodeHighlight {
+    pub(crate) syntax_set: SyntaxSet,
+    pub(crate) theme_set: ThemeSet,
+    pub(crate) theme_name: String,
+    pub(crate) theme_dir: PathDir,
+}
+
+impl CodeHighlight {
+    pub(crate) fn new(theme: &str, theme_dir: PathDir) -> Result<Self, Error> {
+        let mut theme_set = ThemeSet::load_defaults();
+        theme_set.add_from_folder(&theme_dir).unwrap();
+        Ok(Self {
+            syntax_set: SyntaxSet::load_defaults_newlines(),
+            theme_name: theme.into(),
+            theme_set,
+            theme_dir,
+        })
+    }
+
+    pub(crate) fn get_main_color(&self) -> Color {
+        self.theme_set.themes[&self.theme_name]
+            .settings
+            .foreground
+            .unwrap_or(Color::WHITE)
+    }
+
+    pub(crate) fn get_dim_color(&self) -> Color {
+        self.theme_set.themes[&self.theme_name]
+            .settings
+            .selection
+            .unwrap_or(Color::WHITE)
+    }
+
+    pub(crate) fn get_accent_color(&self) -> Color {
+        self.theme_set.themes[&self.theme_name]
+            .settings
+            .caret
+            .unwrap_or(Color::WHITE)
+    }
+
+    pub(crate) fn set_theme(&mut self, theme_name: String) -> Result<(), Error> {
+        if self.theme_set.themes.contains_key(&theme_name) {
+            self.theme_name = theme_name;
+            Ok(())
+        } else {
+            Err(LostTheWay::ThemeNotFound { theme_name }.into())
+        }
+    }
+
+    pub(crate) fn get_themes(&self) -> Vec<String> {
+        self.theme_set.themes.keys().cloned().collect()
+    }
+
+    pub(crate) fn add_theme(&mut self, theme_file: &PathFile) -> Result<(), Error> {
+        let basename = theme_file
+            .file_stem()
+            .and_then(|x| x.to_str())
+            .ok_or(LoadingError::BadPath)
+            .unwrap();
+        // Copy theme to theme file directory
+        let theme_file = theme_file.copy(PathFile::new(
+            self.theme_dir.join(format!("{}.tmTheme", basename)),
+        )?)?;
+        let theme = ThemeSet::get_theme(theme_file).unwrap();
+        self.theme_set.themes.insert(basename.to_owned(), theme);
+        Ok(())
+    }
+
+    pub(crate) fn highlight_line(&self, line: &str, style: Style) -> String {
+        as_24_bit_terminal_escaped(&[(style, line)], false)
+    }
+
+    pub(crate) fn highlight(&self, code: &str, extension: &str) -> Result<String, Error> {
+        let mut colorized = String::from("\n");
+        let extension = extension.split('.').nth(1).unwrap();
+        let syntax = self.syntax_set.find_syntax_by_extension(extension).ok_or(
+            LostTheWay::LanguageNotFound {
+                language: extension.into(),
+            },
+        )?;
+        let mut h = HighlightLines::new(syntax, &self.theme_set.themes[&self.theme_name]);
+        for line in LinesWithEndings::from(code) {
+            let ranges: Vec<(Style, &str)> = h.highlight(line, &self.syntax_set);
+            let escaped = as_24_bit_terminal_escaped(&ranges[..], false);
+            colorized += escaped.as_str()
+        }
+        colorized += "\n\n";
+        Ok(colorized)
+    }
 }

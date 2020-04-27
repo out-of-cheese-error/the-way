@@ -5,72 +5,29 @@ use chrono::{Date, DateTime, Datelike, Utc};
 use clap::ArgMatches;
 use clipboard::ClipboardContext;
 use clipboard::ClipboardProvider;
-use path_abs::{PathAbs, PathDir, PathFile, PathInfo, PathOps};
+use path_abs::{PathDir, PathFile};
 
+use crate::configuration::TheWayConfig;
 use crate::errors::LostTheWay;
-use crate::language::Language;
+use crate::language::{CodeHighlight, Language};
 use crate::the_way::filter::Filters;
 use crate::the_way::snippet::Snippet;
-use crate::{config, utils};
+use crate::utils;
 
 mod filter;
 mod snippet;
 mod stats;
 
 /// Stores
-/// - the directory to store files
+/// - project directory information from `directories`
 /// - argument parsing information from `clap`
 /// - the `sled` databases storing linkage information between languages, tags, and snippets
 pub struct TheWay {
-    dir: PathDir,
+    config: TheWayConfig,
     matches: ArgMatches,
     db: sled::Db,
     languages: HashMap<String, Language>,
-}
-
-/// Reads config file to get location of the quoth directory
-fn get_dir() -> Result<PathDir, Error> {
-    match dirs::home_dir() {
-        Some(home_dir) => {
-            let config_file = PathAbs::new(PathDir::new(home_dir)?.join(config::CONFIG_PATH))?;
-            if !config_file.exists() {
-                make_config_file()?;
-            }
-            let dir_string = PathFile::new(config_file)?.read_string()?;
-            Ok(PathDir::create_all(dir_string.trim())?)
-        }
-        None => Err(LostTheWay::Homeless.into()),
-    }
-}
-
-/// Makes config file
-/// default ~/the_way.txt) with a single line containing the location of the snippets directory (default ~/.the_way
-fn make_config_file() -> Result<(), Error> {
-    match dirs::home_dir() {
-        Some(home_dir) => {
-            let config_file = PathFile::create(PathDir::new(&home_dir)?.join(config::CONFIG_PATH))?;
-            config_file.write_str(
-                &PathDir::new(home_dir)?
-                    .join(config::DIR_DEFAULT)
-                    .to_str()
-                    .unwrap(),
-            )?;
-            Ok(())
-        }
-        None => Err(LostTheWay::Homeless.into()),
-    }
-}
-
-/// Changes the main snippets directory
-fn change_dir(new_dir: &str) -> Result<(), Error> {
-    match dirs::home_dir() {
-        Some(home_dir) => {
-            let config_file = PathFile::create(PathDir::new(home_dir)?.join(config::CONFIG_PATH))?;
-            config_file.write_str(new_dir)?;
-            Ok(())
-        }
-        None => Err(LostTheWay::Homeless.into()),
-    }
+    highlighter: CodeHighlight,
 }
 
 /// If key exists, add value to existing values - join with a semicolon
@@ -94,12 +51,13 @@ impl TheWay {
         matches: ArgMatches,
         languages: HashMap<String, Language>,
     ) -> Result<(), Error> {
-        let dir = get_dir()?;
+        let config = TheWayConfig::get()?;
         let mut the_way = Self {
-            db: Self::get_db(&dir)?,
-            dir,
+            db: Self::get_db(&config.db_dir)?,
             matches,
             languages,
+            highlighter: CodeHighlight::new(&config.theme, config.themes_dir.clone())?,
+            config,
         };
         the_way.set_merge()?;
         the_way.run()?;
@@ -129,6 +87,35 @@ impl TheWay {
                 ("export", Some(matches)) => self.export(matches),
                 ("list", Some(matches)) => self.list(matches),
                 ("search", Some(matches)) => self.search(matches),
+                ("themes", Some(matches)) => {
+                    if matches.is_present("list") {
+                        self.list_themes()
+                    } else if matches.is_present("set") {
+                        let theme_name = utils::get_argument_value("set", matches)?.ok_or(
+                            LostTheWay::OutOfCheeseError {
+                                message: "Argument THEME not used".into(),
+                            },
+                        )?;
+                        self.highlighter.set_theme(theme_name.to_owned())?;
+                        self.config.theme = theme_name.to_owned();
+                        self.config.store()?;
+                        Ok(())
+                    } else if matches.is_present("add") {
+                        let theme_file = utils::get_argument_value("add", matches)?.ok_or(
+                            LostTheWay::OutOfCheeseError {
+                                message: "Argument FILE not used".into(),
+                            },
+                        )?;
+                        let theme_file = PathFile::new(theme_file)?;
+                        self.highlighter.add_theme(&theme_file)?;
+                        Ok(())
+                    } else {
+                        Err(LostTheWay::OutOfCheeseError {
+                            message: "Unknown/No theme argument".into(),
+                        }
+                        .into())
+                    }
+                }
                 ("stats", Some(matches)) => self.stats(matches),
                 _ => self.the_way(),
             }
@@ -199,7 +186,6 @@ impl TheWay {
         Ok(())
     }
 
-    // TODO: use syntect to display with syntax highlighting to terminal
     fn show(&self) -> Result<(), Error> {
         let index = utils::get_argument_value("show", &self.matches)?
             .ok_or(LostTheWay::OutOfCheeseError {
@@ -207,7 +193,7 @@ impl TheWay {
             })?
             .parse::<usize>()?;
         let snippet = self.get_snippet(index)?;
-        println!("{:?}", snippet);
+        println!("\n{}", snippet.pretty_print(&self.highlighter)?);
         Ok(())
     }
 
@@ -229,8 +215,6 @@ impl TheWay {
     fn config(&self, matches: &ArgMatches) -> Result<(), Error> {
         if matches.is_present("clear") {
             self.clear()
-        } else if matches.is_present("dir") {
-            self.relocate(matches)
         } else if matches.is_present("completions") {
             self.completions(matches)
         } else {
@@ -239,6 +223,15 @@ impl TheWay {
             }
             .into())
         }
+    }
+
+    /// Syntax highlighting management
+
+    fn list_themes(&self) -> Result<(), Error> {
+        for theme in self.highlighter.get_themes() {
+            println!("{}", theme);
+        }
+        Ok(())
     }
 
     fn import(&self, matches: &ArgMatches) -> Result<Vec<Snippet>, Error> {
@@ -267,9 +260,12 @@ impl TheWay {
     fn list(&self, matches: &ArgMatches) -> Result<(), Error> {
         let filters = Filters::get_filters(matches)?;
         let snippets = self.filter_snippets(&filters)?;
+        let mut colorized = String::from("\n");
         for snippet in &snippets {
-            snippet.pretty_print();
+            colorized += snippet.pretty_print(&self.highlighter)?.as_str();
+            colorized.push('\n');
         }
+        println!("{}", colorized);
         Ok(())
     }
 
@@ -313,45 +309,7 @@ impl TheWay {
             }
         }
         if sure_delete == "Y" {
-            PathDir::new(self.dir.join(config::DB_PATH))?.remove_all()?;
-            Ok(())
-        } else {
-            Err(LostTheWay::DoingNothing {
-                message: "I'm a coward.".into(),
-            }
-            .into())
-        }
-    }
-
-    /// Changes the location of all `sled` trees and the metadata file
-    fn relocate(&self, matches: &ArgMatches) -> Result<(), Error> {
-        let new_dir =
-            utils::get_argument_value("dir", matches)?.ok_or(LostTheWay::OutOfCheeseError {
-                message: "Argument dir not used".into(),
-            })?;
-        let new_dir_path = PathDir::create_all(new_dir)?;
-        if new_dir_path == self.dir {
-            return Err(LostTheWay::DoingNothing {
-                message: "Same as old dir.".into(),
-            }
-            .into());
-        }
-        let old_db = Self::get_db(&self.dir)?;
-        let new_db = Self::get_db(&new_dir_path)?;
-        new_db.import(old_db.export());
-        self.clear()?;
-        self.set_merge()?;
-        change_dir(new_dir)?;
-        let mut delete_old_dir;
-        loop {
-            delete_old_dir = utils::user_input("Delete old directory Y/N?", Some("N"), true)?
-                .to_ascii_uppercase();
-            if delete_old_dir == "Y" || delete_old_dir == "N" {
-                break;
-            }
-        }
-        if delete_old_dir == "Y" {
-            self.dir.clone().remove_all()?;
+            PathDir::new(&self.config.db_dir)?.remove_all()?;
             Ok(())
         } else {
             Err(LostTheWay::DoingNothing {
@@ -404,10 +362,8 @@ impl TheWay {
         }
     }
 
-    fn get_db(dir: &PathDir) -> Result<sled::Db, Error> {
-        Ok(sled::open(&PathDir::create_all(
-            dir.join(config::DB_PATH),
-        )?)?)
+    fn get_db(db_dir: &PathDir) -> Result<sled::Db, Error> {
+        Ok(sled::open(&PathDir::create_all(db_dir)?)?)
     }
 
     fn set_merge(&self) -> Result<(), Error> {

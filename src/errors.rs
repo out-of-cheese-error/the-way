@@ -28,6 +28,14 @@ pub enum LostTheWay {
     /// Thrown when badly formatted file given for parsing
     #[error("I can't read {filename:?}. See x for the expected format")]
     FileParseError { filename: String },
+    /// Thrown when trying to load a theme which hasn't been added / doesn't exist
+    #[error(
+        "I don't have the {theme_name:?} theme. Add it from a theme file with the-way themes --add"
+    )]
+    ThemeNotFound { theme_name: String },
+    // /// Thrown when a theme can't be loaded (file format issues etc.)
+    // #[error("Can't load {theme_name:?} theme. Add it from a theme file with the-way themes --add")]
+    // ThemeNotFound { theme_name: String },
     /// Catch-all for stuff that should never happen
     #[error("{message:?}\nRedo from start.")]
     OutOfCheeseError { message: String },

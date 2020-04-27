@@ -3,35 +3,40 @@ use std::collections::HashMap;
 use anyhow::Error;
 use chrono::{DateTime, Utc};
 use path_abs::{FileRead, PathFile};
+use syntect::highlighting::{FontStyle, Style, StyleModifier};
+use textwrap::termwidth;
 
-use crate::language::Language;
+use crate::language::{CodeHighlight, Language};
 use crate::utils;
 
 /// Stores information about a quote
 #[derive(Serialize, Deserialize, Debug)]
-pub struct Snippet {
+pub(crate) struct Snippet {
     /// Snippet index, used to retrieve, copy, or modify a snippet
-    pub index: usize,
+    pub(crate) index: usize,
     /// Snippet description, what does it do?
-    pub description: String,
+    pub(crate) description: String,
     /// Language the snippet is written in
-    pub language: String,
+    pub(crate) language: String,
+    /// extension
+    extension: String,
     /// Tags attached to the snippet
-    pub tags: Vec<String>,
+    pub(crate) tags: Vec<String>,
     /// Date of recording the snippet
-    pub date: DateTime<Utc>,
+    pub(crate) date: DateTime<Utc>,
     /// Snippet source
-    pub source: String,
+    pub(crate) source: String,
     /// Snippet code
-    pub code: String,
+    pub(crate) code: String,
 }
 
 impl Snippet {
     /// New snippet
-    pub fn new(
+    fn new(
         index: usize,
         description: String,
         language: String,
+        extension: String,
         tags: &str,
         date: DateTime<Utc>,
         source: String,
@@ -41,6 +46,7 @@ impl Snippet {
             index,
             description,
             language,
+            extension,
             tags: utils::split_tags(tags),
             date,
             source,
@@ -48,7 +54,20 @@ impl Snippet {
         }
     }
 
-    pub fn from_user(
+    fn get_extension(language_name: &str, languages: &HashMap<String, Language>) -> String {
+        let default = Language::default();
+        if let Some(l) = languages.get(language_name) {
+            l.extension.to_owned()
+        } else {
+            println!(
+                "Couldn't find language {} in the list of extensions, defaulting to .txt",
+                language_name
+            );
+            default.extension
+        }
+    }
+
+    pub(crate) fn from_user(
         index: usize,
         languages: &HashMap<String, Language>,
         old_snippet: Option<Snippet>,
@@ -69,16 +88,7 @@ impl Snippet {
         let description = utils::user_input("Description", old_description.as_deref(), false)?;
         let language =
             utils::user_input("Language", old_language.as_deref(), false)?.to_ascii_lowercase();
-        let default = Language::default();
-        let extension = if let Some(l) = languages.get(&language) {
-            &l.extension
-        } else {
-            println!(
-                "Couldn't find language {} in the list of extensions, defaulting to .txt",
-                language
-            );
-            &default.extension
-        };
+        let extension = Self::get_extension(&language, languages);
         let tags = utils::user_input("Tags (space separated)", old_tags.as_deref(), false)?;
         let source = utils::user_input("Source", old_source.as_deref(), false)?;
         let date = match old_date {
@@ -92,12 +102,13 @@ impl Snippet {
             false,
         )?;
         if code.is_empty() {
-            code = utils::external_editor_input(old_code.as_deref(), extension)?;
+            code = utils::external_editor_input(old_code.as_deref(), &extension)?;
         }
         Ok(Snippet::new(
             index,
             description,
             language,
+            extension,
             &tags,
             date,
             source,
@@ -105,23 +116,23 @@ impl Snippet {
         ))
     }
 
-    pub fn to_bytes(&self) -> Result<Vec<u8>, Error> {
+    pub(crate) fn to_bytes(&self) -> Result<Vec<u8>, Error> {
         Ok(bincode::serialize(&self)?)
     }
 
-    pub fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
+    pub(crate) fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
         Ok(bincode::deserialize(bytes)?)
     }
 
     /// Read snippets from a JSON file and return consumable iterator
-    pub fn read_from_file(
+    pub(crate) fn read_from_file(
         json_file: &PathFile,
     ) -> Result<impl Iterator<Item = serde_json::Result<Snippet>>, Error> {
         Ok(serde_json::Deserializer::from_reader(FileRead::open(json_file)?).into_iter::<Self>())
     }
 
     /// Filters snippets in date range
-    pub fn filter_in_date_range(
+    pub(crate) fn filter_in_date_range(
         snippets: Vec<Snippet>,
         from_date: DateTime<Utc>,
         to_date: DateTime<Utc>,
@@ -133,17 +144,53 @@ impl Snippet {
     }
 
     /// Checks if a snippet was recorded within a date range
-    pub fn in_date_range(&self, from_date: DateTime<Utc>, to_date: DateTime<Utc>) -> bool {
+    pub(crate) fn in_date_range(&self, from_date: DateTime<Utc>, to_date: DateTime<Utc>) -> bool {
         from_date <= self.date && self.date < to_date
     }
 
     /// Check if a snippet has a particular tag associated with it
-    pub fn has_tag(&self, tag: &str) -> bool {
+    pub(crate) fn has_tag(&self, tag: &str) -> bool {
         self.tags.contains(&tag.into())
     }
 
-    // TODO: Display a quote in the terminal prettily
-    pub fn pretty_print(&self) {
-        println!("{:?}", self);
+    pub(crate) fn pretty_print(&self, highlighter: &CodeHighlight) -> Result<String, Error> {
+        let mut colorized = String::new();
+
+        let width = termwidth() - 4;
+        let main_color = highlighter.get_main_color();
+        let dim_color = highlighter.get_dim_color();
+        let accent_color = highlighter.get_accent_color();
+
+        let main_style = Style::default().apply(StyleModifier {
+            foreground: Some(main_color),
+            background: None,
+            font_style: Some(FontStyle::BOLD),
+        });
+        let accent_style = Style::default().apply(StyleModifier {
+            foreground: Some(accent_color),
+            background: None,
+            font_style: Some(FontStyle::ITALIC),
+        });
+        let dim_style = Style::default().apply(StyleModifier {
+            foreground: Some(dim_color),
+            background: None,
+            font_style: None,
+        });
+
+        let text = format!("#{}. {}\n", self.index, self.description);
+        colorized += highlighter.highlight_line(&text, main_style).as_str();
+        colorized += highlighter.highlight(&self.code, &self.extension)?.as_str();
+        let text = format!(
+            "{} | {} | {}\n",
+            self.language,
+            self.tags.join(", "),
+            self.source
+        );
+        colorized += highlighter.highlight_line(&text, accent_style).as_str();
+        let dashes = (0..width / 2).map(|_| '-').collect::<String>();
+        colorized += highlighter
+            .highlight_line(&format!("{}\n", dashes), dim_style)
+            .as_str();
+        Ok(colorized)
     }
 }

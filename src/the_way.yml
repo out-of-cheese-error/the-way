@@ -185,6 +185,25 @@ subcommands:
               - from
               - to
             multiple: true
+  - themes:
+      about: View and configure syntax highlighting themes
+      args:
+        - set:
+            help: Set your preferred syntax highlighting theme
+            short: st
+            long: set
+            takes_value: true
+            value_name: THEME
+        - list:
+            help: List all themes (default + user-added)
+            short: lt
+            long: list
+        - add:
+            help: add a theme from a .tmTheme file <FILE>
+            short: at
+            long: add
+            takes_value: true
+            value_name: FILE
   - config:
       about: Configure settings
       display-order: 7
