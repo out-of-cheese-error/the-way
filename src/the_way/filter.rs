@@ -36,7 +36,7 @@ impl<'a> Filters<'a> {
 
         let (languages, tags) = (
             utils::get_argument_values("language", matches)?,
-            utils::get_argument_values("tags", matches)?,
+            utils::get_argument_values("tag", matches)?,
         );
         Ok(Filters {
             languages,

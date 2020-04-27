@@ -52,12 +52,14 @@ subcommands:
             long: lang
             value_name: LANGUAGE
             takes_value: true
+            multiple: true
             help: Snippets written in <LANGUAGE> (multiple with "lang1 lang2")
         - tag:
             long: tag
             short: t
             takes_value: true
             value_name: TAG
+            multiple: true
             help: Snippets with <TAG> (multiple with "tag1 tag2")
       groups:
         - date-range:
@@ -88,12 +90,14 @@ subcommands:
             long: language
             value_name: LANGUAGE
             takes_value: true
+            multiple: true
             help: Snippets written in <LANGUAGE> (multiple with "lang1 lang2")
         - tag:
             long: tag
             short: t
             takes_value: true
             value_name: TAG
+            multiple: true
             help: Snippets with <TAG> (multiple with "tag1 tag2")
       groups:
         - date-range:
@@ -146,12 +150,14 @@ subcommands:
             long: language
             value_name: LANGUAGE
             takes_value: true
+            multiple: true
             help: Snippets written in <LANGUAGE> (multiple with "lang1 lang2")
         - tag:
             long: tag
             short: t
             takes_value: true
             value_name: TAG
+            multiple: true
             help: Snippets with <TAG> (multiple with "tag1 tag2")
       groups:
         - date-range:
@@ -206,12 +212,6 @@ subcommands:
             help: Clears all snippet data
             short: C
             long: clear
-        - dir:
-            help: Sets snippet directory to <DIR> (moves old files if they exist)
-            short: D
-            long: dir
-            value_name: DIR
-            takes_value: true
         - completions:
             help: Generates completions for your shell
             takes_value: true
@@ -226,6 +226,5 @@ subcommands:
         - change:
             args:
               - clear
-              - dir
               - completions
             required: true

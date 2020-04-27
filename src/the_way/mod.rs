@@ -360,13 +360,16 @@ impl TheWay {
             None => None,
         };
         match (filters.tags.clone(), snippets) {
-            (Some(tags), Some(snippets)) => Ok(snippets
-                .into_iter()
-                .filter(|snippet| {
-                    snippet.in_date_range(from_date, to_date)
-                        && tags.clone().any(|tag| snippet.has_tag(tag))
-                })
-                .collect()),
+            (Some(tags), Some(snippets)) => {
+                let tags: Vec<_> = tags.map(|t| t).collect();
+                Ok(snippets
+                    .into_iter()
+                    .filter(|snippet| {
+                        snippet.in_date_range(from_date, to_date)
+                            && tags.iter().any(|tag| snippet.has_tag(tag))
+                    })
+                    .collect())
+            }
             (Some(tags), None) => {
                 let indices = tags
                     .flat_map(|tag| self.get_tag_snippets(tag).unwrap_or_default())
