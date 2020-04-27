@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use anyhow::Error;
+use hex::FromHex;
 use path_abs::{PathDir, PathFile, PathInfo, PathOps};
 use serde_yaml::Value;
 use syntect::easy::HighlightLines;
@@ -10,6 +11,7 @@ use syntect::util::{as_24_bit_terminal_escaped, LinesWithEndings};
 use syntect::LoadingError;
 
 use crate::errors::LostTheWay;
+use crate::utils::END_ANSI;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 struct LanguageYML {
@@ -166,11 +168,34 @@ impl CodeHighlight {
         Ok(())
     }
 
-    pub(crate) fn highlight_line(&self, line: &str, style: Style) -> String {
+    pub(crate) fn highlight_block(
+        &self,
+        language_color_string: &Option<String>,
+    ) -> Result<String, Error> {
+        let mut language_color = [0; 3];
+        if let Some(color) = language_color_string {
+            language_color = <[u8; 3]>::from_hex(&color[1..])?;
+        }
+        Ok(self.highlight_string(
+            &format!("■ {}", END_ANSI),
+            Style::default().apply(StyleModifier {
+                foreground: Some(Color {
+                    r: language_color[0],
+                    g: language_color[1],
+                    b: language_color[2],
+                    a: 0xFF,
+                }),
+                background: None,
+                font_style: None,
+            }),
+        ))
+    }
+
+    pub(crate) fn highlight_string(&self, line: &str, style: Style) -> String {
         as_24_bit_terminal_escaped(&[(style, line)], false)
     }
 
-    pub(crate) fn highlight(&self, code: &str, extension: &str) -> Result<Vec<String>, Error> {
+    pub(crate) fn highlight_code(&self, code: &str, extension: &str) -> Result<Vec<String>, Error> {
         let mut colorized = vec![String::from("\n")];
         let extension = extension.split('.').nth(1).unwrap();
         let syntax = self.syntax_set.find_syntax_by_extension(extension).ok_or(

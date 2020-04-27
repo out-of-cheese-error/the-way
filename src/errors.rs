@@ -33,9 +33,6 @@ pub enum LostTheWay {
         "I don't have the {theme_name:?} theme. Add it from a theme file with the-way themes --add"
     )]
     ThemeNotFound { theme_name: String },
-    // /// Thrown when a theme can't be loaded (file format issues etc.)
-    // #[error("Can't load {theme_name:?} theme. Add it from a theme file with the-way themes --add")]
-    // ThemeNotFound { theme_name: String },
     /// Catch-all for stuff that should never happen
     #[error("{message:?}\nRedo from start.")]
     OutOfCheeseError { message: String },

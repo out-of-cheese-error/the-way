@@ -78,7 +78,6 @@ impl TheWay {
             self.copy()
         } else {
             match self.matches.subcommand() {
-                ("config", Some(matches)) => self.config(matches),
                 ("import", Some(matches)) => {
                     for snippet in self.import(matches)? {
                         self.add_snippet(&snippet)?;
@@ -118,6 +117,8 @@ impl TheWay {
                     }
                 }
                 ("stats", Some(matches)) => self.stats(matches),
+                ("clear", Some(_)) => self.clear(),
+                ("complete", Some(matches)) => self.complete(matches),
                 _ => self.the_way(),
             }
         }
@@ -168,9 +169,9 @@ impl TheWay {
             })?
             .parse::<usize>()?;
         let old_snippet = self.get_snippet(index)?;
-        self.delete_from_trees(&old_snippet, index)?;
+        let new_snippet = Snippet::from_user(index, &self.languages, Some(&old_snippet))?;
 
-        let new_snippet = Snippet::from_user(index, &self.languages, Some(old_snippet))?;
+        self.delete_from_trees(&old_snippet, index)?;
         let language_key = new_snippet.language.as_bytes();
         let index_key = index.to_string();
         let index_key = index_key.as_bytes();
@@ -195,7 +196,12 @@ impl TheWay {
             .parse::<usize>()?;
         let snippet = self.get_snippet(index)?;
         println!();
-        for line in snippet.pretty_print(&self.highlighter, self.highlighter.get_styles(), false)? {
+        for line in snippet.pretty_print(
+            &self.highlighter,
+            &self.languages[&snippet.language],
+            self.highlighter.get_styles(),
+            false,
+        )? {
             print!("{}", line)
         }
         Ok(())
@@ -214,22 +220,7 @@ impl TheWay {
         Ok(())
     }
 
-    /// Clears all data or changes the snippets directory or generates shell completions
-    fn config(&self, matches: &ArgMatches) -> Result<(), Error> {
-        if matches.is_present("clear") {
-            self.clear()
-        } else if matches.is_present("completions") {
-            self.completions(matches)
-        } else {
-            Err(LostTheWay::OutOfCheeseError {
-                message: "Unknown/No config argument".into(),
-            }
-            .into())
-        }
-    }
-
     /// Syntax highlighting management
-
     fn list_themes(&self) -> Result<(), Error> {
         for theme in self.highlighter.get_themes() {
             println!("{}", theme);
@@ -266,7 +257,12 @@ impl TheWay {
         let mut colorized = vec![String::from("\n")];
         let styles = self.highlighter.get_styles();
         for snippet in &snippets {
-            colorized.extend_from_slice(&snippet.pretty_print(&self.highlighter, styles, false)?);
+            colorized.extend_from_slice(&snippet.pretty_print(
+                &self.highlighter,
+                &self.languages[&snippet.language],
+                styles,
+                false,
+            )?);
             colorized.push(String::from("\n"));
         }
         println!();
@@ -282,14 +278,27 @@ impl TheWay {
         let filters = Filters::get_filters(matches)?;
         let snippets = self.filter_snippets(&filters)?;
         let styles = self.highlighter.get_styles();
+
         let search_snippets: Vec<_> = snippets
             .into_iter()
             .map(|snippet| SearchSnippet {
                 code_highlight: snippet
-                    .pretty_print(&self.highlighter, styles, true)
+                    .pretty_print(
+                        &self.highlighter,
+                        &self.languages[&snippet.language],
+                        styles,
+                        true,
+                    )
                     .unwrap_or_default()
                     .join(""),
-                text: format!("#{}. {}", snippet.index, snippet.description),
+                text: snippet
+                    .highlight_description(
+                        &self.highlighter,
+                        &self.languages[&snippet.language],
+                        styles.0,
+                    )
+                    .unwrap()
+                    .join(""),
                 index: snippet.index,
                 code: snippet.code,
             })
@@ -299,7 +308,7 @@ impl TheWay {
     }
 
     /// Generates shell completions
-    fn completions(&self, _matches: &ArgMatches) -> Result<(), Error> {
+    fn complete(&self, _matches: &ArgMatches) -> Result<(), Error> {
         // let shell = utils::get_argument_value("completions", matches)?.ok_or(
         //     LostTheWay::OutOfCheeseError {
         //         message: "Argument shell not used".into(),
@@ -327,7 +336,14 @@ impl TheWay {
             }
         }
         if sure_delete == "Y" {
-            PathDir::new(&self.config.db_dir)?.remove_all()?;
+            for path in self.config.db_dir.list()? {
+                let path = path?;
+                if path.is_dir() {
+                    PathDir::new(path)?.remove_all()?;
+                } else {
+                    PathFile::new(path)?.remove()?;
+                }
+            }
             Ok(())
         } else {
             Err(LostTheWay::DoingNothing {

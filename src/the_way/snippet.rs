@@ -8,6 +8,7 @@ use textwrap::termwidth;
 
 use crate::language::{CodeHighlight, Language};
 use crate::utils;
+use crate::utils::END_ANSI;
 
 /// Stores information about a quote
 #[derive(Serialize, Deserialize, Debug)]
@@ -24,8 +25,6 @@ pub(crate) struct Snippet {
     pub(crate) tags: Vec<String>,
     /// Date of recording the snippet
     pub(crate) date: DateTime<Utc>,
-    /// Snippet source
-    pub(crate) source: String,
     /// Snippet code
     pub(crate) code: String,
 }
@@ -39,7 +38,6 @@ impl Snippet {
         extension: String,
         tags: &str,
         date: DateTime<Utc>,
-        source: String,
         code: String,
     ) -> Self {
         Snippet {
@@ -49,7 +47,6 @@ impl Snippet {
             extension,
             tags: utils::split_tags(tags),
             date,
-            source,
             code,
         }
     }
@@ -70,27 +67,23 @@ impl Snippet {
     pub(crate) fn from_user(
         index: usize,
         languages: &HashMap<String, Language>,
-        old_snippet: Option<Snippet>,
+        old_snippet: Option<&Snippet>,
     ) -> Result<Snippet, Error> {
-        let (old_description, old_language, old_tags, old_date, old_source, old_code) =
-            match old_snippet {
-                Some(s) => (
-                    Some(s.description),
-                    Some(s.language),
-                    Some(s.tags.join(" ")),
-                    Some(s.date.date().format("%Y-%m-%d").to_string()),
-                    Some(s.source),
-                    Some(s.code),
-                ),
-                None => (None, None, None, None, None, None),
-            };
+        let (old_description, old_language, old_tags, old_date, old_code) = match old_snippet {
+            Some(s) => (
+                Some(s.description.as_str()),
+                Some(s.language.as_str()),
+                Some(s.tags.join(" ")),
+                Some(s.date.date().format("%Y-%m-%d").to_string()),
+                Some(s.code.as_str()),
+            ),
+            None => (None, None, None, None, None),
+        };
 
-        let description = utils::user_input("Description", old_description.as_deref(), false)?;
-        let language =
-            utils::user_input("Language", old_language.as_deref(), false)?.to_ascii_lowercase();
+        let description = utils::user_input("Description", old_description, false)?;
+        let language = utils::user_input("Language", old_language, false)?.to_ascii_lowercase();
         let extension = Self::get_extension(&language, languages);
         let tags = utils::user_input("Tags (space separated)", old_tags.as_deref(), false)?;
-        let source = utils::user_input("Source", old_source.as_deref(), false)?;
         let date = match old_date {
             Some(_) => utils::parse_date(&utils::user_input("Date", old_date.as_deref(), true)?)?
                 .and_hms(0, 0, 0),
@@ -111,7 +104,6 @@ impl Snippet {
             extension,
             &tags,
             date,
-            source,
             code,
         ))
     }
@@ -153,9 +145,24 @@ impl Snippet {
         self.tags.contains(&tag.into())
     }
 
+    pub(crate) fn highlight_description(
+        &self,
+        highlighter: &CodeHighlight,
+        language: &Language,
+        style: Style,
+    ) -> Result<Vec<String>, Error> {
+        let mut colorized = Vec::new();
+        let block = highlighter.highlight_block(&language.color)?;
+        colorized.push(block);
+        let text = format!("#{}. {}\n", self.index, self.description);
+        colorized.push(highlighter.highlight_string(&text, style));
+        Ok(colorized)
+    }
+
     pub(crate) fn pretty_print(
         &self,
         highlighter: &CodeHighlight,
+        language: &Language,
         styles: (Style, Style, Style),
         for_search: bool,
     ) -> Result<Vec<String>, Error> {
@@ -164,26 +171,22 @@ impl Snippet {
         let width = termwidth() - 4;
 
         if !for_search {
-            let text = format!("#{}. {}\n", self.index, self.description);
-            colorized.push(highlighter.highlight_line(&text, main_style));
+            colorized.extend_from_slice(&self.highlight_description(
+                highlighter,
+                language,
+                main_style,
+            )?);
         }
-        colorized.extend(
-            highlighter
-                .highlight(&self.code, &self.extension)?
-                .into_iter(),
-        );
-        let text = format!(
-            "{} | {} | {}\n",
-            self.language,
-            self.tags.join(", "),
-            self.source
-        );
-        colorized.push(highlighter.highlight_line(&text, accent_style));
+        colorized.extend_from_slice(&highlighter.highlight_code(&self.code, &self.extension)?);
+        colorized.push(highlighter.highlight_block(&language.color)?);
+        let text = format!("{} | {} \n", self.language, self.tags.join(", "),);
+        colorized.push(highlighter.highlight_string(&text, accent_style));
 
         if !for_search {
             let dashes = (0..width / 2).map(|_| '-').collect::<String>();
-            colorized.push(highlighter.highlight_line(&format!("{}\n", dashes), dim_style));
+            colorized.push(highlighter.highlight_string(&format!("{}\n", dashes), dim_style));
         }
+        colorized.push(END_ANSI.to_owned());
         Ok(colorized)
     }
 }

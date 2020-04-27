@@ -16,6 +16,7 @@ use termion::input::TermRead;
 use crate::errors::LostTheWay;
 
 pub const RAVEN: char = '\u{1313F}';
+pub const END_ANSI: &str = "\x1b[0m";
 
 /// ASCII code of semicolon
 pub const SEMICOLON: u8 = 59;

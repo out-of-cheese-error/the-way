@@ -3,7 +3,7 @@ A code snippets manager for your terminal.
 
 Easily record and retrieve snippets you use every day, or once in a blue moon,
 without having to spin up a browser. Just call `the-way` to add a snippet with a 
-description, a language, a source, and some tags attached. `the-way search` fuzzy 
+description, a language, and some tags attached. `the-way search` fuzzy 
 searches your snippets library (with optional filters on language and tags). 
 And `the-way copy` lets you copy a particular snippet to your clipboard, so you can paste 
 it into whatever editor or IDE you're working with.

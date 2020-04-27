@@ -32,7 +32,7 @@ args:
 
 subcommands:
   - search:
-      about: Finds snippets matching a pattern
+      about: Fuzzy search and copy selected to clipboard
       display-order: 1
       args:
         - from:
@@ -108,30 +108,25 @@ subcommands:
             conflicts_with:
               - on
   - import:
-      about: Imports code snippets from a JSON or Markdown file. See x for the expected format of the md file.
+      about: Imports code snippets from a JSON file
       display-order: 4
       args:
         - json:
             short: j
-            long: json
             value_name: JSON_FILE
             takes_value: true
-        - md:
-            short: m
-            long: md
-            value_name: MD_FILE
-            takes_value: true
-            conflicts_with:
-              - json
-  - export:
-      about: Saves (optionally filtered) snippets to a Markdown file. See x for format.
-      display-order: 5
-      args:
-        - filename:
-            short: o
             required: true
             index: 1
-            value_name: FILENAME
+            help: filename to import snippets from
+  - export:
+      about: Saves (optionally filtered) snippets to a JSON file.
+      display-order: 5
+      args:
+        - json:
+            short: j
+            required: true
+            index: 1
+            value_name: JSON_FILE
             help: filename to write snippets to
         - from:
             long: from
@@ -204,27 +199,16 @@ subcommands:
             long: add
             takes_value: true
             value_name: FILE
-  - config:
-      about: Configure settings
-      display-order: 7
+  - clear:
+      about: Clears all data
+  - complete:
+      about: Generates completions for your shell
       args:
-        - clear:
-            help: Clears all snippet data
-            short: C
-            long: clear
-        - completions:
-            help: Generates completions for your shell
-            takes_value: true
+        - shell:
+            required: true
+            index: 1
             value_name: SHELL
-            short: c
-            long: completions
             possible_values:
               - zsh
               - bash
               - fish
-      groups:
-        - change:
-            args:
-              - clear
-              - completions
-            required: true
