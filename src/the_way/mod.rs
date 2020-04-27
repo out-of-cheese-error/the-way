@@ -193,7 +193,10 @@ impl TheWay {
             })?
             .parse::<usize>()?;
         let snippet = self.get_snippet(index)?;
-        println!("\n{}", snippet.pretty_print(&self.highlighter)?);
+        println!(
+            "\n{}",
+            snippet.pretty_print(&self.highlighter, self.highlighter.get_styles())?
+        );
         Ok(())
     }
 
@@ -261,8 +264,9 @@ impl TheWay {
         let filters = Filters::get_filters(matches)?;
         let snippets = self.filter_snippets(&filters)?;
         let mut colorized = String::from("\n");
+        let styles = self.highlighter.get_styles();
         for snippet in &snippets {
-            colorized += snippet.pretty_print(&self.highlighter)?.as_str();
+            colorized += snippet.pretty_print(&self.highlighter, styles)?.as_str();
             colorized.push('\n');
         }
         println!("{}", colorized);

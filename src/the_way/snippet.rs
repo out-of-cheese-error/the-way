@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use anyhow::Error;
 use chrono::{DateTime, Utc};
 use path_abs::{FileRead, PathFile};
-use syntect::highlighting::{FontStyle, Style, StyleModifier};
+use syntect::highlighting::Style;
 use textwrap::termwidth;
 
 use crate::language::{CodeHighlight, Language};
@@ -153,29 +153,14 @@ impl Snippet {
         self.tags.contains(&tag.into())
     }
 
-    pub(crate) fn pretty_print(&self, highlighter: &CodeHighlight) -> Result<String, Error> {
+    pub(crate) fn pretty_print(
+        &self,
+        highlighter: &CodeHighlight,
+        styles: (Style, Style, Style),
+    ) -> Result<String, Error> {
+        let (main_style, accent_style, dim_style) = styles;
         let mut colorized = String::new();
-
         let width = termwidth() - 4;
-        let main_color = highlighter.get_main_color();
-        let dim_color = highlighter.get_dim_color();
-        let accent_color = highlighter.get_accent_color();
-
-        let main_style = Style::default().apply(StyleModifier {
-            foreground: Some(main_color),
-            background: None,
-            font_style: Some(FontStyle::BOLD),
-        });
-        let accent_style = Style::default().apply(StyleModifier {
-            foreground: Some(accent_color),
-            background: None,
-            font_style: Some(FontStyle::ITALIC),
-        });
-        let dim_style = Style::default().apply(StyleModifier {
-            foreground: Some(dim_color),
-            background: None,
-            font_style: None,
-        });
 
         let text = format!("#{}. {}\n", self.index, self.description);
         colorized += highlighter.highlight_line(&text, main_style).as_str();

@@ -4,7 +4,7 @@ use anyhow::Error;
 use path_abs::{PathDir, PathFile, PathInfo, PathOps};
 use serde_yaml::Value;
 use syntect::easy::HighlightLines;
-use syntect::highlighting::{Color, Style, ThemeSet};
+use syntect::highlighting::{Color, FontStyle, Style, StyleModifier, ThemeSet};
 use syntect::parsing::SyntaxSet;
 use syntect::util::{as_24_bit_terminal_escaped, LinesWithEndings};
 use syntect::LoadingError;
@@ -94,25 +94,48 @@ impl CodeHighlight {
         })
     }
 
-    pub(crate) fn get_main_color(&self) -> Color {
+    fn get_main_color(&self) -> Color {
         self.theme_set.themes[&self.theme_name]
             .settings
             .foreground
             .unwrap_or(Color::WHITE)
     }
 
-    pub(crate) fn get_dim_color(&self) -> Color {
+    fn get_dim_color(&self) -> Color {
         self.theme_set.themes[&self.theme_name]
             .settings
             .selection
             .unwrap_or(Color::WHITE)
     }
 
-    pub(crate) fn get_accent_color(&self) -> Color {
+    fn get_accent_color(&self) -> Color {
         self.theme_set.themes[&self.theme_name]
             .settings
             .caret
             .unwrap_or(Color::WHITE)
+    }
+
+    pub(crate) fn get_styles(&self) -> (Style, Style, Style) {
+        let main_color = self.get_main_color();
+        let dim_color = self.get_dim_color();
+        let accent_color = self.get_accent_color();
+
+        let main_style = Style::default().apply(StyleModifier {
+            foreground: Some(main_color),
+            background: None,
+            font_style: Some(FontStyle::BOLD),
+        });
+        let accent_style = Style::default().apply(StyleModifier {
+            foreground: Some(accent_color),
+            background: None,
+            font_style: Some(FontStyle::ITALIC),
+        });
+        let dim_style = Style::default().apply(StyleModifier {
+            foreground: Some(dim_color),
+            background: None,
+            font_style: None,
+        });
+        (main_style, accent_style, dim_style)
     }
 
     pub(crate) fn set_theme(&mut self, theme_name: String) -> Result<(), Error> {
