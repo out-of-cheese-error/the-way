@@ -9,7 +9,7 @@ use clap::{load_yaml, App};
 use crate::language::get_languages;
 use crate::the_way::TheWay;
 
-mod config;
+mod configuration;
 mod errors;
 mod language;
 mod the_way;

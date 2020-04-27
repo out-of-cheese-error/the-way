@@ -7,13 +7,14 @@ authors = ["Ninjani"]
 [dependencies]
 # Argument parsing
 clap = {git = "https://github.com/clap-rs/clap/", version = "3.0.0-beta.1", features = ["yaml"]}
+confy = "0.4.0"
 
 # Error management
 anyhow = "1.0.28"
 thiserror = "1.0.15"
 
 # Path and file related
-dirs = "2.0.2"
+directories = "2.0.2"
 path_abs = "0.5.0"
 
 # Database related

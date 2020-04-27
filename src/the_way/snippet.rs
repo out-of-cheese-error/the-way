@@ -6,28 +6,28 @@ use console::{pad_str, style, Alignment};
 use path_abs::{FileRead, PathFile};
 use textwrap::termwidth;
 
-use crate::language::Language;
+use crate::language::{CodeHighlight, Language};
 use crate::utils;
 
 /// Stores information about a quote
 #[derive(Serialize, Deserialize, Debug)]
-pub struct Snippet {
+pub(crate) struct Snippet {
     /// Snippet index, used to retrieve, copy, or modify a snippet
-    pub index: usize,
+    pub(crate) index: usize,
     /// Snippet description, what does it do?
-    pub description: String,
+    pub(crate) description: String,
     /// Language the snippet is written in
-    pub language: String,
+    pub(crate) language: String,
     /// extension
     extension: String,
     /// Tags attached to the snippet
-    pub tags: Vec<String>,
+    pub(crate) tags: Vec<String>,
     /// Date of recording the snippet
-    pub date: DateTime<Utc>,
+    pub(crate) date: DateTime<Utc>,
     /// Snippet source
-    pub source: String,
+    pub(crate) source: String,
     /// Snippet code
-    pub code: String,
+    pub(crate) code: String,
 }
 
 impl Snippet {
@@ -67,7 +67,7 @@ impl Snippet {
         }
     }
 
-    pub fn from_user(
+    pub(crate) fn from_user(
         index: usize,
         languages: &HashMap<String, Language>,
         old_snippet: Option<Snippet>,
@@ -116,23 +116,23 @@ impl Snippet {
         ))
     }
 
-    pub fn to_bytes(&self) -> Result<Vec<u8>, Error> {
+    pub(crate) fn to_bytes(&self) -> Result<Vec<u8>, Error> {
         Ok(bincode::serialize(&self)?)
     }
 
-    pub fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
+    pub(crate) fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
         Ok(bincode::deserialize(bytes)?)
     }
 
     /// Read snippets from a JSON file and return consumable iterator
-    pub fn read_from_file(
+    pub(crate) fn read_from_file(
         json_file: &PathFile,
     ) -> Result<impl Iterator<Item = serde_json::Result<Snippet>>, Error> {
         Ok(serde_json::Deserializer::from_reader(FileRead::open(json_file)?).into_iter::<Self>())
     }
 
     /// Filters snippets in date range
-    pub fn filter_in_date_range(
+    pub(crate) fn filter_in_date_range(
         snippets: Vec<Snippet>,
         from_date: DateTime<Utc>,
         to_date: DateTime<Utc>,
@@ -144,17 +144,16 @@ impl Snippet {
     }
 
     /// Checks if a snippet was recorded within a date range
-    pub fn in_date_range(&self, from_date: DateTime<Utc>, to_date: DateTime<Utc>) -> bool {
+    pub(crate) fn in_date_range(&self, from_date: DateTime<Utc>, to_date: DateTime<Utc>) -> bool {
         from_date <= self.date && self.date < to_date
     }
 
     /// Check if a snippet has a particular tag associated with it
-    pub fn has_tag(&self, tag: &str) -> bool {
+    pub(crate) fn has_tag(&self, tag: &str) -> bool {
         self.tags.contains(&tag.into())
     }
 
-    // TODO: Display a quote in the terminal prettily
-    pub fn pretty_print(&self) {
+    pub(crate) fn pretty_print(&self, highlighter: &CodeHighlight) -> Result<(), Error> {
         let width = termwidth() - 4;
         println!(
             "{}",
@@ -183,7 +182,7 @@ impl Snippet {
             "{}",
             style((0..width - 4).map(|_| '-').collect::<String>()).dim()
         );
-        utils::highlight_code(&self.code, &self.extension);
+        highlighter.highlight(&self.code, &self.extension)?;
         let num_digits = self.index.to_string().chars().count();
         let num_dashes = (width - 2 - num_digits - 1) / 2;
         let dashes = (0..num_dashes).map(|_| '-').collect::<String>();
@@ -207,5 +206,6 @@ impl Snippet {
                 .dim()
                 .italic()
         );
+        Ok(())
     }
 }
