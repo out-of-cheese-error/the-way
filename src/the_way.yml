@@ -35,12 +35,6 @@ subcommands:
       about: Finds snippets matching a pattern
       display-order: 1
       args:
-        - pattern:
-            short: p
-            required: true
-            index: 1
-            value_name: PATTERN
-            help: Lists snippets matching <PATTERN>
         - from:
             long: from
             value_name: DATE

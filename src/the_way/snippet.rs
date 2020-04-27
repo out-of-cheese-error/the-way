@@ -19,7 +19,7 @@ pub(crate) struct Snippet {
     /// Language the snippet is written in
     pub(crate) language: String,
     /// extension
-    extension: String,
+    pub(crate) extension: String,
     /// Tags attached to the snippet
     pub(crate) tags: Vec<String>,
     /// Date of recording the snippet
@@ -157,25 +157,33 @@ impl Snippet {
         &self,
         highlighter: &CodeHighlight,
         styles: (Style, Style, Style),
-    ) -> Result<String, Error> {
+        for_search: bool,
+    ) -> Result<Vec<String>, Error> {
         let (main_style, accent_style, dim_style) = styles;
-        let mut colorized = String::new();
+        let mut colorized = Vec::new();
         let width = termwidth() - 4;
 
-        let text = format!("#{}. {}\n", self.index, self.description);
-        colorized += highlighter.highlight_line(&text, main_style).as_str();
-        colorized += highlighter.highlight(&self.code, &self.extension)?.as_str();
+        if !for_search {
+            let text = format!("#{}. {}\n", self.index, self.description);
+            colorized.push(highlighter.highlight_line(&text, main_style));
+        }
+        colorized.extend(
+            highlighter
+                .highlight(&self.code, &self.extension)?
+                .into_iter(),
+        );
         let text = format!(
             "{} | {} | {}\n",
             self.language,
             self.tags.join(", "),
             self.source
         );
-        colorized += highlighter.highlight_line(&text, accent_style).as_str();
-        let dashes = (0..width / 2).map(|_| '-').collect::<String>();
-        colorized += highlighter
-            .highlight_line(&format!("{}\n", dashes), dim_style)
-            .as_str();
+        colorized.push(highlighter.highlight_line(&text, accent_style));
+
+        if !for_search {
+            let dashes = (0..width / 2).map(|_| '-').collect::<String>();
+            colorized.push(highlighter.highlight_line(&format!("{}\n", dashes), dim_style));
+        }
         Ok(colorized)
     }
 }

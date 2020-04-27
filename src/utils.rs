@@ -8,6 +8,7 @@ use anyhow::Error;
 use chrono::{Date, DateTime, Datelike, Utc, MAX_DATE, MIN_DATE};
 use chrono_english::{parse_date_string, Dialect};
 use clap::{ArgMatches, Values};
+use clipboard::{ClipboardContext, ClipboardProvider};
 use dialoguer::{theme, Editor, Input};
 use termion::event::Key;
 use termion::input::TermRead;
@@ -18,6 +19,11 @@ pub const RAVEN: char = '\u{1313F}';
 
 /// ASCII code of semicolon
 pub const SEMICOLON: u8 = 59;
+
+pub fn copy_to_clipboard(text: String) {
+    let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
+    ctx.set_contents(text).unwrap();
+}
 
 /// Splits input by comma
 pub fn split_tags(input: &str) -> Vec<String> {
