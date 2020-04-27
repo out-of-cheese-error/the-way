@@ -3,18 +3,19 @@ use std::collections::{HashMap, HashSet};
 use anyhow::Error;
 use chrono::{Date, DateTime, Datelike, Utc};
 use clap::ArgMatches;
-use clipboard::ClipboardContext;
-use clipboard::ClipboardProvider;
 use path_abs::{PathDir, PathFile};
 
 use crate::configuration::TheWayConfig;
 use crate::errors::LostTheWay;
 use crate::language::{CodeHighlight, Language};
 use crate::the_way::filter::Filters;
+use crate::the_way::search::{search, SearchSnippet};
 use crate::the_way::snippet::Snippet;
 use crate::utils;
+use crate::utils::copy_to_clipboard;
 
 mod filter;
+mod search;
 mod snippet;
 mod stats;
 
@@ -193,10 +194,10 @@ impl TheWay {
             })?
             .parse::<usize>()?;
         let snippet = self.get_snippet(index)?;
-        println!(
-            "\n{}",
-            snippet.pretty_print(&self.highlighter, self.highlighter.get_styles())?
-        );
+        println!();
+        for line in snippet.pretty_print(&self.highlighter, self.highlighter.get_styles(), false)? {
+            print!("{}", line)
+        }
         Ok(())
     }
 
@@ -208,8 +209,7 @@ impl TheWay {
             })?
             .parse::<usize>()?;
         let snippet = self.get_snippet(index)?;
-        let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
-        ctx.set_contents(snippet.code).unwrap();
+        copy_to_clipboard(snippet.code);
         println!("Snippet #{} copied to clipboard", index);
         Ok(())
     }
@@ -263,25 +263,39 @@ impl TheWay {
     fn list(&self, matches: &ArgMatches) -> Result<(), Error> {
         let filters = Filters::get_filters(matches)?;
         let snippets = self.filter_snippets(&filters)?;
-        let mut colorized = String::from("\n");
+        let mut colorized = vec![String::from("\n")];
         let styles = self.highlighter.get_styles();
         for snippet in &snippets {
-            colorized += snippet.pretty_print(&self.highlighter, styles)?.as_str();
-            colorized.push('\n');
+            colorized.extend_from_slice(&snippet.pretty_print(&self.highlighter, styles, false)?);
+            colorized.push(String::from("\n"));
         }
-        println!("{}", colorized);
+        println!();
+        for line in colorized {
+            print!("{}", line);
+        }
         Ok(())
     }
 
-    /// Searches the list of quotes (optionally filtered) for a pattern and displays quotes matching it
-    fn search(&self, _matches: &ArgMatches) -> Result<(), Error> {
-        // let pattern =
-        //     utils::get_argument_value("pattern", matches)?.ok_or(LostTheWay::OutOfCheeseError {
-        //         message: "Argument pattern not used".into(),
-        //     })?;
-        // let filters = Filters::get_filters(matches)?;
-        // let snippets = self.filter_snippets(&filters)?;
-        unimplemented!()
+    /// Displays all snippet descriptions in a skim fuzzy search window
+    /// A preview window on the right shows the indices of snippets matching the query
+    fn search(&self, matches: &ArgMatches) -> Result<(), Error> {
+        let filters = Filters::get_filters(matches)?;
+        let snippets = self.filter_snippets(&filters)?;
+        let styles = self.highlighter.get_styles();
+        let search_snippets: Vec<_> = snippets
+            .into_iter()
+            .map(|snippet| SearchSnippet {
+                code_highlight: snippet
+                    .pretty_print(&self.highlighter, styles, true)
+                    .unwrap_or_default()
+                    .join(""),
+                text: format!("#{}. {}", snippet.index, snippet.description),
+                index: snippet.index,
+                code: snippet.code,
+            })
+            .collect();
+        search(search_snippets)?;
+        Ok(())
     }
 
     /// Generates shell completions

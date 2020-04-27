@@ -170,8 +170,8 @@ impl CodeHighlight {
         as_24_bit_terminal_escaped(&[(style, line)], false)
     }
 
-    pub(crate) fn highlight(&self, code: &str, extension: &str) -> Result<String, Error> {
-        let mut colorized = String::from("\n");
+    pub(crate) fn highlight(&self, code: &str, extension: &str) -> Result<Vec<String>, Error> {
+        let mut colorized = vec![String::from("\n")];
         let extension = extension.split('.').nth(1).unwrap();
         let syntax = self.syntax_set.find_syntax_by_extension(extension).ok_or(
             LostTheWay::LanguageNotFound {
@@ -182,9 +182,11 @@ impl CodeHighlight {
         for line in LinesWithEndings::from(code) {
             let ranges: Vec<(Style, &str)> = h.highlight(line, &self.syntax_set);
             let escaped = as_24_bit_terminal_escaped(&ranges[..], false);
-            colorized += escaped.as_str()
+            colorized.push(escaped);
         }
-        colorized += "\n\n";
+        colorized.push(String::from("\n"));
+        colorized.push(String::from("\n"));
+        colorized.push(String::from("\x1b[0m"));
         Ok(colorized)
     }
 }
