@@ -4,7 +4,7 @@ use anyhow::Error;
 use path_abs::{PathDir, PathFile, PathInfo, PathOps};
 use serde_yaml::Value;
 use syntect::easy::HighlightLines;
-use syntect::highlighting::{Style, ThemeSet};
+use syntect::highlighting::{Color, Style, ThemeSet};
 use syntect::parsing::SyntaxSet;
 use syntect::util::{as_24_bit_terminal_escaped, LinesWithEndings};
 use syntect::LoadingError;
@@ -76,10 +76,10 @@ pub(crate) fn get_languages(yml_string: &str) -> Result<HashMap<String, Language
 }
 
 pub(crate) struct CodeHighlight {
-    syntax_set: SyntaxSet,
-    theme_set: ThemeSet,
-    theme_name: String,
-    theme_dir: PathDir,
+    pub(crate) syntax_set: SyntaxSet,
+    pub(crate) theme_set: ThemeSet,
+    pub(crate) theme_name: String,
+    pub(crate) theme_dir: PathDir,
 }
 
 impl CodeHighlight {
@@ -92,6 +92,27 @@ impl CodeHighlight {
             theme_set,
             theme_dir,
         })
+    }
+
+    pub(crate) fn get_main_color(&self) -> Color {
+        self.theme_set.themes[&self.theme_name]
+            .settings
+            .foreground
+            .unwrap_or(Color::WHITE)
+    }
+
+    pub(crate) fn get_dim_color(&self) -> Color {
+        self.theme_set.themes[&self.theme_name]
+            .settings
+            .selection
+            .unwrap_or(Color::WHITE)
+    }
+
+    pub(crate) fn get_accent_color(&self) -> Color {
+        self.theme_set.themes[&self.theme_name]
+            .settings
+            .caret
+            .unwrap_or(Color::WHITE)
     }
 
     pub(crate) fn set_theme(&mut self, theme_name: String) -> Result<(), Error> {
@@ -122,7 +143,12 @@ impl CodeHighlight {
         Ok(())
     }
 
-    pub(crate) fn highlight(&self, code: &str, extension: &str) -> Result<(), Error> {
+    pub(crate) fn highlight_line(&self, line: &str, style: Style) -> String {
+        as_24_bit_terminal_escaped(&[(style, line)], false)
+    }
+
+    pub(crate) fn highlight(&self, code: &str, extension: &str) -> Result<String, Error> {
+        let mut colorized = String::from("\n");
         let extension = extension.split('.').nth(1).unwrap();
         let syntax = self.syntax_set.find_syntax_by_extension(extension).ok_or(
             LostTheWay::LanguageNotFound {
@@ -133,9 +159,9 @@ impl CodeHighlight {
         for line in LinesWithEndings::from(code) {
             let ranges: Vec<(Style, &str)> = h.highlight(line, &self.syntax_set);
             let escaped = as_24_bit_terminal_escaped(&ranges[..], false);
-            print!("{}", escaped);
+            colorized += escaped.as_str()
         }
-        println!();
-        Ok(())
+        colorized += "\n\n";
+        Ok(colorized)
     }
 }

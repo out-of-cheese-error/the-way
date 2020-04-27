@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use anyhow::Error;
 use chrono::{DateTime, Utc};
-use console::{pad_str, style, Alignment};
 use path_abs::{FileRead, PathFile};
+use syntect::highlighting::{FontStyle, Style, StyleModifier};
 use textwrap::termwidth;
 
 use crate::language::{CodeHighlight, Language};
@@ -153,59 +153,44 @@ impl Snippet {
         self.tags.contains(&tag.into())
     }
 
-    pub(crate) fn pretty_print(&self, highlighter: &CodeHighlight) -> Result<(), Error> {
-        let width = termwidth() - 4;
-        println!(
-            "{}",
-            style(pad_str(
-                &utils::RAVEN.to_string(),
-                width,
-                Alignment::Center,
-                None,
-            ))
-            .dim()
-        );
-        println!(
-            "{}",
-            style(pad_str(
-                &self.description,
-                width - 4,
-                Alignment::Center,
-                None,
-            ))
-        );
-        println!(
-            "{}",
-            style(pad_str(&self.language, width - 4, Alignment::Center, None)).blue()
-        );
-        println!(
-            "{}",
-            style((0..width - 4).map(|_| '-').collect::<String>()).dim()
-        );
-        highlighter.highlight(&self.code, &self.extension)?;
-        let num_digits = self.index.to_string().chars().count();
-        let num_dashes = (width - 2 - num_digits - 1) / 2;
-        let dashes = (0..num_dashes).map(|_| '-').collect::<String>();
-        print!("{}", style(&dashes).dim());
-        print!("{}", style(&format!("#{}", self.index)));
-        println!("{}", style(&dashes).dim());
-        println!(
-            "{}\n",
-            style(pad_str(
-                &self.tags.join(", "),
-                width - 4,
-                Alignment::Center,
-                None,
-            ))
-            .dim()
-        );
+    pub(crate) fn pretty_print(&self, highlighter: &CodeHighlight) -> Result<String, Error> {
+        let mut colorized = String::new();
 
-        println!(
-            "{}",
-            style(pad_str(&self.source, width - 4, Alignment::Center, None))
-                .dim()
-                .italic()
+        let width = termwidth() - 4;
+        let main_color = highlighter.get_main_color();
+        let dim_color = highlighter.get_dim_color();
+        let accent_color = highlighter.get_accent_color();
+
+        let main_style = Style::default().apply(StyleModifier {
+            foreground: Some(main_color),
+            background: None,
+            font_style: Some(FontStyle::BOLD),
+        });
+        let accent_style = Style::default().apply(StyleModifier {
+            foreground: Some(accent_color),
+            background: None,
+            font_style: Some(FontStyle::ITALIC),
+        });
+        let dim_style = Style::default().apply(StyleModifier {
+            foreground: Some(dim_color),
+            background: None,
+            font_style: None,
+        });
+
+        let text = format!("#{}. {}\n", self.index, self.description);
+        colorized += highlighter.highlight_line(&text, main_style).as_str();
+        colorized += highlighter.highlight(&self.code, &self.extension)?.as_str();
+        let text = format!(
+            "{} | {} | {}\n",
+            self.language,
+            self.tags.join(", "),
+            self.source
         );
-        Ok(())
+        colorized += highlighter.highlight_line(&text, accent_style).as_str();
+        let dashes = (0..width / 2).map(|_| '-').collect::<String>();
+        colorized += highlighter
+            .highlight_line(&format!("{}\n", dashes), dim_style)
+            .as_str();
+        Ok(colorized)
     }
 }
