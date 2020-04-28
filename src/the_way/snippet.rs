@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use anyhow::Error;
 use chrono::{DateTime, Utc};
-use path_abs::{FileRead, PathFile};
+use path_abs::{FileEdit, FileRead, PathFile};
 use syntect::highlighting::Style;
 use textwrap::termwidth;
 
@@ -121,6 +121,11 @@ impl Snippet {
         json_file: &PathFile,
     ) -> Result<impl Iterator<Item = serde_json::Result<Snippet>>, Error> {
         Ok(serde_json::Deserializer::from_reader(FileRead::open(json_file)?).into_iter::<Self>())
+    }
+
+    pub(crate) fn to_json(&self, json_writer: &mut FileEdit) -> Result<(), Error> {
+        serde_json::to_writer(json_writer, self)?;
+        Ok(())
     }
 
     /// Filters snippets in date range

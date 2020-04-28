@@ -79,7 +79,9 @@ impl TheWay {
         } else {
             match self.matches.subcommand() {
                 ("import", Some(matches)) => {
-                    for snippet in self.import(matches)? {
+                    for mut snippet in self.import(matches)? {
+                        snippet.index = self.get_current_snippet_index()? + 1;
+                        self.increment_snippet_index()?;
                         self.add_snippet(&snippet)?;
                     }
                     Ok(())
@@ -229,25 +231,30 @@ impl TheWay {
     }
 
     fn import(&self, matches: &ArgMatches) -> Result<Vec<Snippet>, Error> {
-        if matches.is_present("json") {
-            let json_file = PathFile::new(utils::get_argument_value("json", matches)?.ok_or(
-                LostTheWay::OutOfCheeseError {
-                    message: "Argument json not used".into(),
-                },
-            )?)?;
-            let snippets: Result<Vec<Snippet>, serde_json::Error> =
-                Snippet::read_from_file(&json_file)?.collect();
-            Ok(snippets?)
-        } else {
-            unimplemented!()
-        }
+        let json_file = PathFile::new(utils::get_argument_value("json", matches)?.ok_or(
+            LostTheWay::OutOfCheeseError {
+                message: "Argument json not used".into(),
+            },
+        )?)?;
+        let snippets: Result<Vec<Snippet>, serde_json::Error> =
+            Snippet::read_from_file(&json_file)?.collect();
+        Ok(snippets?)
     }
 
-    // Saves (optionally filtered) snippets to an MD file
-    fn export(&self, _matches: &ArgMatches) -> Result<(), Error> {
-        // let filters = Filters::get_filters(matches)?;
-        unimplemented!()
-        // Ok(())
+    // Saves (optionally filtered) snippets to a JSON file
+    fn export(&self, matches: &ArgMatches) -> Result<(), Error> {
+        let json_file = PathFile::create(utils::get_argument_value("json", matches)?.ok_or(
+            LostTheWay::OutOfCheeseError {
+                message: "Argument json not used".into(),
+            },
+        )?)?;
+        let filters = Filters::get_filters(matches)?;
+        let mut writer = json_file.open_edit()?;
+        self.filter_snippets(&filters)?
+            .into_iter()
+            .map(|snippet| snippet.to_json(&mut writer))
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(())
     }
 
     /// Lists snippets (optionally filtered)
