@@ -4,26 +4,22 @@ A code snippets manager for your terminal.
 Easily record and retrieve snippets you use every day, or once in a blue moon,
 without having to spin up a browser. Just call `the-way` to add a snippet with a 
 description, a language, and some tags attached. `the-way search` fuzzy 
-searches your snippets library (with optional filters on language and tags). 
-And `the-way copy` lets you copy a particular snippet to your clipboard, so you can paste 
+searches your snippets library (with optional filters on language and tags) and 
+lets you copy a particular snippet to your clipboard, so you can paste 
 it into whatever editor or IDE you're working with.
 
 See it in action:
-gif of the top three commands, with some filtering.
+![demo](demo.gif)
 
-## Install
-`cargo install xxx`
 
-## Usage
-usage screenshot
+**Currently works on nightly rust**
 
-## Generate completions for your shell
-`the-way config --completions zsh > ~/.oh_my_zsh/completions/_the-way`
-
-## See how useful the-way has been for you 
-`the-way stats`
-stats gif
-
+## Features
+- [X] Recognizes language extension to enable syntax highlighting in $EDITOR (if the editor supports it)
+- [X] Configurable syntax highlighting themes for display via `the-way themes`
+- [ ] Shell completions
+- [ ] Language and code statistics
+- [ ] Import/export to JSON
 
 ## Why "The Way"?
 The name is a reference to [the Way of Mrs.Cosmopolite](https://wiki.lspace.org/mediawiki/The_Way_of_Mrs._Cosmopilite), kōans for every situation.
