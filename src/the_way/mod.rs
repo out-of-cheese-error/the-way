@@ -315,12 +315,12 @@ impl TheWay {
     }
 
     /// Generates shell completions
-    fn complete(&self, _matches: &ArgMatches) -> Result<(), Error> {
-        // let shell = utils::get_argument_value("completions", matches)?.ok_or(
-        //     LostTheWay::OutOfCheeseError {
-        //         message: "Argument shell not used".into(),
-        //     },
-        // )?;
+    fn complete(&self, matches: &ArgMatches) -> Result<(), Error> {
+        let shell = utils::get_argument_value("completions", matches)?.ok_or(
+            LostTheWay::OutOfCheeseError {
+                message: "Argument shell not used".into(),
+            },
+        )?;
         // let yaml = load_yaml!("../the_way.yml");
         // let mut app = App::from(yaml);
         unimplemented!()
