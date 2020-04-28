@@ -11,6 +11,7 @@ use syntect::util::{as_24_bit_terminal_escaped, LinesWithEndings};
 use syntect::LoadingError;
 
 use crate::errors::LostTheWay;
+use crate::utils;
 use crate::utils::END_ANSI;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -82,67 +83,74 @@ pub(crate) struct CodeHighlight {
     pub(crate) theme_set: ThemeSet,
     pub(crate) theme_name: String,
     pub(crate) theme_dir: PathDir,
+    pub(crate) main_style: Style,
+    pub(crate) accent_style: Style,
+    pub(crate) dim_style: Style,
 }
 
 impl CodeHighlight {
     pub(crate) fn new(theme: &str, theme_dir: PathDir) -> Result<Self, Error> {
         let mut theme_set = ThemeSet::load_defaults();
         theme_set.add_from_folder(&theme_dir).unwrap();
-        Ok(Self {
+        let mut highlighter = Self {
             syntax_set: SyntaxSet::load_defaults_newlines(),
             theme_name: theme.into(),
             theme_set,
             theme_dir,
-        })
+            main_style: Style::default(),
+            accent_style: Style::default(),
+            dim_style: Style::default(),
+        };
+        highlighter.get_styles();
+        Ok(highlighter)
     }
 
-    fn get_main_color(&self) -> Color {
-        self.theme_set.themes[&self.theme_name]
+    fn get_styles(&mut self) {
+        self.get_main_style();
+        self.get_accent_style();
+        self.get_dim_style();
+    }
+
+    fn get_main_style(&mut self) {
+        let main_color = self.theme_set.themes[&self.theme_name]
             .settings
             .foreground
-            .unwrap_or(Color::WHITE)
-    }
-
-    fn get_dim_color(&self) -> Color {
-        self.theme_set.themes[&self.theme_name]
-            .settings
-            .selection
-            .unwrap_or(Color::WHITE)
-    }
-
-    fn get_accent_color(&self) -> Color {
-        self.theme_set.themes[&self.theme_name]
-            .settings
-            .caret
-            .unwrap_or(Color::WHITE)
-    }
-
-    pub(crate) fn get_styles(&self) -> (Style, Style, Style) {
-        let main_color = self.get_main_color();
-        let dim_color = self.get_dim_color();
-        let accent_color = self.get_accent_color();
-
-        let main_style = Style::default().apply(StyleModifier {
+            .unwrap_or(Color::WHITE);
+        self.main_style.apply(StyleModifier {
             foreground: Some(main_color),
             background: None,
             font_style: Some(FontStyle::BOLD),
         });
-        let accent_style = Style::default().apply(StyleModifier {
-            foreground: Some(accent_color),
+    }
+
+    fn get_dim_style(&self) {
+        let dim_color = self.theme_set.themes[&self.theme_name]
+            .settings
+            .selection
+            .unwrap_or(Color::WHITE);
+        self.dim_style.apply(StyleModifier {
+            foreground: Some(dim_color),
             background: None,
             font_style: Some(FontStyle::ITALIC),
         });
-        let dim_style = Style::default().apply(StyleModifier {
-            foreground: Some(dim_color),
+    }
+
+    fn get_accent_style(&self) {
+        let accent_color = self.theme_set.themes[&self.theme_name]
+            .settings
+            .caret
+            .unwrap_or(Color::WHITE);
+        self.accent_style.apply(StyleModifier {
+            foreground: Some(accent_color),
             background: None,
             font_style: None,
         });
-        (main_style, accent_style, dim_style)
     }
 
     pub(crate) fn set_theme(&mut self, theme_name: String) -> Result<(), Error> {
         if self.theme_set.themes.contains_key(&theme_name) {
             self.theme_name = theme_name;
+            self.get_styles();
             Ok(())
         } else {
             Err(LostTheWay::ThemeNotFound { theme_name }.into())
@@ -211,7 +219,7 @@ impl CodeHighlight {
         }
         colorized.push(String::from("\n"));
         colorized.push(String::from("\n"));
-        colorized.push(String::from("\x1b[0m"));
+        colorized.push(String::from(utils::END_ANSI));
         Ok(colorized)
     }
 }

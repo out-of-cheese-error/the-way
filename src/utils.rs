@@ -1,17 +1,11 @@
-use std::io;
 use std::str;
-use std::sync::mpsc;
-use std::thread;
-use std::time::Duration;
 
 use anyhow::Error;
-use chrono::{Date, DateTime, Datelike, Utc, MAX_DATE, MIN_DATE};
+use chrono::{Date, DateTime, Utc, MAX_DATE, MIN_DATE};
 use chrono_english::{parse_date_string, Dialect};
 use clap::{ArgMatches, Values};
 use clipboard::{ClipboardContext, ClipboardProvider};
 use dialoguer::{theme, Editor, Input};
-use termion::event::Key;
-use termion::input::TermRead;
 
 use crate::errors::LostTheWay;
 
@@ -155,124 +149,5 @@ pub fn get_argument_values<'a>(
             }
         }
         None => Ok(None),
-    }
-}
-
-pub fn get_months(min_date: Date<Utc>, max_date: Date<Utc>) -> Result<Vec<Date<Utc>>, Error> {
-    let (min_year, min_month) = (min_date.year(), min_date.month());
-    let (max_year, max_month) = (max_date.year(), max_date.month());
-    let mut months = Vec::with_capacity((max_year - min_year) as usize * 12);
-    let date = Utc::now().date();
-    for month in min_month..=12 {
-        months.push(
-            date.with_year(min_year)
-                .ok_or(LostTheWay::OutOfCheeseError {
-                    message: format!("Invalid year {}", min_year),
-                })?
-                .with_month(month)
-                .ok_or(LostTheWay::OutOfCheeseError {
-                    message: format!("Invalid month {}", month),
-                })?
-                .with_day(1)
-                .unwrap(),
-        );
-    }
-    for year in min_year..max_year {
-        for month in 1..=12 {
-            months.push(
-                date.with_year(year)
-                    .ok_or(LostTheWay::OutOfCheeseError {
-                        message: format!("Invalid year {}", year),
-                    })?
-                    .with_month(month)
-                    .unwrap()
-                    .with_day(1)
-                    .unwrap(),
-            );
-        }
-    }
-    for month in 1..=max_month {
-        months.push(
-            date.with_year(max_year)
-                .ok_or(LostTheWay::OutOfCheeseError {
-                    message: format!("Invalid year {}", max_year),
-                })?
-                .with_month(month)
-                .ok_or(LostTheWay::OutOfCheeseError {
-                    message: format!("Invalid month {}", month),
-                })?
-                .with_day(1)
-                .unwrap(),
-        );
-    }
-    Ok(months)
-}
-
-pub enum Event<I> {
-    Input(I),
-    Tick,
-}
-
-/// A small event handler that wraps termion input and tick events. Each event
-/// type is handled in its own thread and returned to a common `Receiver`
-pub struct Events {
-    rx: mpsc::Receiver<Event<Key>>,
-    input_handle: thread::JoinHandle<()>,
-    tick_handle: thread::JoinHandle<()>,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct Config {
-    pub exit_key: Key,
-    pub tick_rate: Duration,
-}
-
-impl Default for Config {
-    fn default() -> Config {
-        Config {
-            exit_key: Key::Char('q'),
-            tick_rate: Duration::from_millis(250),
-        }
-    }
-}
-
-impl Events {
-    pub fn new() -> Events {
-        Events::with_config(Config::default())
-    }
-
-    pub fn with_config(config: Config) -> Events {
-        let (tx, rx) = mpsc::channel();
-        let input_handle = {
-            let tx = tx.clone();
-            thread::spawn(move || {
-                let stdin = io::stdin();
-                for evt in stdin.keys() {
-                    if let Ok(key) = evt {
-                        if tx.send(Event::Input(key)).is_err() {
-                            return;
-                        }
-                        if key == config.exit_key {
-                            return;
-                        }
-                    }
-                }
-            })
-        };
-        let tick_handle = {
-            thread::spawn(move || loop {
-                tx.send(Event::Tick).unwrap();
-                thread::sleep(config.tick_rate);
-            })
-        };
-        Events {
-            rx,
-            input_handle,
-            tick_handle,
-        }
-    }
-
-    pub fn next(&self) -> Result<Event<Key>, mpsc::RecvError> {
-        self.rx.recv()
     }
 }

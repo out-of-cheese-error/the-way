@@ -5,23 +5,26 @@ use anyhow::Error;
 use skim::prelude::{unbounded, SkimOptionsBuilder};
 use skim::{AnsiString, ItemPreview, Skim, SkimItem, SkimItemReceiver, SkimItemSender};
 
+use crate::the_way::snippet::Snippet;
+use crate::the_way::TheWay;
 use crate::utils::copy_to_clipboard;
 
 #[derive(Debug)]
-pub(crate) struct SearchSnippet {
-    pub(crate) index: usize,
-    pub(crate) text: String,
-    pub(crate) code_highlight: String,
-    pub(crate) code: String,
+struct SearchSnippet {
+    index: usize,
+    text_highlight: String,
+    text: String,
+    code_highlight: String,
+    code: String,
 }
 
 impl<'a> SkimItem for SearchSnippet {
     fn display(&self) -> Cow<AnsiString> {
-        Cow::Owned(AnsiString::parse(&self.text))
+        Cow::Owned(AnsiString::parse(&self.text_highlight))
     }
 
     fn text(&self) -> Cow<str> {
-        Cow::Owned(AnsiString::parse(&self.text).into_inner().unwrap())
+        Cow::Owned(self.text.to_owned())
     }
 
     fn preview(&self) -> ItemPreview {
@@ -35,7 +38,30 @@ impl<'a> SkimItem for SearchSnippet {
     }
 }
 
-pub(crate) fn search(input: Vec<SearchSnippet>) -> Result<(), Error> {
+impl<'a> TheWay<'a> {
+    pub(crate) fn make_search(&self, snippets: Vec<Snippet>) -> Result<(), Error> {
+        let search_snippets: Vec<_> = snippets
+            .into_iter()
+            .map(|snippet| SearchSnippet {
+                code_highlight: snippet
+                    .pretty_print_code(&self.highlighter)
+                    .unwrap_or_default()
+                    .join(""),
+                text_highlight: snippet
+                    .pretty_print_header(&self.highlighter, &self.languages[&snippet.language])
+                    .unwrap()
+                    .join(""),
+                text: snippet.get_header(),
+                code: snippet.code,
+                index: snippet.index,
+            })
+            .collect();
+        search(search_snippets)?;
+        Ok(())
+    }
+}
+
+fn search(input: Vec<SearchSnippet>) -> Result<(), Error> {
     let options = SkimOptionsBuilder::default()
         .height(Some("100%"))
         .preview(Some(""))
