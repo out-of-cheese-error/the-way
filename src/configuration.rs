@@ -3,8 +3,7 @@ use directories::ProjectDirs;
 use path_abs::{PathDir, PathOps};
 
 use crate::errors::LostTheWay;
-
-const NAME: &str = "the-way";
+use crate::utils::NAME;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct TheWayConfig {

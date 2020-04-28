@@ -6,7 +6,7 @@ authors = ["Ninjani"]
 
 [dependencies]
 # Argument parsing
-clap = {git = "https://github.com/clap-rs/clap/", version = "3.0.0-beta.1", features = ["yaml"]}
+clap = {version="2.33", features = ["yaml"]}
 confy = "0.4.0"
 
 # Error management

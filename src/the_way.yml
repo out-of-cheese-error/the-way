@@ -203,7 +203,6 @@ subcommands:
       display_order: 7
       args:
         - shell:
-            required: true
             index: 1
             value_name: SHELL
             possible_values:
