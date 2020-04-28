@@ -3,12 +3,9 @@ use std::collections::HashMap;
 use anyhow::Error;
 use chrono::{DateTime, Utc};
 use path_abs::{FileEdit, FileRead, PathFile};
-use syntect::highlighting::Style;
-use textwrap::termwidth;
 
 use crate::language::{CodeHighlight, Language};
 use crate::utils;
-use crate::utils::END_ANSI;
 
 /// Stores information about a quote
 #[derive(Serialize, Deserialize, Debug)]
@@ -150,17 +147,43 @@ impl Snippet {
         self.tags.contains(&tag.into())
     }
 
-    pub(crate) fn highlight_description(
+    pub(crate) fn get_header(&self) -> String {
+        format!(
+            "■ #{}. {} | {} :{}:\n",
+            self.index,
+            self.description,
+            self.language,
+            self.tags.join(":")
+        )
+    }
+
+    pub(crate) fn pretty_print_header(
         &self,
         highlighter: &CodeHighlight,
         language: &Language,
-        style: Style,
     ) -> Result<Vec<String>, Error> {
         let mut colorized = Vec::new();
         let block = highlighter.highlight_block(&language.color)?;
         colorized.push(block);
-        let text = format!("#{}. {}\n", self.index, self.description);
-        colorized.push(highlighter.highlight_string(&text, style));
+        let text = format!("#{}. {} ", self.index, self.description);
+        colorized.push(highlighter.highlight_string(&text, highlighter.main_style));
+
+        let text = format!("| {} ", self.language);
+        colorized.push(highlighter.highlight_string(&text, highlighter.accent_style));
+
+        let text = format!(":{}:\n", self.tags.join(":"));
+        colorized.push(highlighter.highlight_string(&text, highlighter.dim_style));
+        colorized.push(utils::END_ANSI.to_owned());
+        Ok(colorized)
+    }
+
+    pub(crate) fn pretty_print_code(
+        &self,
+        highlighter: &CodeHighlight,
+    ) -> Result<Vec<String>, Error> {
+        let mut colorized = Vec::new();
+        colorized.extend_from_slice(&highlighter.highlight_code(&self.code, &self.extension)?);
+        colorized.push(utils::END_ANSI.to_owned());
         Ok(colorized)
     }
 
@@ -168,30 +191,12 @@ impl Snippet {
         &self,
         highlighter: &CodeHighlight,
         language: &Language,
-        styles: (Style, Style, Style),
-        for_search: bool,
     ) -> Result<Vec<String>, Error> {
-        let (main_style, accent_style, dim_style) = styles;
-        let mut colorized = Vec::new();
-        let width = termwidth() - 4;
-
-        if !for_search {
-            colorized.extend_from_slice(&self.highlight_description(
-                highlighter,
-                language,
-                main_style,
-            )?);
-        }
-        colorized.extend_from_slice(&highlighter.highlight_code(&self.code, &self.extension)?);
-        colorized.push(highlighter.highlight_block(&language.color)?);
-        let text = format!("{} | {} \n", self.language, self.tags.join(", "),);
-        colorized.push(highlighter.highlight_string(&text, accent_style));
-
-        if !for_search {
-            let dashes = (0..width / 2).map(|_| '-').collect::<String>();
-            colorized.push(highlighter.highlight_string(&format!("{}\n", dashes), dim_style));
-        }
-        colorized.push(END_ANSI.to_owned());
+        let mut colorized = vec![String::from("\n")];
+        colorized.extend_from_slice(&self.pretty_print_header(highlighter, language)?);
+        colorized.push("\n".into());
+        colorized.extend_from_slice(&self.pretty_print_code(highlighter)?);
+        colorized.push("\n".into());
         Ok(colorized)
     }
 }

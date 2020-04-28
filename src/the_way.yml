@@ -157,41 +157,23 @@ subcommands:
             multiple: true
             conflicts_with:
               - on
-  - stats:
-      about: Display the_way usage counts
-      display_order: 6
-      args:
-        - from:
-            long: from
-            value_name: DATE
-            help: from <DATE> (only applies to the bar charts)
-        - to:
-            long: to
-            value_name: DATE
-            help: till <DATE> (only applies to the bar charts)
-      groups:
-        - date-range:
-            args:
-              - from
-              - to
-            multiple: true
   - themes:
       about: View and configure syntax highlighting themes
       display_order: 5
       args:
         - set:
             help: Set your preferred syntax highlighting theme
-            short: st
+            short: s
             long: set
             takes_value: true
             value_name: THEME
         - list:
             help: List all themes (default + user-added)
-            short: lt
+            short: l
             long: list
         - add:
             help: add a theme from a .tmTheme file <FILE>
-            short: at
+            short: a
             long: add
             takes_value: true
             value_name: FILE
