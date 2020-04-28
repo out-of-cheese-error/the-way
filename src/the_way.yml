@@ -33,7 +33,7 @@ args:
 subcommands:
   - search:
       about: Fuzzy search and copy selected to clipboard
-      display-order: 1
+      display_order: 1
       args:
         - from:
             long: from
@@ -71,7 +71,7 @@ subcommands:
               - on
   - list:
       about: Lists snippets
-      display-order: 2
+      display_order: 4
       args:
         - from:
             long: from
@@ -109,7 +109,7 @@ subcommands:
               - on
   - import:
       about: Imports code snippets from a JSON file
-      display-order: 4
+      display_order: 2
       args:
         - json:
             short: j
@@ -120,7 +120,7 @@ subcommands:
             help: filename to import snippets from
   - export:
       about: Saves (optionally filtered) snippets to a JSON file.
-      display-order: 5
+      display_order: 3
       args:
         - json:
             short: j
@@ -164,7 +164,7 @@ subcommands:
               - on
   - stats:
       about: Display the_way usage counts
-      display-order: 6
+      display_order: 6
       args:
         - from:
             long: from
@@ -182,6 +182,7 @@ subcommands:
             multiple: true
   - themes:
       about: View and configure syntax highlighting themes
+      display_order: 5
       args:
         - set:
             help: Set your preferred syntax highlighting theme
@@ -201,8 +202,10 @@ subcommands:
             value_name: FILE
   - clear:
       about: Clears all data
+      display_order: 8
   - complete:
       about: Generates completions for your shell
+      display_order: 7
       args:
         - shell:
             required: true

@@ -21,7 +21,7 @@ impl<'a> SkimItem for SearchSnippet {
     }
 
     fn text(&self) -> Cow<str> {
-        Cow::Borrowed(&self.text)
+        Cow::Owned(AnsiString::parse(&self.text).into_inner().unwrap())
     }
 
     fn preview(&self) -> ItemPreview {
