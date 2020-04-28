@@ -12,7 +12,7 @@ See it in action:
 ![demo](demo.gif)
 
 
-**Currently works on nightly rust**
+**Currently tested on nightly rust**
 
 ## Features
 - [X] Recognizes language extension to enable syntax highlighting in $EDITOR (if the editor supports it)
