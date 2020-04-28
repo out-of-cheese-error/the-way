@@ -19,7 +19,7 @@ use tui::{
 use crate::the_way::TheWay;
 use crate::utils;
 
-impl TheWay {
+impl<'a> TheWay<'a> {
     /// Uses termion and tui to display a dashboard with 4 components
     /// 1. Number of quotes written per month as a bar chart
     /// 2. Number of books read per month as a bar chart

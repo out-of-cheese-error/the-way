@@ -1,8 +1,10 @@
 use std::collections::{HashMap, HashSet};
+use std::io;
 
 use anyhow::Error;
 use chrono::{Date, DateTime, Datelike, Utc};
-use clap::ArgMatches;
+use clap::{load_yaml, App};
+use clap::{ArgMatches, Shell};
 use path_abs::{PathDir, PathFile};
 
 use crate::configuration::TheWayConfig;
@@ -23,9 +25,9 @@ mod stats;
 /// - project directory information from `directories`
 /// - argument parsing information from `clap`
 /// - the `sled` databases storing linkage information between languages, tags, and snippets
-pub struct TheWay {
+pub struct TheWay<'a> {
     config: TheWayConfig,
-    matches: ArgMatches,
+    matches: ArgMatches<'a>,
     db: sled::Db,
     languages: HashMap<String, Language>,
     highlighter: CodeHighlight,
@@ -44,12 +46,12 @@ fn merge_index(_key: &[u8], old_indices: Option<&[u8]>, new_index: &[u8]) -> Opt
 }
 
 // All command-line related functions
-impl TheWay {
+impl<'a> TheWay<'a> {
     /// Initialize program with command line input.
     /// Reads `sled` trees and metadata file from the locations specified in config.
     /// (makes new ones the first time).
     pub(crate) fn start(
-        matches: ArgMatches,
+        matches: ArgMatches<'a>,
         languages: HashMap<String, Language>,
     ) -> Result<(), Error> {
         let config = TheWayConfig::get()?;
@@ -81,7 +83,6 @@ impl TheWay {
                 ("import", Some(matches)) => {
                     for mut snippet in self.import(matches)? {
                         snippet.index = self.get_current_snippet_index()? + 1;
-                        self.increment_snippet_index()?;
                         self.add_snippet(&snippet)?;
                     }
                     Ok(())
@@ -230,7 +231,7 @@ impl TheWay {
         Ok(())
     }
 
-    fn import(&self, matches: &ArgMatches) -> Result<Vec<Snippet>, Error> {
+    fn import(&self, matches: &ArgMatches<'a>) -> Result<Vec<Snippet>, Error> {
         let json_file = PathFile::new(utils::get_argument_value("json", matches)?.ok_or(
             LostTheWay::OutOfCheeseError {
                 message: "Argument json not used".into(),
@@ -242,7 +243,7 @@ impl TheWay {
     }
 
     // Saves (optionally filtered) snippets to a JSON file
-    fn export(&self, matches: &ArgMatches) -> Result<(), Error> {
+    fn export(&self, matches: &ArgMatches<'a>) -> Result<(), Error> {
         let json_file = PathFile::create(utils::get_argument_value("json", matches)?.ok_or(
             LostTheWay::OutOfCheeseError {
                 message: "Argument json not used".into(),
@@ -258,7 +259,7 @@ impl TheWay {
     }
 
     /// Lists snippets (optionally filtered)
-    fn list(&self, matches: &ArgMatches) -> Result<(), Error> {
+    fn list(&self, matches: &ArgMatches<'a>) -> Result<(), Error> {
         let filters = Filters::get_filters(matches)?;
         let snippets = self.filter_snippets(&filters)?;
         let mut colorized = vec![String::from("\n")];
@@ -281,7 +282,7 @@ impl TheWay {
 
     /// Displays all snippet descriptions in a skim fuzzy search window
     /// A preview window on the right shows the indices of snippets matching the query
-    fn search(&self, matches: &ArgMatches) -> Result<(), Error> {
+    fn search(&self, matches: &ArgMatches<'a>) -> Result<(), Error> {
         let filters = Filters::get_filters(matches)?;
         let snippets = self.filter_snippets(&filters)?;
         let styles = self.highlighter.get_styles();
@@ -315,21 +316,19 @@ impl TheWay {
     }
 
     /// Generates shell completions
-    fn complete(&self, matches: &ArgMatches) -> Result<(), Error> {
-        let shell = utils::get_argument_value("completions", matches)?.ok_or(
-            LostTheWay::OutOfCheeseError {
+    fn complete(&self, matches: &ArgMatches<'a>) -> Result<(), Error> {
+        let shell =
+            utils::get_argument_value("shell", matches)?.ok_or(LostTheWay::OutOfCheeseError {
                 message: "Argument shell not used".into(),
-            },
-        )?;
-        // let yaml = load_yaml!("../the_way.yml");
-        // let mut app = App::from(yaml);
-        unimplemented!()
-        // app.gen_completions_to(
-        //     "the_way",
-        //     shell.parse::<Shell>().unwrap(),
-        //     &mut io::stdout(),
-        // );
-        // Ok(())
+            })?;
+        let yaml = load_yaml!("../the_way.yml");
+        let mut app = App::from(yaml);
+        app.gen_completions_to(
+            utils::NAME,
+            shell.parse::<Shell>().unwrap(),
+            &mut io::stdout(),
+        );
+        Ok(())
     }
 
     /// Removes all `sled` trees
@@ -351,6 +350,7 @@ impl TheWay {
                     PathFile::new(path)?.remove()?;
                 }
             }
+            self.reset_index()?;
             Ok(())
         } else {
             Err(LostTheWay::DoingNothing {
@@ -361,7 +361,7 @@ impl TheWay {
     }
 }
 
-impl TheWay {
+impl<'a> TheWay<'a> {
     pub fn debug(&self) {
         println!("{:?}", self.db);
     }
@@ -425,6 +425,11 @@ impl TheWay {
             Some(index) => Ok(std::str::from_utf8(&index)?.parse::<usize>()?),
             None => Ok(0),
         }
+    }
+
+    fn reset_index(&self) -> Result<(), Error> {
+        self.db.insert("snippet_index", 0.to_string().as_bytes())?;
+        Ok(())
     }
 
     fn language_tree(&self) -> Result<sled::Tree, Error> {
