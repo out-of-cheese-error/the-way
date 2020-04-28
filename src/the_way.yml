@@ -112,20 +112,17 @@ subcommands:
       display_order: 2
       args:
         - json:
-            short: j
             value_name: JSON_FILE
-            takes_value: true
             required: true
-            help: "filename to import snippets from"
+            index: 1
   - export:
       about: "Saves (optionally filtered) snippets to a JSON file."
       display_order: 3
       args:
         - json:
-            short: j
             required: true
             value_name: JSON_FILE
-            help: "filename to write snippets to"
+            index: 1
         - from:
             long: from
             value_name: DATE
