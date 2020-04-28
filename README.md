@@ -18,8 +18,8 @@ See it in action:
 ## Features
 - [X] Recognizes language extension to enable syntax highlighting in $EDITOR (if the editor supports it)
 - [X] Configurable syntax highlighting themes for display via `the-way themes`
+- [X] Import/export to JSON
 - [ ] Shell completion (in progress)
-- [ ] Import/export to JSON (in progress)
 - [ ] Language and code statistics
 
 ## Why "The Way"?
