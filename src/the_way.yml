@@ -3,28 +3,28 @@ about: "Add a new code snippet\nOr use a subcommand to find one"
 before_help: "Record, retrieve, search, and categorize code snippets"
 args:
   - delete:
-      about: "Delete snippet at <INDEX>"
+      help: "Delete snippet at <INDEX>"
       short: d
       long: delete
       value_name: INDEX
       takes_value: true
 
   - change:
-      about: "Changes snippet at <INDEX>"
+      help: "Changes snippet at <INDEX>"
       short: c
       long: change
       value_name: INDEX
       takes_value: true
 
   - show:
-      about: "Shows snippet at <INDEX>"
+      help: "Shows snippet at <INDEX>"
       short: s
       long: show
       value_name: INDEX
       takes_value: true
 
   - copy:
-      about: "Copies snippet at <INDEX> to clipboard"
+      help: "Copies snippet at <INDEX> to clipboard"
       short: y
       long: cp
       value_name: INDEX
@@ -38,29 +38,29 @@ subcommands:
         - from:
             long: from
             value_name: DATE
-            about: "Snippets from <DATE>"
+            help: "Snippets from <DATE>"
         - to:
             long: to
             value_name: DATE
-            about: "Snippets till <DATE>"
+            help: "Snippets till <DATE>"
         - on:
             long: on
             value_name: DATE
-            about: "Snippets on <DATE>"
+            help: "Snippets on <DATE>"
         - language:
             short: l
             long: lang
             value_name: LANGUAGE
             takes_value: true
             multiple: true
-            about: "Snippets written in <LANGUAGE> (multiple with 'lang1 lang2')"
+            help: "Snippets written in <LANGUAGE> (multiple with 'lang1 lang2')"
         - tag:
             long: tag
             short: t
             takes_value: true
             value_name: TAG
             multiple: true
-            about: "Snippets with <TAG> (multiple with 'tag1 tag2')"
+            help: "Snippets with <TAG> (multiple with 'tag1 tag2')"
       groups:
         - date-range:
             args:
@@ -76,29 +76,29 @@ subcommands:
         - from:
             long: from
             value_name: DATE
-            about: "Snippets from <DATE>"
+            help: "Snippets from <DATE>"
         - to:
             long: to
             value_name: DATE
-            about: "Snippets till <DATE>"
+            help: "Snippets till <DATE>"
         - on:
             long: on
             value_name: DATE
-            about: "Snippets on <DATE>"
+            help: "Snippets on <DATE>"
         - language:
             short: l
             long: language
             value_name: LANGUAGE
             takes_value: true
             multiple: true
-            about: "Snippets written in <LANGUAGE> (multiple with 'lang1 lang2')"
+            help: "Snippets written in <LANGUAGE> (multiple with 'lang1 lang2')"
         - tag:
             long: tag
             short: t
             takes_value: true
             value_name: TAG
             multiple: true
-            about: "Snippets with <TAG> (multiple with 'tag1 tag2')"
+            help: "Snippets with <TAG> (multiple with 'tag1 tag2')"
       groups:
         - date-range:
             args:
@@ -116,8 +116,7 @@ subcommands:
             value_name: JSON_FILE
             takes_value: true
             required: true
-            index: 1
-            about: "filename to import snippets from"
+            help: "filename to import snippets from"
   - export:
       about: "Saves (optionally filtered) snippets to a JSON file."
       display_order: 3
@@ -125,35 +124,34 @@ subcommands:
         - json:
             short: j
             required: true
-            index: 1
             value_name: JSON_FILE
-            about: "filename to write snippets to"
+            help: "filename to write snippets to"
         - from:
             long: from
             value_name: DATE
-            about: "Snippets from <DATE>"
+            help: "Snippets from <DATE>"
         - to:
             long: to
             value_name: DATE
-            about: "Snippets till <DATE>"
+            help: "Snippets till <DATE>"
         - on:
             long: on
             value_name: DATE
-            about: "Snippets on <DATE>"
+            help: "Snippets on <DATE>"
         - language:
             short: l
             long: language
             value_name: LANGUAGE
             takes_value: true
             multiple: true
-            about: "Snippets written in <LANGUAGE> (multiple with 'lang1 lang2')"
+            help: "Snippets written in <LANGUAGE> (multiple with 'lang1 lang2')"
         - tag:
             long: tag
             short: t
             takes_value: true
             value_name: TAG
             multiple: true
-            about: "Snippets with <TAG> (multiple with 'tag1 tag2')"
+            help: "Snippets with <TAG> (multiple with 'tag1 tag2')"
       groups:
         - date-range:
             args:
@@ -163,17 +161,17 @@ subcommands:
             conflicts_with:
               - on
   - stats:
-      about: "Display the_way usage counts"
+      about: Display the_way usage counts
       display_order: 6
       args:
         - from:
             long: from
             value_name: DATE
-            about: "from <DATE> (only applies to the bar charts)"
+            help: from <DATE> (only applies to the bar charts)
         - to:
             long: to
             value_name: DATE
-            about: "till <DATE> (only applies to the bar charts)"
+            help: till <DATE> (only applies to the bar charts)
       groups:
         - date-range:
             args:
@@ -181,30 +179,30 @@ subcommands:
               - to
             multiple: true
   - themes:
-      about: "View and configure syntax highlighting themes"
+      about: View and configure syntax highlighting themes
       display_order: 5
       args:
         - set:
-            about: "Set your preferred syntax highlighting theme"
+            help: Set your preferred syntax highlighting theme
             short: st
             long: set
             takes_value: true
             value_name: THEME
         - list:
-            about: "List all themes (default + user-added)"
+            help: List all themes (default + user-added)
             short: lt
             long: list
         - add:
-            about: "add a theme from a .tmTheme file <FILE>"
+            help: add a theme from a .tmTheme file <FILE>
             short: at
             long: add
             takes_value: true
             value_name: FILE
   - clear:
-      about: "Clears all data"
+      about: Clears all data
       display_order: 8
   - complete:
-      about: "Generates completions for your shell"
+      about: Generates completions for your shell
       display_order: 7
       args:
         - shell:

@@ -9,6 +9,7 @@ lets you copy a particular snippet to your clipboard, so you can paste
 it into whatever editor or IDE you're working with.
 
 See it in action:
+
 ![demo](demo.gif)
 
 
@@ -17,9 +18,9 @@ See it in action:
 ## Features
 - [X] Recognizes language extension to enable syntax highlighting in $EDITOR (if the editor supports it)
 - [X] Configurable syntax highlighting themes for display via `the-way themes`
-- [ ] Shell completions
+- [ ] Shell completion (in progress)
+- [ ] Import/export to JSON (in progress)
 - [ ] Language and code statistics
-- [ ] Import/export to JSON
 
 ## Why "The Way"?
 The name is a reference to [the Way of Mrs.Cosmopolite](https://wiki.lspace.org/mediawiki/The_Way_of_Mrs._Cosmopilite), kōans for every situation.
