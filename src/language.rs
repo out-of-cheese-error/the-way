@@ -168,7 +168,7 @@ impl CodeHighlight {
             .ok_or(LoadingError::BadPath)
             .unwrap();
         // Copy theme to theme file directory
-        let theme_file = theme_file.copy(PathFile::new(
+        let theme_file = theme_file.copy(PathFile::create(
             self.theme_dir.join(format!("{}.tmTheme", basename)),
         )?)?;
         let theme = ThemeSet::get_theme(theme_file).unwrap();
