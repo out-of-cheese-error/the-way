@@ -19,7 +19,7 @@ See it in action:
 - [X] Recognizes language extension to enable syntax highlighting in $EDITOR (if the editor supports it)
 - [X] Configurable syntax highlighting themes for display via `the-way themes`
 - [X] Import/export to JSON
-- [X] Shell completion
+- [X] Shell completion (e.g. `the-way complete zsh > ~/.oh-my-zsh/completions/_the-way`)
 - [ ] Language and code statistics
 
 ## Why "The Way"?
