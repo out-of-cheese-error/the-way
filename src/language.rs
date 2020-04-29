@@ -101,46 +101,46 @@ impl CodeHighlight {
             accent_style: Style::default(),
             dim_style: Style::default(),
         };
-        highlighter.get_styles();
+        highlighter.set_styles();
         Ok(highlighter)
     }
 
-    fn get_styles(&mut self) {
-        self.get_main_style();
-        self.get_accent_style();
-        self.get_dim_style();
+    fn set_styles(&mut self) {
+        self.set_main_style();
+        self.set_accent_style();
+        self.set_dim_style();
     }
 
-    fn get_main_style(&mut self) {
+    fn set_main_style(&mut self) {
         let main_color = self.theme_set.themes[&self.theme_name]
             .settings
             .foreground
             .unwrap_or(Color::WHITE);
-        self.main_style.apply(StyleModifier {
+        self.main_style = self.main_style.apply(StyleModifier {
             foreground: Some(main_color),
             background: None,
             font_style: Some(FontStyle::BOLD),
         });
     }
 
-    fn get_dim_style(&self) {
+    fn set_dim_style(&mut self) {
         let dim_color = self.theme_set.themes[&self.theme_name]
             .settings
             .selection
             .unwrap_or(Color::WHITE);
-        self.dim_style.apply(StyleModifier {
+        self.dim_style = self.dim_style.apply(StyleModifier {
             foreground: Some(dim_color),
             background: None,
             font_style: Some(FontStyle::ITALIC),
         });
     }
 
-    fn get_accent_style(&self) {
+    fn set_accent_style(&mut self) {
         let accent_color = self.theme_set.themes[&self.theme_name]
             .settings
             .caret
             .unwrap_or(Color::WHITE);
-        self.accent_style.apply(StyleModifier {
+        self.accent_style = self.accent_style.apply(StyleModifier {
             foreground: Some(accent_color),
             background: None,
             font_style: None,
@@ -150,7 +150,7 @@ impl CodeHighlight {
     pub(crate) fn set_theme(&mut self, theme_name: String) -> Result<(), Error> {
         if self.theme_set.themes.contains_key(&theme_name) {
             self.theme_name = theme_name;
-            self.get_styles();
+            self.set_styles();
             Ok(())
         } else {
             Err(LostTheWay::ThemeNotFound { theme_name }.into())
