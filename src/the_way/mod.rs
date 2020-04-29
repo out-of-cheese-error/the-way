@@ -75,11 +75,9 @@ impl<'a> TheWay<'a> {
                 ("export", Some(matches)) => self.export(matches),
                 ("list", Some(matches)) => self.list(matches),
                 ("search", Some(matches)) => self.search(matches),
-                ("themes", Some(matches)) => {
-                    if matches.is_present("list") {
-                        self.list_themes()
-                    } else if matches.is_present("set") {
-                        let theme_name = utils::get_argument_value("set", matches)?.ok_or(
+                ("themes", Some(matches)) => match matches.subcommand() {
+                    ("set", Some(matches)) => {
+                        let theme_name = utils::get_argument_value("theme", matches)?.ok_or(
                             LostTheWay::OutOfCheeseError {
                                 message: "Argument THEME not used".into(),
                             },
@@ -88,8 +86,9 @@ impl<'a> TheWay<'a> {
                         self.config.theme = theme_name.to_owned();
                         self.config.store()?;
                         Ok(())
-                    } else if matches.is_present("add") {
-                        let theme_file = utils::get_argument_value("add", matches)?.ok_or(
+                    }
+                    ("add", Some(matches)) => {
+                        let theme_file = utils::get_argument_value("file", matches)?.ok_or(
                             LostTheWay::OutOfCheeseError {
                                 message: "Argument FILE not used".into(),
                             },
@@ -97,13 +96,9 @@ impl<'a> TheWay<'a> {
                         let theme_file = PathFile::new(theme_file)?;
                         self.highlighter.add_theme(&theme_file)?;
                         Ok(())
-                    } else {
-                        Err(LostTheWay::OutOfCheeseError {
-                            message: "Unknown/No theme argument".into(),
-                        }
-                        .into())
                     }
-                }
+                    _ => self.list_themes()
+                },
                 ("clear", Some(_)) => self.clear(),
                 ("complete", Some(matches)) => self.complete(matches),
                 _ => self.the_way(),

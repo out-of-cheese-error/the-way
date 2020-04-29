@@ -158,25 +158,25 @@ subcommands:
             conflicts_with:
               - on
   - themes:
-      about: View and configure syntax highlighting themes
+      about: View syntax highlighting themes (default + user-added)
       display_order: 5
-      args:
+      subcommands:
         - set:
-            help: Set your preferred syntax highlighting theme
-            short: s
-            long: set
-            takes_value: true
-            value_name: THEME
-        - list:
-            help: List all themes (default + user-added)
-            short: l
-            long: list
+            about: Set your preferred syntax highlighting theme
+            display_order: 1
+            args:
+              - theme:
+                  index: 1
+                  required: true
+                  value_name: THEME
         - add:
-            help: add a theme from a .tmTheme file <FILE>
-            short: a
-            long: add
-            takes_value: true
-            value_name: FILE
+            about: Add a theme from a .tmTheme file
+            display_order: 2
+            args:
+              - file:
+                  index: 1
+                  required: true
+                  value_name: FILE
   - clear:
       about: Clears all data
       display_order: 8
