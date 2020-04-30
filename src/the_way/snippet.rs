@@ -1,9 +1,11 @@
 //! Snippet information and methods
 use std::collections::HashMap;
+use std::fs::File;
+use std::io;
+use std::path::Path;
 
 use anyhow::Error;
 use chrono::{DateTime, Utc};
-use path_abs::{FileEdit, FileRead, PathFile};
 
 use crate::language::{CodeHighlight, Language};
 use crate::utils;
@@ -119,13 +121,13 @@ impl Snippet {
 
     /// Read snippets from a JSON file and return consumable iterator
     pub(crate) fn read_from_file(
-        json_file: &PathFile,
+        json_file: &Path,
     ) -> Result<impl Iterator<Item = serde_json::Result<Self>>, Error> {
-        Ok(serde_json::Deserializer::from_reader(FileRead::open(json_file)?).into_iter::<Self>())
+        Ok(serde_json::Deserializer::from_reader(File::open(json_file)?).into_iter::<Self>())
     }
 
     /// Appends a snippet to a JSON object/file
-    pub(crate) fn to_json(&self, json_writer: &mut FileEdit) -> Result<(), Error> {
+    pub(crate) fn to_json(&self, json_writer: &mut dyn io::Write) -> Result<(), Error> {
         serde_json::to_writer(json_writer, self)?;
         Ok(())
     }

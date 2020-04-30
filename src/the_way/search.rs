@@ -46,7 +46,7 @@ impl<'a> SkimItem for SearchSnippet {
     }
 }
 
-impl<'a> TheWay<'a> {
+impl TheWay {
     /// Converts a list of snippets into searchable objects and opens the search window
     pub(crate) fn make_search(&self, snippets: Vec<Snippet>) -> Result<(), Error> {
         let default_language = Language::default();

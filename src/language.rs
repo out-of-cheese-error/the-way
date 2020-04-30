@@ -1,9 +1,10 @@
 //! Language specific code like highlighting and extensions
 use std::collections::HashMap;
+use std::fs;
+use std::path::{Path, PathBuf};
 
 use anyhow::Error;
 use hex::FromHex;
-use path_abs::{PathDir, PathFile, PathInfo, PathOps};
 use serde_yaml::Value;
 use syntect::easy::HighlightLines;
 use syntect::highlighting::{Color, FontStyle, Style, StyleModifier, ThemeSet};
@@ -108,7 +109,7 @@ pub(crate) struct CodeHighlight {
     syntax_set: SyntaxSet,
     theme_set: ThemeSet,
     theme_name: String,
-    theme_dir: PathDir,
+    theme_dir: PathBuf,
     pub(crate) main_style: Style,
     pub(crate) accent_style: Style,
     pub(crate) dim_style: Style,
@@ -117,12 +118,12 @@ pub(crate) struct CodeHighlight {
 impl CodeHighlight {
     /// Loads themes from theme_dir and default syntax set.
     /// Sets highlighting styles
-    pub(crate) fn new(theme: &str, theme_dir: PathDir) -> Result<Self, Error> {
+    pub(crate) fn new(theme: &str, theme_dir: PathBuf) -> Result<Self, Error> {
         let mut theme_set = ThemeSet::load_defaults();
         theme_set
             .add_from_folder(&theme_dir)
             .map_err(|_| LostTheWay::ThemeNotFound {
-                theme_name: theme_dir.to_str().unwrap().into(),
+                theme_name: String::from((&theme_dir).to_str().unwrap()),
             })?;
         let mut highlighter = Self {
             syntax_set: SyntaxSet::load_defaults_newlines(),
@@ -203,20 +204,19 @@ impl CodeHighlight {
     /// Adds a new theme from a .tmTheme file.
     /// The file is copied to the themes folder
     // TODO: should it automatically be set?
-    pub(crate) fn add_theme(&mut self, theme_file: &PathFile) -> Result<(), Error> {
+    pub(crate) fn add_theme(&mut self, theme_file: &Path) -> Result<(), Error> {
         let basename =
             theme_file
                 .file_stem()
                 .and_then(|x| x.to_str())
                 .ok_or(LostTheWay::ThemeNotFound {
-                    theme_name: theme_file.as_path().to_str().unwrap().into(),
+                    theme_name: theme_file.to_str().unwrap().into(),
                 })?;
         // Copy theme to theme file directory
-        let theme_file = theme_file.copy(PathFile::create(
-            self.theme_dir.join(format!("{}.tmTheme", basename)),
-        )?)?;
+        let new_theme_file = self.theme_dir.join(format!("{}.tmTheme", basename));
+        fs::copy(theme_file, new_theme_file)?;
         let theme = ThemeSet::get_theme(&theme_file).map_err(|_| LostTheWay::ThemeNotFound {
-            theme_name: theme_file.as_path().to_str().unwrap().into(),
+            theme_name: theme_file.to_str().unwrap().into(),
         })?;
         self.theme_set.themes.insert(basename.to_owned(), theme);
         Ok(())

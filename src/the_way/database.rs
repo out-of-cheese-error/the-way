@@ -1,7 +1,8 @@
 //! Sled database related code
+use std::path::Path;
+
 use anyhow::Error;
 use chrono::{DateTime, Utc};
-use path_abs::PathDir;
 
 use crate::errors::LostTheWay;
 use crate::the_way::snippet::Snippet;
@@ -18,11 +19,11 @@ fn merge_index(_key: &[u8], old_indices: Option<&[u8]>, new_index: &[u8]) -> Opt
     Some(ret)
 }
 
-impl<'a> TheWay<'a> {
+impl TheWay {
     /// Gets the `sled` database with all the-way info.
     /// Makes a new one the first time round
-    pub(crate) fn get_db(db_dir: &PathDir) -> Result<sled::Db, Error> {
-        Ok(sled::open(&PathDir::create_all(db_dir)?)?)
+    pub(crate) fn get_db(db_dir: &Path) -> Result<sled::Db, Error> {
+        Ok(sled::open(db_dir)?)
     }
 
     /// Merge function for appending items to an existing key, uses semicolons

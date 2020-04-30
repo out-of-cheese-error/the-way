@@ -3,7 +3,6 @@ use std::str;
 use anyhow::Error;
 use chrono::{Date, DateTime, Utc, MAX_DATE, MIN_DATE};
 use chrono_english::{parse_date_string, Dialect};
-use clap::{ArgMatches, Values};
 use clipboard::{ClipboardContext, ClipboardProvider};
 use dialoguer::{theme, Editor, Input};
 
@@ -30,7 +29,7 @@ pub fn copy_to_clipboard(text: String) -> Result<(), Error> {
     Ok(())
 }
 
-/// Splits input by comma
+/// Splits input by space
 pub fn split_tags(input: &str) -> Vec<String> {
     input
         .split(' ')
@@ -41,15 +40,6 @@ pub fn split_tags(input: &str) -> Vec<String> {
 /// Converts an array of bytes to a string
 pub fn u8_to_str(input: &[u8]) -> Result<String, Error> {
     Ok(str::from_utf8(input)?.to_owned())
-}
-
-/// Splits byte array by semicolon into strings
-pub fn split_values_string(index_list: &[u8]) -> Result<Vec<String>, Error> {
-    let index_list_string = str::from_utf8(index_list)?;
-    Ok(index_list_string
-        .split(str::from_utf8(&[SEMICOLON])?)
-        .map(|s| s.to_string())
-        .collect())
 }
 
 /// Splits byte array by semicolon into usize
@@ -84,14 +74,20 @@ pub fn parse_date(date_string: &str) -> Result<Date<Utc>, Error> {
 
 /// Some(date) => date
 /// None => minimum possible date
-pub fn date_start(from_date: Option<DateTime<Utc>>) -> DateTime<Utc> {
-    from_date.unwrap_or_else(|| MIN_DATE.and_hms(0, 0, 0))
+pub fn date_start(from_date: Option<Date<Utc>>) -> DateTime<Utc> {
+    match from_date {
+        Some(from_date) => from_date.and_hms(0, 0, 0),
+        None => MIN_DATE.and_hms(0, 0, 0),
+    }
 }
 
 /// Some(date) => date
 /// None => maximum possible date
-pub fn date_end(to_date: Option<DateTime<Utc>>) -> DateTime<Utc> {
-    to_date.unwrap_or_else(|| MAX_DATE.and_hms(23, 59, 59))
+pub fn date_end(to_date: Option<Date<Utc>>) -> DateTime<Utc> {
+    match to_date {
+        Some(to_date) => to_date.and_hms(23, 59, 59),
+        None => MAX_DATE.and_hms(23, 59, 59),
+    }
 }
 
 /// Gets input from external editor, optionally displays default text in editor
@@ -126,39 +122,5 @@ pub fn user_input(
                 .trim()
                 .to_owned(),
         ),
-    }
-}
-
-/// Extracts value of a given argument from matches if present
-pub fn get_argument_value<'a>(
-    name: &str,
-    matches: &'a ArgMatches,
-) -> Result<Option<&'a str>, Error> {
-    match matches.value_of(name) {
-        Some(value) => {
-            if value.trim().is_empty() {
-                Err(LostTheWay::NoInputError.into())
-            } else {
-                Ok(Some(value.trim()))
-            }
-        }
-        None => Ok(None),
-    }
-}
-
-/// Extracts (multiple) values of a given argument from matches if present
-pub fn get_argument_values<'a>(
-    name: &str,
-    matches: &'a ArgMatches,
-) -> Result<Option<Values<'a>>, Error> {
-    match matches.values_of(name) {
-        Some(values) => {
-            if values.is_empty() {
-                Err(LostTheWay::NoInputError.into())
-            } else {
-                Ok(Some(values))
-            }
-        }
-        None => Ok(None),
     }
 }
