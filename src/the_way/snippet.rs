@@ -1,3 +1,4 @@
+//! Snippet information and methods
 use std::collections::HashMap;
 
 use anyhow::Error;
@@ -37,7 +38,7 @@ impl Snippet {
         date: DateTime<Utc>,
         code: String,
     ) -> Self {
-        Snippet {
+        Self {
             index,
             description,
             language,
@@ -48,12 +49,13 @@ impl Snippet {
         }
     }
 
+    /// Finds the appropriate file extension for a language
     fn get_extension(language_name: &str, languages: &HashMap<String, Language>) -> String {
         let default = Language::default();
         if let Some(l) = languages.get(language_name) {
             l.extension.to_owned()
         } else {
-            println!(
+            eprintln!(
                 "Couldn't find language {} in the list of extensions, defaulting to .txt",
                 language_name
             );
@@ -61,11 +63,13 @@ impl Snippet {
         }
     }
 
+    /// Queries user for new snippet info
+    /// TODO: make sure empty tags work, empty description doesn't make sense though I think
     pub(crate) fn from_user(
         index: usize,
         languages: &HashMap<String, Language>,
-        old_snippet: Option<&Snippet>,
-    ) -> Result<Snippet, Error> {
+        old_snippet: Option<&Self>,
+    ) -> Result<Self, Error> {
         let (old_description, old_language, old_tags, old_date, old_code) = match old_snippet {
             Some(s) => (
                 Some(s.description.as_str()),
@@ -74,7 +78,7 @@ impl Snippet {
                 Some(s.date.date().format("%Y-%m-%d").to_string()),
                 Some(s.code.as_str()),
             ),
-            None => (None, None, None, None, None),
+            None => (None, None, Some("".into()), None, None),
         };
 
         let description = utils::user_input("Description", old_description, false)?;
@@ -94,7 +98,7 @@ impl Snippet {
         if code.is_empty() {
             code = utils::external_editor_input(old_code.as_deref(), &extension)?;
         }
-        Ok(Snippet::new(
+        Ok(Self::new(
             index,
             description,
             language,
@@ -105,10 +109,12 @@ impl Snippet {
         ))
     }
 
+    /// write snippet to database
     pub(crate) fn to_bytes(&self) -> Result<Vec<u8>, Error> {
         Ok(bincode::serialize(&self)?)
     }
 
+    /// read snippet from database
     pub(crate) fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
         Ok(bincode::deserialize(bytes)?)
     }
@@ -116,10 +122,11 @@ impl Snippet {
     /// Read snippets from a JSON file and return consumable iterator
     pub(crate) fn read_from_file(
         json_file: &PathFile,
-    ) -> Result<impl Iterator<Item = serde_json::Result<Snippet>>, Error> {
+    ) -> Result<impl Iterator<Item = serde_json::Result<Self>>, Error> {
         Ok(serde_json::Deserializer::from_reader(FileRead::open(json_file)?).into_iter::<Self>())
     }
 
+    /// Appends a snippet to a JSON object/file
     pub(crate) fn to_json(&self, json_writer: &mut FileEdit) -> Result<(), Error> {
         serde_json::to_writer(json_writer, self)?;
         Ok(())
@@ -127,10 +134,10 @@ impl Snippet {
 
     /// Filters snippets in date range
     pub(crate) fn filter_in_date_range(
-        snippets: Vec<Snippet>,
+        snippets: Vec<Self>,
         from_date: DateTime<Utc>,
         to_date: DateTime<Utc>,
-    ) -> Result<Vec<Snippet>, Error> {
+    ) -> Result<Vec<Self>, Error> {
         Ok(snippets
             .into_iter()
             .filter(|snippet| snippet.in_date_range(from_date, to_date))
@@ -147,9 +154,11 @@ impl Snippet {
         self.tags.contains(&tag.into())
     }
 
+    /// Gets the title as plain text for searching
     pub(crate) fn get_header(&self) -> String {
         format!(
-            "■ #{}. {} | {} :{}:\n",
+            "{} #{}. {} | {} :{}:\n",
+            utils::BOX,
             self.index,
             self.description,
             self.language,
@@ -157,33 +166,50 @@ impl Snippet {
         )
     }
 
+    /// Highlights the title: "■ #index. description | language :tag1:tag2:\n"
+    /// the block is colored according to the language
+    /// language uses accent_style
+    /// tags use dim_style
+    /// everything else is in main_style
     pub(crate) fn pretty_print_header(
         &self,
         highlighter: &CodeHighlight,
         language: &Language,
     ) -> Result<Vec<String>, Error> {
         let mut colorized = Vec::new();
-        let block = highlighter.highlight_block(&language.color)?;
+        let block = highlighter.highlight_block(language.color)?;
         colorized.push(block);
         let text = format!("#{}. {} ", self.index, self.description);
-        colorized.push(highlighter.highlight_string(&text, highlighter.main_style));
+        colorized.push(CodeHighlight::highlight_string(
+            &text,
+            highlighter.main_style,
+        ));
 
         let text = format!("| {} ", self.language);
-        colorized.push(highlighter.highlight_string(&text, highlighter.accent_style));
+        colorized.push(CodeHighlight::highlight_string(
+            &text,
+            highlighter.accent_style,
+        ));
 
         let text = format!(":{}:\n", self.tags.join(":"));
-        colorized.push(highlighter.highlight_string(&text, highlighter.dim_style));
+        colorized.push(CodeHighlight::highlight_string(
+            &text,
+            highlighter.dim_style,
+        ));
         colorized.push(utils::END_ANSI.to_owned());
         Ok(colorized)
     }
 
+    /// Highlights code (with newlines before and after for readability)
     pub(crate) fn pretty_print_code(
         &self,
         highlighter: &CodeHighlight,
     ) -> Result<Vec<String>, Error> {
-        let mut colorized = Vec::new();
+        let mut colorized = vec![String::from("\n")];
         colorized.extend_from_slice(&highlighter.highlight_code(&self.code, &self.extension)?);
-        colorized.push(utils::END_ANSI.to_owned());
+        colorized.push(String::from("\n"));
+        colorized.push(String::from("\n"));
+        colorized.push(String::from(utils::END_ANSI));
         Ok(colorized)
     }
 

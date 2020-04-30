@@ -12,6 +12,7 @@ pub(crate) struct TheWayConfig {
     pub(crate) themes_dir: PathDir,
 }
 
+/// Main project directory, cross-platform
 fn get_project_dir() -> Result<ProjectDirs, Error> {
     Ok(ProjectDirs::from("", "", NAME).ok_or(LostTheWay::Homeless)?)
 }
@@ -29,10 +30,12 @@ impl Default for TheWayConfig {
 }
 
 impl TheWayConfig {
+    /// Read config
     pub(crate) fn get() -> Result<Self, confy::ConfyError> {
         Ok(confy::load(NAME)?)
     }
 
+    /// Write possibly modified config
     pub(crate) fn store(&self) -> Result<(), Error> {
         confy::store(NAME, &(*self).clone())?;
         Ok(())

@@ -9,16 +9,25 @@ use dialoguer::{theme, Editor, Input};
 
 use crate::errors::LostTheWay;
 
-pub const RAVEN: char = '\u{1313F}';
+/// To clear ANSI styling
 pub const END_ANSI: &str = "\x1b[0m";
+
+/// language color box
+pub const BOX: &str = "\u{25a0}";
+
+/// Name of the app, used for making project directories and reading the YAML file
 pub const NAME: &str = "the-way";
 
 /// ASCII code of semicolon
 pub const SEMICOLON: u8 = 59;
 
-pub fn copy_to_clipboard(text: String) {
-    let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
-    ctx.set_contents(text).unwrap();
+/// Set clipboard contents to text
+pub fn copy_to_clipboard(text: String) -> Result<(), Error> {
+    let mut ctx: ClipboardContext =
+        ClipboardProvider::new().map_err(|_| LostTheWay::ClipboardError)?;
+    ctx.set_contents(text)
+        .map_err(|_| LostTheWay::ClipboardError)?;
+    Ok(())
 }
 
 /// Splits input by comma
@@ -48,7 +57,7 @@ pub fn split_indices_usize(index_list: &[u8]) -> Result<Vec<usize>, Error> {
     let index_list_string = str::from_utf8(index_list)?;
     Ok(index_list_string
         .split(str::from_utf8(&[SEMICOLON])?)
-        .map(|word: &str| word.parse::<usize>())
+        .map(str::parse)
         .collect::<Result<Vec<_>, _>>()?)
 }
 
@@ -63,6 +72,8 @@ pub fn make_indices_string(index_list: &[usize]) -> Result<Vec<u8>, Error> {
         .to_vec())
 }
 
+/// Makes a date from a string, can be colloquial like "next Friday"
+/// TODO: check if chrono-english can parse "today" yet
 pub fn parse_date(date_string: &str) -> Result<Date<Utc>, Error> {
     if date_string.to_ascii_lowercase() == "today" {
         Ok(Utc::now().date())
