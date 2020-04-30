@@ -1,3 +1,4 @@
+//! StructOpt data
 use std::path::PathBuf;
 
 use chrono::{Date, Utc};
@@ -52,6 +53,7 @@ pub(crate) enum TheWayCommand {
     Export {
         #[structopt(flatten)]
         filters: Filters,
+        /// filename, writes to stdout if not given
         #[structopt(long, short, parse(from_os_str))]
         file: Option<PathBuf>,
     },

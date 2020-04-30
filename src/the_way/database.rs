@@ -33,7 +33,7 @@ impl TheWay {
         Ok(())
     }
 
-    /// Gets snippet_index: snippet tree
+    /// Gets snippet index: snippet tree
     fn snippets_tree(&self) -> Result<sled::Tree, Error> {
         Ok(self.db.open_tree("snippets")?)
     }
@@ -56,7 +56,7 @@ impl TheWay {
         Ok(self.db.open_tree("language_to_snippet")?)
     }
 
-    /// Get the tag: snippet_indices tree
+    /// Get the tag: snippet indices tree
     fn tag_tree(&self) -> Result<sled::Tree, Error> {
         Ok(self.db.open_tree("tag_to_snippet")?)
     }

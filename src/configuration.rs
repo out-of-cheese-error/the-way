@@ -21,7 +21,7 @@ fn get_project_dir() -> Result<ProjectDirs, Error> {
 
 impl Default for TheWayConfig {
     fn default() -> Self {
-        let dir = get_project_dir().unwrap();
+        let dir = get_project_dir().expect("Couldn't get project dir");
         let data_dir = dir.data_dir();
         if !data_dir.exists() {
             fs::create_dir_all(data_dir).expect("Couldn't create data dir");

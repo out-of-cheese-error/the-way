@@ -168,16 +168,16 @@ impl Snippet {
 
     /// Highlights the title: "■ #index. description | language :tag1:tag2:\n"
     /// the block is colored according to the language
-    /// language uses accent_style
-    /// tags use dim_style
-    /// everything else is in main_style
+    /// language uses `accent_style`
+    /// tags use `dim_style`
+    /// everything else is in `main_style`
     pub(crate) fn pretty_print_header(
         &self,
         highlighter: &CodeHighlight,
         language: &Language,
     ) -> Result<Vec<String>, Error> {
         let mut colorized = Vec::new();
-        let block = highlighter.highlight_block(language.color)?;
+        let block = CodeHighlight::highlight_block(language.color)?;
         colorized.push(block);
         let text = format!("#{}. {} ", self.index, self.description);
         colorized.push(CodeHighlight::highlight_string(

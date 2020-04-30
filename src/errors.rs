@@ -26,7 +26,7 @@ pub enum LostTheWay {
     #[error(
         "I don't have the {theme_name:?} theme. Add it from a theme file with the-way themes --add"
     )]
-    ThemeNotFound { theme_name: String },
+    ThemeError { theme: String },
     #[error("Couldn't copy to clipboard")]
     ClipboardError,
     #[error("Search failed")]

@@ -1,4 +1,11 @@
 #![feature(exact_size_is_empty)]
+#![warn(
+    clippy::all,
+    clippy::restriction,
+    clippy::pedantic,
+    clippy::nursery,
+    clippy::cargo
+)]
 #[macro_use]
 extern crate serde_derive;
 

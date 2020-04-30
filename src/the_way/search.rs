@@ -60,8 +60,7 @@ impl TheWay {
                 text_highlight: snippet
                     .pretty_print_header(
                         &self.highlighter,
-                        &self
-                            .languages
+                        self.languages
                             .get(&snippet.language)
                             .unwrap_or(&default_language),
                     )

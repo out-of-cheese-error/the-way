@@ -108,7 +108,7 @@ impl TheWay {
                             Ok(())
                         }
                         ThemeCommand::Add { file } => {
-                            self.highlighter.add_theme(&file)?;
+                            self.highlighter.add_theme(file)?;
                             Ok(())
                         }
                     },
@@ -169,8 +169,7 @@ impl TheWay {
         let snippet = self.get_snippet(index)?;
         for line in snippet.pretty_print(
             &self.highlighter,
-            &self
-                .languages
+            self.languages
                 .get(&snippet.language)
                 .unwrap_or(&Language::default()),
         )? {
@@ -199,7 +198,7 @@ impl TheWay {
     /// TODO: It may be nice to check for duplicates somehow, too expensive?
     fn import(&self, file: &Path) -> Result<Vec<Snippet>, Error> {
         let mut snippets = Snippet::read_from_file(file)?.collect::<Result<Vec<_>, _>>()?;
-        for snippet in snippets.iter_mut() {
+        for snippet in &mut snippets {
             snippet.set_extension(&snippet.language.to_owned(), &self.languages);
         }
         Ok(snippets)
@@ -221,7 +220,7 @@ impl TheWay {
 
     /// Lists snippets (optionally filtered)
     fn list(&self, filters: &Filters) -> Result<(), Error> {
-        let snippets = self.filter_snippets(&filters)?;
+        let snippets = self.filter_snippets(filters)?;
 
         let mut colorized = Vec::new();
         let default_language = Language::default();
@@ -229,8 +228,7 @@ impl TheWay {
             colorized.extend_from_slice(
                 &snippet.pretty_print(
                     &self.highlighter,
-                    &self
-                        .languages
+                    self.languages
                         .get(&snippet.language)
                         .unwrap_or(&default_language),
                 )?,
@@ -258,7 +256,9 @@ impl TheWay {
 
     /// Removes all `sled` trees
     fn clear(&self, force: bool) -> Result<(), Error> {
-        let sure_delete = if !force {
+        let sure_delete = if force {
+            "Y".into()
+        } else {
             let mut sure_delete;
             loop {
                 sure_delete =
@@ -268,8 +268,6 @@ impl TheWay {
                 }
             }
             sure_delete
-        } else {
-            "Y".into()
         };
         if sure_delete == "Y" {
             for path in fs::read_dir(&self.config.db_dir)? {
