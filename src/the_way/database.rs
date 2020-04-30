@@ -1,3 +1,4 @@
+//! Sled database related code
 use anyhow::Error;
 use chrono::{DateTime, Utc};
 use path_abs::PathDir;
@@ -9,9 +10,7 @@ use crate::utils;
 
 /// If key exists, add value to existing values - join with a semicolon
 fn merge_index(_key: &[u8], old_indices: Option<&[u8]>, new_index: &[u8]) -> Option<Vec<u8>> {
-    let mut ret = old_indices
-        .map(|old| old.to_vec())
-        .unwrap_or_else(|| vec![]);
+    let mut ret = old_indices.map_or_else(Vec::new, |old| old.to_vec());
     if !ret.is_empty() {
         ret.extend_from_slice(&[utils::SEMICOLON]);
     }
@@ -20,16 +19,20 @@ fn merge_index(_key: &[u8], old_indices: Option<&[u8]>, new_index: &[u8]) -> Opt
 }
 
 impl<'a> TheWay<'a> {
+    /// Gets the `sled` database with all the-way info.
+    /// Makes a new one the first time round
     pub(crate) fn get_db(db_dir: &PathDir) -> Result<sled::Db, Error> {
         Ok(sled::open(&PathDir::create_all(db_dir)?)?)
     }
 
+    /// Merge function for appending items to an existing key, uses semicolons
     pub(crate) fn set_merge(&self) -> Result<(), Error> {
         self.language_tree()?.set_merge_operator(merge_index);
         self.tag_tree()?.set_merge_operator(merge_index);
         Ok(())
     }
 
+    /// Gets snippet_index: snippet tree
     fn snippets_tree(&self) -> Result<sled::Tree, Error> {
         Ok(self.db.open_tree("snippets")?)
     }
@@ -41,15 +44,18 @@ impl<'a> TheWay<'a> {
         }
     }
 
+    /// resets snippet_index to 0
     pub(crate) fn reset_index(&self) -> Result<(), Error> {
         self.db.insert("snippet_index", 0.to_string().as_bytes())?;
         Ok(())
     }
 
+    /// Get the language: snippet_indices tree
     fn language_tree(&self) -> Result<sled::Tree, Error> {
         Ok(self.db.open_tree("language_to_snippet")?)
     }
 
+    /// Get the tag: snippet_indices tree
     fn tag_tree(&self) -> Result<sled::Tree, Error> {
         Ok(self.db.open_tree("tag_to_snippet")?)
     }
@@ -65,6 +71,7 @@ impl<'a> TheWay<'a> {
         Ok(())
     }
 
+    /// Retrieve a snippet by index
     pub(crate) fn get_snippet(&self, index: usize) -> Result<Snippet, Error> {
         let index_key = index.to_string();
         let index_key = index_key.as_bytes();
@@ -76,6 +83,7 @@ impl<'a> TheWay<'a> {
         )?)
     }
 
+    /// Retrieve snippets at indices
     pub(crate) fn get_snippets(&self, indices: &[usize]) -> Result<Vec<Snippet>, Error> {
         indices.iter().map(|i| self.get_snippet(*i)).collect()
     }
@@ -104,6 +112,7 @@ impl<'a> TheWay<'a> {
             .collect())
     }
 
+    // TODO: think about how deletions should affect snippet indices
     fn increment_snippet_index(&mut self) -> Result<(), Error> {
         self.db.insert(
             "snippet_index",
@@ -114,6 +123,7 @@ impl<'a> TheWay<'a> {
         Ok(())
     }
 
+    /// Add a snippet index to each of the tags it's associated with
     pub(crate) fn add_to_tags(&mut self, tags: &[String], index_key: &[u8]) -> Result<(), Error> {
         for tag in tags {
             let tag_key = tag.as_bytes();
@@ -123,6 +133,7 @@ impl<'a> TheWay<'a> {
         Ok(())
     }
 
+    /// Add a serialized snippet to the snippets tree
     pub(crate) fn add_to_snippet(
         &self,
         index_key: &[u8],
@@ -198,11 +209,15 @@ impl<'a> TheWay<'a> {
         Ok(())
     }
 
-    pub(crate) fn delete_from_trees(
-        &mut self,
-        snippet: &Snippet,
-        index: usize,
-    ) -> Result<(), Error> {
+    /// Delete snippet from database
+    pub(crate) fn delete_snippet(&mut self, index: usize) -> Result<Snippet, Error> {
+        let snippet = self.delete_from_snippets_tree(index)?;
+        self.delete_from_trees(&snippet, index)?;
+        Ok(snippet)
+    }
+
+    /// Delete snippet from language and tag trees
+    fn delete_from_trees(&mut self, snippet: &Snippet, index: usize) -> Result<(), Error> {
         let language_key = snippet.language.as_bytes();
         self.delete_from_language(language_key, index)?;
         let mut tag_batch = sled::Batch::default();
@@ -213,7 +228,8 @@ impl<'a> TheWay<'a> {
         Ok(())
     }
 
-    pub(crate) fn remove_snippet(&mut self, index: usize) -> Result<Snippet, Error> {
+    /// Delete snippet from the snippet tree
+    fn delete_from_snippets_tree(&mut self, index: usize) -> Result<Snippet, Error> {
         let index_key = index.to_string();
         let index_key = index_key.as_bytes();
         Ok(Snippet::from_bytes(

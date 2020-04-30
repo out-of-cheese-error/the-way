@@ -1,7 +1,7 @@
 use thiserror::Error;
 
-/// Errors which can be caused by normal quoth operation.
-/// Those caused by external libraries throw their own errors
+/// Errors which can be caused by normal the-way operation.
+/// Those caused by external libraries throw their own errors when possible
 #[derive(Debug, Error)]
 pub enum LostTheWay {
     /// Thrown when trying to access an unrecorded language
@@ -33,6 +33,10 @@ pub enum LostTheWay {
         "I don't have the {theme_name:?} theme. Add it from a theme file with the-way themes --add"
     )]
     ThemeNotFound { theme_name: String },
+    #[error("Couldn't copy to clipboard")]
+    ClipboardError,
+    #[error("Search failed")]
+    SearchError,
     /// Catch-all for stuff that should never happen
     #[error("{message:?}\nRedo from start.")]
     OutOfCheeseError { message: String },

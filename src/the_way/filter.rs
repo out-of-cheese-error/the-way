@@ -1,3 +1,4 @@
+//! Code related to filtering search, list, and export results
 use std::collections::HashSet;
 
 use anyhow::Error;
@@ -32,7 +33,7 @@ impl<'a> Filters<'a> {
         let to_date = if on_date.is_some() {
             on_date
         } else {
-            utils::get_argument_value("to", &matches)?
+            utils::get_argument_value("to", matches)?
         }
         .map(|date| utils::parse_date(date))
         .transpose()?

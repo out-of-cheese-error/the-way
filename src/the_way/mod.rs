@@ -1,3 +1,4 @@
+//! CLI code
 use std::collections::HashMap;
 use std::io;
 
@@ -23,10 +24,16 @@ mod snippet;
 /// - argument parsing information from `clap`
 /// - the `sled` databases storing linkage information between languages, tags, and snippets
 pub struct TheWay<'a> {
+    /// stores the main project directory, the themes directory, and the currently set theme
     config: TheWayConfig,
+    /// `clap` matches
+    // TODO: consider structopt: seems like shell completion can be more complex and less code duplication in yaml
     matches: ArgMatches<'a>,
+    /// database storing snippets and links to languages and tags
     db: sled::Db,
+    /// Maps a language name to its color and extension
     languages: HashMap<String, Language>,
+    /// for `syntect` code highlighting
     highlighter: CodeHighlight,
 }
 
@@ -97,7 +104,7 @@ impl<'a> TheWay<'a> {
                         self.highlighter.add_theme(&theme_file)?;
                         Ok(())
                     }
-                    _ => self.list_themes()
+                    _ => self.list_themes(),
                 },
                 ("clear", Some(_)) => self.clear(),
                 ("complete", Some(matches)) => self.complete(matches),
@@ -106,6 +113,7 @@ impl<'a> TheWay<'a> {
         }
     }
 
+    /// Adds a new snippet
     fn the_way(&mut self) -> Result<(), Error> {
         let snippet =
             Snippet::from_user(self.get_current_snippet_index()? + 1, &self.languages, None)?;
@@ -131,8 +139,7 @@ impl<'a> TheWay<'a> {
         }
         if sure_delete == "Y" {
             let index = index.parse::<usize>()?;
-            let snippet = self.remove_snippet(index)?;
-            self.delete_from_trees(&snippet, index)?;
+            self.delete_snippet(index)?;
             println!("Snippet #{} deleted", index);
             Ok(())
         } else {
@@ -152,18 +159,18 @@ impl<'a> TheWay<'a> {
             .parse::<usize>()?;
         let old_snippet = self.get_snippet(index)?;
         let new_snippet = Snippet::from_user(index, &self.languages, Some(&old_snippet))?;
-
-        self.delete_from_trees(&old_snippet, index)?;
+        self.delete_snippet(index)?;
         let language_key = new_snippet.language.as_bytes();
         let index_key = index.to_string();
         let index_key = index_key.as_bytes();
         self.add_to_language(language_key, index_key)?;
         self.add_to_tags(&new_snippet.tags, index_key)?;
         self.add_to_snippet(index_key, &new_snippet.to_bytes()?)?;
-        println!("Snippet #{} changed", index); // TODO: change to log?
+        println!("Snippet #{} changed", index);
         Ok(())
     }
 
+    /// Pretty prints a snippet to terminal
     fn show(&self) -> Result<(), Error> {
         let index = utils::get_argument_value("show", &self.matches)?
             .ok_or(LostTheWay::OutOfCheeseError {
@@ -171,13 +178,19 @@ impl<'a> TheWay<'a> {
             })?
             .parse::<usize>()?;
         let snippet = self.get_snippet(index)?;
-        for line in snippet.pretty_print(&self.highlighter, &self.languages[&snippet.language])? {
+        for line in snippet.pretty_print(
+            &self.highlighter,
+            &self
+                .languages
+                .get(&snippet.language)
+                .unwrap_or(&Language::default()),
+        )? {
             print!("{}", line)
         }
         Ok(())
     }
 
-    // Copy a snippet to clipboard
+    /// Copy a snippet to clipboard
     fn copy(&self) -> Result<(), Error> {
         let index = utils::get_argument_value("copy", &self.matches)?
             .ok_or(LostTheWay::OutOfCheeseError {
@@ -185,7 +198,7 @@ impl<'a> TheWay<'a> {
             })?
             .parse::<usize>()?;
         let snippet = self.get_snippet(index)?;
-        utils::copy_to_clipboard(snippet.code);
+        utils::copy_to_clipboard(snippet.code)?;
         println!("Snippet #{} copied to clipboard", index);
         Ok(())
     }
@@ -198,6 +211,8 @@ impl<'a> TheWay<'a> {
         Ok(())
     }
 
+    /// Imports snippets from a JSON file (ignores indices and appends to existing snippets)
+    /// TODO: It may be nice to check for duplicates somehow, too expensive?
     fn import(&self, matches: &ArgMatches<'a>) -> Result<Vec<Snippet>, Error> {
         let json_file = PathFile::new(utils::get_argument_value("json", matches)?.ok_or(
             LostTheWay::OutOfCheeseError {
@@ -209,7 +224,7 @@ impl<'a> TheWay<'a> {
         Ok(snippets?)
     }
 
-    // Saves (optionally filtered) snippets to a JSON file
+    /// Saves (optionally filtered) snippets to a JSON file
     fn export(&self, matches: &ArgMatches<'a>) -> Result<(), Error> {
         let json_file = PathFile::create(utils::get_argument_value("json", matches)?.ok_or(
             LostTheWay::OutOfCheeseError {
@@ -231,9 +246,16 @@ impl<'a> TheWay<'a> {
         let snippets = self.filter_snippets(&filters)?;
 
         let mut colorized = Vec::new();
+        let default_language = Language::default();
         for snippet in &snippets {
             colorized.extend_from_slice(
-                &snippet.pretty_print(&self.highlighter, &self.languages[&snippet.language])?,
+                &snippet.pretty_print(
+                    &self.highlighter,
+                    &self
+                        .languages
+                        .get(&snippet.language)
+                        .unwrap_or(&default_language),
+                )?,
             );
         }
         for line in colorized {
@@ -252,6 +274,8 @@ impl<'a> TheWay<'a> {
     }
 
     /// Generates shell completions
+    /// NOTE: I'm keeping "self" here in case I figure out how to generate completions with
+    /// languages and tags as value hints
     fn complete(&self, matches: &ArgMatches<'a>) -> Result<(), Error> {
         let shell =
             utils::get_argument_value("shell", matches)?.ok_or(LostTheWay::OutOfCheeseError {
@@ -261,7 +285,11 @@ impl<'a> TheWay<'a> {
         let mut app = App::from(yaml);
         app.gen_completions_to(
             utils::NAME,
-            shell.parse::<Shell>().unwrap(),
+            shell
+                .parse::<Shell>()
+                .map_err(|_| LostTheWay::OutOfCheeseError {
+                    message: format!("{} doesn't seem to be a shell I can work with", shell),
+                })?,
             &mut io::stdout(),
         );
         Ok(())
