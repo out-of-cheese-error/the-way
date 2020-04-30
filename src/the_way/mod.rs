@@ -1,19 +1,22 @@
 //! CLI code
 use std::collections::HashMap;
-use std::io;
+use std::fs::File;
+use std::io::{BufWriter, Write};
+use std::path::Path;
+use std::{fs, io};
 
 use anyhow::Error;
-use clap::{load_yaml, App};
-use clap::{ArgMatches, Shell};
-use path_abs::{PathDir, PathFile};
+use clap::Shell;
+use structopt::StructOpt;
 
 use crate::configuration::TheWayConfig;
 use crate::errors::LostTheWay;
 use crate::language::{CodeHighlight, Language};
-use crate::the_way::filter::Filters;
+use crate::the_way::cli::{Filters, TheWayCLI, TheWayCommand, ThemeCommand};
 use crate::the_way::snippet::Snippet;
 use crate::utils;
 
+pub(crate) mod cli;
 mod database;
 mod filter;
 mod search;
@@ -23,12 +26,11 @@ mod snippet;
 /// - project directory information from `directories`
 /// - argument parsing information from `clap`
 /// - the `sled` databases storing linkage information between languages, tags, and snippets
-pub struct TheWay<'a> {
+pub struct TheWay {
     /// stores the main project directory, the themes directory, and the currently set theme
     config: TheWayConfig,
-    /// `clap` matches
-    // TODO: consider structopt: seems like shell completion can be more complex and less code duplication in yaml
-    matches: ArgMatches<'a>,
+    /// StructOpt struct
+    cli: TheWayCLI,
     /// database storing snippets and links to languages and tags
     db: sled::Db,
     /// Maps a language name to its color and extension
@@ -38,78 +40,81 @@ pub struct TheWay<'a> {
 }
 
 // All command-line related functions
-impl<'a> TheWay<'a> {
+impl TheWay {
     /// Initialize program with command line input.
     /// Reads `sled` trees and metadata file from the locations specified in config.
     /// (makes new ones the first time).
-    pub(crate) fn start(
-        matches: ArgMatches<'a>,
-        languages: HashMap<String, Language>,
-    ) -> Result<(), Error> {
+    pub(crate) fn start(cli: TheWayCLI, languages: HashMap<String, Language>) -> Result<(), Error> {
         let config = TheWayConfig::get()?;
         let mut the_way = Self {
             db: Self::get_db(&config.db_dir)?,
-            matches,
+            cli,
             languages,
             highlighter: CodeHighlight::new(&config.theme, config.themes_dir.clone())?,
             config,
         };
         the_way.set_merge()?;
         the_way.run()?;
-        // the_way.debug();
         Ok(())
     }
 
-    /// Parses command-line arguments to decide which sub-command to run
     fn run(&mut self) -> Result<(), Error> {
-        if self.matches.is_present("delete") {
-            self.delete()
-        } else if self.matches.is_present("show") {
-            self.show()
-        } else if self.matches.is_present("change") {
-            self.change()
-        } else if self.matches.is_present("copy") {
-            self.copy()
-        } else {
-            match self.matches.subcommand() {
-                ("import", Some(matches)) => {
-                    for mut snippet in self.import(matches)? {
+        match &self.cli.command {
+            None => {
+                let mut flag = false;
+                if let Some(index) = self.cli.delete {
+                    flag = true;
+                    self.delete(index)?;
+                }
+                if let Some(index) = self.cli.show {
+                    flag = true;
+                    self.show(index)?;
+                }
+                if let Some(index) = self.cli.copy {
+                    flag = true;
+                    self.copy(index)?;
+                }
+                if let Some(index) = self.cli.change {
+                    flag = true;
+                    self.change(index)?;
+                }
+                if let Some(shell) = self.cli.complete {
+                    flag = true;
+                    self.complete(shell)?;
+                }
+                if !flag {
+                    self.the_way()?;
+                }
+                Ok(())
+            }
+            Some(command) => match command {
+                TheWayCommand::Import { file } => {
+                    for mut snippet in self.import(file)? {
                         snippet.index = self.get_current_snippet_index()? + 1;
                         self.add_snippet(&snippet)?;
                     }
                     Ok(())
                 }
-                ("export", Some(matches)) => self.export(matches),
-                ("list", Some(matches)) => self.list(matches),
-                ("search", Some(matches)) => self.search(matches),
-                ("themes", Some(matches)) => match matches.subcommand() {
-                    ("set", Some(matches)) => {
-                        let theme_name = utils::get_argument_value("theme", matches)?.ok_or(
-                            LostTheWay::OutOfCheeseError {
-                                message: "Argument THEME not used".into(),
-                            },
-                        )?;
-                        self.highlighter.set_theme(theme_name.to_owned())?;
-                        self.config.theme = theme_name.to_owned();
-                        self.config.store()?;
-                        Ok(())
-                    }
-                    ("add", Some(matches)) => {
-                        let theme_file = utils::get_argument_value("file", matches)?.ok_or(
-                            LostTheWay::OutOfCheeseError {
-                                message: "Argument FILE not used".into(),
-                            },
-                        )?;
-                        let theme_file = PathFile::new(theme_file)?;
-                        self.highlighter.add_theme(&theme_file)?;
-                        Ok(())
-                    }
-                    _ => self.list_themes(),
+                TheWayCommand::Search { filters } => self.search(filters),
+                TheWayCommand::List { filters } => self.list(filters),
+                TheWayCommand::Export { filters, file } => self.export(filters, file.as_deref()),
+                TheWayCommand::Themes { cmd } => match cmd {
+                    None => self.list_themes(),
+                    Some(cmd) => match cmd {
+                        ThemeCommand::Set { theme } => {
+                            self.highlighter.set_theme(theme.to_owned())?;
+                            self.config.theme = theme.to_owned();
+                            self.config.store()?;
+                            Ok(())
+                        }
+                        ThemeCommand::Add { file } => {
+                            self.highlighter.add_theme(&file)?;
+                            Ok(())
+                        }
+                    },
                 },
-                ("clear", Some(_)) => self.clear(),
-                ("complete", Some(matches)) => self.complete(matches),
-                _ => self.the_way(),
-            }
+                TheWayCommand::Clear { force } => self.clear(*force),
+            },
         }
     }
 
@@ -122,12 +127,7 @@ impl<'a> TheWay<'a> {
     }
 
     /// Delete a snippet (and all associated data) from the trees and metadata
-    fn delete(&mut self) -> Result<(), Error> {
-        let index = utils::get_argument_value("delete", &self.matches)?.ok_or(
-            LostTheWay::OutOfCheeseError {
-                message: "Argument delete not used".into(),
-            },
-        )?;
+    fn delete(&mut self, index: usize) -> Result<(), Error> {
         let mut sure_delete;
         loop {
             sure_delete =
@@ -138,7 +138,6 @@ impl<'a> TheWay<'a> {
             }
         }
         if sure_delete == "Y" {
-            let index = index.parse::<usize>()?;
             self.delete_snippet(index)?;
             println!("Snippet #{} deleted", index);
             Ok(())
@@ -151,12 +150,7 @@ impl<'a> TheWay<'a> {
     }
 
     /// Modify a stored snippet's information
-    fn change(&mut self) -> Result<(), Error> {
-        let index = utils::get_argument_value("change", &self.matches)?
-            .ok_or(LostTheWay::OutOfCheeseError {
-                message: "Argument change not used".into(),
-            })?
-            .parse::<usize>()?;
+    fn change(&mut self, index: usize) -> Result<(), Error> {
         let old_snippet = self.get_snippet(index)?;
         let new_snippet = Snippet::from_user(index, &self.languages, Some(&old_snippet))?;
         self.delete_snippet(index)?;
@@ -171,12 +165,7 @@ impl<'a> TheWay<'a> {
     }
 
     /// Pretty prints a snippet to terminal
-    fn show(&self) -> Result<(), Error> {
-        let index = utils::get_argument_value("show", &self.matches)?
-            .ok_or(LostTheWay::OutOfCheeseError {
-                message: "Argument show not used".into(),
-            })?
-            .parse::<usize>()?;
+    fn show(&self, index: usize) -> Result<(), Error> {
         let snippet = self.get_snippet(index)?;
         for line in snippet.pretty_print(
             &self.highlighter,
@@ -191,12 +180,7 @@ impl<'a> TheWay<'a> {
     }
 
     /// Copy a snippet to clipboard
-    fn copy(&self) -> Result<(), Error> {
-        let index = utils::get_argument_value("copy", &self.matches)?
-            .ok_or(LostTheWay::OutOfCheeseError {
-                message: "Argument copy not used".into(),
-            })?
-            .parse::<usize>()?;
+    fn copy(&self, index: usize) -> Result<(), Error> {
         let snippet = self.get_snippet(index)?;
         utils::copy_to_clipboard(snippet.code)?;
         println!("Snippet #{} copied to clipboard", index);
@@ -213,13 +197,8 @@ impl<'a> TheWay<'a> {
 
     /// Imports snippets from a JSON file (ignores indices and appends to existing snippets)
     /// TODO: It may be nice to check for duplicates somehow, too expensive?
-    fn import(&self, matches: &ArgMatches<'a>) -> Result<Vec<Snippet>, Error> {
-        let json_file = PathFile::new(utils::get_argument_value("json", matches)?.ok_or(
-            LostTheWay::OutOfCheeseError {
-                message: "Argument json not used".into(),
-            },
-        )?)?;
-        let mut snippets = Snippet::read_from_file(&json_file)?.collect::<Result<Vec<_>, _>>()?;
+    fn import(&self, file: &Path) -> Result<Vec<Snippet>, Error> {
+        let mut snippets = Snippet::read_from_file(file)?.collect::<Result<Vec<_>, _>>()?;
         for snippet in snippets.iter_mut() {
             snippet.set_extension(&snippet.language.to_owned(), &self.languages);
         }
@@ -227,24 +206,21 @@ impl<'a> TheWay<'a> {
     }
 
     /// Saves (optionally filtered) snippets to a JSON file
-    fn export(&self, matches: &ArgMatches<'a>) -> Result<(), Error> {
-        let json_file = PathFile::create(utils::get_argument_value("json", matches)?.ok_or(
-            LostTheWay::OutOfCheeseError {
-                message: "Argument json not used".into(),
-            },
-        )?)?;
-        let filters = Filters::get_filters(matches)?;
-        let mut writer = json_file.open_edit()?;
-        self.filter_snippets(&filters)?
+    fn export(&self, filters: &Filters, file: Option<&Path>) -> Result<(), Error> {
+        let writer: Box<dyn Write> = match file {
+            Some(file) => Box::new(File::open(file)?),
+            None => Box::new(io::stdout()),
+        };
+        let mut buffered = BufWriter::new(writer);
+        self.filter_snippets(filters)?
             .into_iter()
-            .map(|snippet| snippet.to_json(&mut writer))
+            .map(|snippet| snippet.to_json(&mut buffered))
             .collect::<Result<Vec<_>, _>>()?;
         Ok(())
     }
 
     /// Lists snippets (optionally filtered)
-    fn list(&self, matches: &ArgMatches<'a>) -> Result<(), Error> {
-        let filters = Filters::get_filters(matches)?;
+    fn list(&self, filters: &Filters) -> Result<(), Error> {
         let snippets = self.filter_snippets(&filters)?;
 
         let mut colorized = Vec::new();
@@ -268,52 +244,40 @@ impl<'a> TheWay<'a> {
 
     /// Displays all snippet descriptions in a skim fuzzy search window
     /// A preview window on the right shows the indices of snippets matching the query
-    fn search(&self, matches: &ArgMatches<'a>) -> Result<(), Error> {
-        let filters = Filters::get_filters(matches)?;
+    fn search(&self, filters: &Filters) -> Result<(), Error> {
         let snippets = self.filter_snippets(&filters)?;
         self.make_search(snippets)?;
         Ok(())
     }
 
     /// Generates shell completions
-    /// NOTE: I'm keeping "self" here in case I figure out how to generate completions with
-    /// languages and tags as value hints
-    fn complete(&self, matches: &ArgMatches<'a>) -> Result<(), Error> {
-        let shell =
-            utils::get_argument_value("shell", matches)?.ok_or(LostTheWay::OutOfCheeseError {
-                message: "Argument shell not used".into(),
-            })?;
-        let yaml = load_yaml!("../the_way.yml");
-        let mut app = App::from(yaml);
-        app.gen_completions_to(
-            utils::NAME,
-            shell
-                .parse::<Shell>()
-                .map_err(|_| LostTheWay::OutOfCheeseError {
-                    message: format!("{} doesn't seem to be a shell I can work with", shell),
-                })?,
-            &mut io::stdout(),
-        );
+    fn complete(&self, shell: Shell) -> Result<(), Error> {
+        TheWayCLI::clap().gen_completions_to(utils::NAME, shell, &mut io::stdout());
         Ok(())
     }
 
     /// Removes all `sled` trees
-    fn clear(&self) -> Result<(), Error> {
-        let mut sure_delete;
-        loop {
-            sure_delete =
-                utils::user_input("Clear all data Y/N?", Some("N"), true)?.to_ascii_uppercase();
-            if sure_delete == "Y" || sure_delete == "N" {
-                break;
+    fn clear(&self, force: bool) -> Result<(), Error> {
+        let sure_delete = if !force {
+            let mut sure_delete;
+            loop {
+                sure_delete =
+                    utils::user_input("Clear all data Y/N?", Some("N"), true)?.to_ascii_uppercase();
+                if sure_delete == "Y" || sure_delete == "N" {
+                    break;
+                }
             }
-        }
+            sure_delete
+        } else {
+            "Y".into()
+        };
         if sure_delete == "Y" {
-            for path in self.config.db_dir.list()? {
-                let path = path?;
+            for path in fs::read_dir(&self.config.db_dir)? {
+                let path = path?.path();
                 if path.is_dir() {
-                    PathDir::new(path)?.remove_all()?;
+                    fs::remove_dir_all(path)?;
                 } else {
-                    PathFile::new(path)?.remove()?;
+                    fs::remove_file(path)?;
                 }
             }
             self.reset_index()?;
