@@ -108,7 +108,7 @@ subcommands:
             conflicts_with:
               - on
   - import:
-      about: "Imports code snippets from a JSON file"
+      about: "Imports code snippets from a JSON file. Looks for description, language, and code fields"
       display_order: 2
       args:
         - json:

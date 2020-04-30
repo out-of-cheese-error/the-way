@@ -58,6 +58,20 @@ impl Language {
             a: 0xFF,
         })
     }
+
+    /// Finds the appropriate file extension for a language
+    pub(crate) fn get_extension(language_name: &str, languages: &HashMap<String, Self>) -> String {
+        let default = Self::default();
+        if let Some(l) = languages.get(language_name) {
+            l.extension.to_owned()
+        } else {
+            eprintln!(
+                "Couldn't find language {} in the list of extensions, defaulting to .txt",
+                language_name
+            );
+            default.extension
+        }
+    }
 }
 
 /// Loads language information from GitHub's languages.yml file

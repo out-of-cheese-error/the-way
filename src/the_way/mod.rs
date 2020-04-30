@@ -219,9 +219,11 @@ impl<'a> TheWay<'a> {
                 message: "Argument json not used".into(),
             },
         )?)?;
-        let snippets: Result<Vec<Snippet>, serde_json::Error> =
-            Snippet::read_from_file(&json_file)?.collect();
-        Ok(snippets?)
+        let mut snippets = Snippet::read_from_file(&json_file)?.collect::<Result<Vec<_>, _>>()?;
+        for snippet in snippets.iter_mut() {
+            snippet.set_extension(&snippet.language.to_owned(), &self.languages);
+        }
+        Ok(snippets)
     }
 
     /// Saves (optionally filtered) snippets to a JSON file

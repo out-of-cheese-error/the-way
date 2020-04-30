@@ -12,19 +12,23 @@ use crate::utils;
 #[derive(Serialize, Deserialize, Debug)]
 pub(crate) struct Snippet {
     /// Snippet index, used to retrieve, copy, or modify a snippet
+    #[serde(default)]
     pub(crate) index: usize,
     /// Snippet description, what does it do?
-    pub(crate) description: String,
+    description: String,
     /// Language the snippet is written in
     pub(crate) language: String,
-    /// extension
-    pub(crate) extension: String,
-    /// Tags attached to the snippet
-    pub(crate) tags: Vec<String>,
-    /// Date of recording the snippet
-    pub(crate) date: DateTime<Utc>,
     /// Snippet code
     pub(crate) code: String,
+    /// extension
+    #[serde(default)]
+    extension: String,
+    /// Tags attached to the snippet
+    #[serde(default)]
+    pub(crate) tags: Vec<String>,
+    /// Date of recording the snippet
+    #[serde(default = "Utc::now")]
+    date: DateTime<Utc>,
 }
 
 impl Snippet {
@@ -49,18 +53,12 @@ impl Snippet {
         }
     }
 
-    /// Finds the appropriate file extension for a language
-    fn get_extension(language_name: &str, languages: &HashMap<String, Language>) -> String {
-        let default = Language::default();
-        if let Some(l) = languages.get(language_name) {
-            l.extension.to_owned()
-        } else {
-            eprintln!(
-                "Couldn't find language {} in the list of extensions, defaulting to .txt",
-                language_name
-            );
-            default.extension
-        }
+    pub(crate) fn set_extension(
+        &mut self,
+        language_name: &str,
+        languages: &HashMap<String, Language>,
+    ) {
+        self.extension = Language::get_extension(language_name, languages);
     }
 
     /// Queries user for new snippet info
@@ -83,7 +81,7 @@ impl Snippet {
 
         let description = utils::user_input("Description", old_description, false)?;
         let language = utils::user_input("Language", old_language, false)?.to_ascii_lowercase();
-        let extension = Self::get_extension(&language, languages);
+        let extension = Language::get_extension(&language, languages);
         let tags = utils::user_input("Tags (space separated)", old_tags.as_deref(), false)?;
         let date = match old_date {
             Some(_) => utils::parse_date(&utils::user_input("Date", old_date.as_deref(), true)?)?
