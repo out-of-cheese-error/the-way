@@ -5,8 +5,7 @@ use anyhow::Error;
 use chrono::{DateTime, Utc};
 
 use crate::errors::LostTheWay;
-use crate::the_way::snippet::Snippet;
-use crate::the_way::TheWay;
+use crate::the_way::{snippet::Snippet, TheWay};
 use crate::utils;
 
 /// If key exists, add value to existing values - join with a semicolon

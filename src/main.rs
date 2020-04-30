@@ -1,11 +1,5 @@
 #![feature(exact_size_is_empty)]
-#![warn(
-    clippy::all,
-    clippy::restriction,
-    clippy::pedantic,
-    clippy::nursery,
-    clippy::cargo
-)]
+#![feature(move_ref_pattern)]
 #[macro_use]
 extern crate serde_derive;
 
@@ -13,8 +7,7 @@ use anyhow::Error;
 use structopt::StructOpt;
 
 use crate::language::get_languages;
-use crate::the_way::cli::TheWayCLI;
-use crate::the_way::TheWay;
+use crate::the_way::{cli::TheWayCLI, TheWay};
 
 mod configuration;
 mod errors;

@@ -1,11 +1,10 @@
 //! StructOpt data
 use std::path::PathBuf;
 
-use chrono::{Date, Utc};
 use clap::Shell;
 use structopt::StructOpt;
 
-use crate::utils;
+use crate::the_way::filter::Filters;
 
 #[derive(Debug, StructOpt)]
 #[structopt(
@@ -87,20 +86,4 @@ pub(crate) enum ThemeCommand {
         #[structopt(long, short, parse(from_os_str))]
         file: PathBuf,
     },
-}
-
-#[derive(StructOpt, Debug)]
-pub(crate) struct Filters {
-    /// Snippets from <DATE>
-    #[structopt(long, parse(try_from_str = utils::parse_date))]
-    pub(crate) from: Option<Date<Utc>>,
-    /// Snippets from <DATE>
-    #[structopt(long, parse(try_from_str = utils::parse_date))]
-    pub(crate) to: Option<Date<Utc>>,
-    /// Snippets written in <LANGUAGE> (multiple with 'lang1 lang2')
-    #[structopt(short, long)]
-    pub(crate) languages: Option<Vec<String>>,
-    /// Snippets with <TAG> (multiple with 'tag1 tag2')
-    #[structopt(short, long)]
-    pub(crate) tags: Option<Vec<String>>,
 }

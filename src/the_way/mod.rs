@@ -1,7 +1,5 @@
 //! CLI code
 use std::collections::HashMap;
-use std::fs::File;
-use std::io::{BufWriter, Write};
 use std::path::Path;
 use std::{fs, io};
 
@@ -12,8 +10,11 @@ use structopt::StructOpt;
 use crate::configuration::TheWayConfig;
 use crate::errors::LostTheWay;
 use crate::language::{CodeHighlight, Language};
-use crate::the_way::cli::{Filters, TheWayCLI, TheWayCommand, ThemeCommand};
-use crate::the_way::snippet::Snippet;
+use crate::the_way::{
+    cli::{TheWayCLI, TheWayCommand, ThemeCommand},
+    filter::Filters,
+    snippet::Snippet,
+};
 use crate::utils;
 
 pub(crate) mod cli;
@@ -206,11 +207,11 @@ impl TheWay {
 
     /// Saves (optionally filtered) snippets to a JSON file
     fn export(&self, filters: &Filters, file: Option<&Path>) -> Result<(), Error> {
-        let writer: Box<dyn Write> = match file {
-            Some(file) => Box::new(File::open(file)?),
+        let writer: Box<dyn io::Write> = match file {
+            Some(file) => Box::new(fs::File::open(file)?),
             None => Box::new(io::stdout()),
         };
-        let mut buffered = BufWriter::new(writer);
+        let mut buffered = io::BufWriter::new(writer);
         self.filter_snippets(filters)?
             .into_iter()
             .map(|snippet| snippet.to_json(&mut buffered))

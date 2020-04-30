@@ -93,12 +93,12 @@ pub(crate) fn get_languages(yml_string: &str) -> Result<HashMap<String, Language
     for (name, language_yml) in languages {
         if let Some(extension) = language_yml.extensions.first() {
             let mut language =
-                Language::new(name.clone(), extension.to_owned(), language_yml.color)?;
+                Language::new(name.to_owned(), extension.to_owned(), language_yml.color)?;
             name_to_language.insert(name.to_ascii_lowercase(), language.clone());
             name_to_language.insert(name, language.clone());
             for alias in language_yml.aliases {
                 language.name = alias.clone();
-                name_to_language.insert(alias.to_owned(), language.clone());
+                name_to_language.insert(alias, language.clone());
             }
         }
     }

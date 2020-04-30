@@ -8,8 +8,7 @@ use skim::{AnsiString, ItemPreview, Skim, SkimItem, SkimItemReceiver, SkimItemSe
 
 use crate::errors::LostTheWay;
 use crate::language::Language;
-use crate::the_way::snippet::Snippet;
-use crate::the_way::TheWay;
+use crate::the_way::{snippet::Snippet, TheWay};
 use crate::utils::copy_to_clipboard;
 
 /// searchable snippet information
