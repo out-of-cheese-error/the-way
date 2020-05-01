@@ -1,8 +1,6 @@
 //! Snippet information and methods
 use std::collections::HashMap;
-use std::fs::File;
 use std::io;
-use std::path::Path;
 
 use anyhow::Error;
 use chrono::{DateTime, Utc};
@@ -118,11 +116,11 @@ impl Snippet {
         Ok(bincode::deserialize(bytes)?)
     }
 
-    /// Read snippets from a JSON file and return consumable iterator
-    pub(crate) fn read_from_file(
-        json_file: &Path,
-    ) -> Result<impl Iterator<Item = serde_json::Result<Self>>, Error> {
-        Ok(serde_json::Deserializer::from_reader(File::open(json_file)?).into_iter::<Self>())
+    /// Read snippets from a JSON stream and return consumable iterator
+    pub(crate) fn read(
+        json_reader: &mut dyn io::Read,
+    ) -> impl Iterator<Item = serde_json::Result<Self>> + '_ {
+        serde_json::Deserializer::from_reader(json_reader).into_iter::<Self>()
     }
 
     /// Appends a snippet to a JSON object/file

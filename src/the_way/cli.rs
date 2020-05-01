@@ -47,12 +47,12 @@ pub(crate) enum TheWayCommand {
         #[structopt(flatten)]
         filters: Filters,
     },
-    /// Imports code snippets from a JSON file. Looks for description, language, and code fields
+    /// Imports code snippets from a JSON file (or stdin if empty). Looks for description, language, and code fields
     Import {
         #[structopt(parse(from_os_str))]
-        file: PathBuf,
+        file: Option<PathBuf>,
     },
-    /// Saves (optionally filtered) snippets to a JSON file.
+    /// Saves (optionally filtered) snippets to a JSON file (or stdout if empty).
     Export {
         #[structopt(flatten)]
         filters: Filters,

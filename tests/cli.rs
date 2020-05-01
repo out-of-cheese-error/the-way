@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use anyhow::Error;
 use assert_cmd::Command;
 use predicates::prelude::*;
+use rexpect::session::PtyBashSession;
 use rexpect::spawn_bash;
 use tempdir::TempDir;
 
@@ -100,28 +101,24 @@ fn change_theme() -> Result<(), Error> {
     Ok(())
 }
 
-fn add_snippet_rexpect(
-    config_file: PathBuf,
-    previous_config_file: Option<String>,
-) -> rexpect::errors::Result<()> {
+fn change_config_rexpect(config_file: PathBuf) -> rexpect::errors::Result<PtyBashSession> {
     let mut p = spawn_bash(Some(30_000))?;
-    // Change to new directory
+    // Change config file
     p.send_line(&format!(
         "export THE_WAY_CONFIG={}",
         config_file.to_string_lossy()
     ))?;
-    // Assert that change worked
-    let current_config_file = get_current_config_file();
-    assert!(current_config_file.is_ok());
-    let current_config_file = current_config_file.unwrap();
-    assert!(current_config_file.is_some());
-    assert_eq!(
-        current_config_file.unwrap(),
-        config_file.to_string_lossy().to_owned()
-    );
 
+    // Assert that the change worked
+    p.send_line("target/release/the-way config get")?; // TODO: yuck
+    p.exp_regex(config_file.to_string_lossy().as_ref())?;
+    Ok(p)
+}
+
+fn add_snippet_rexpect(config_file: PathBuf) -> rexpect::errors::Result<PtyBashSession> {
+    let mut p = change_config_rexpect(config_file)?;
     // Add a snippet
-    p.execute("target/release/the-way", "Description:").unwrap();
+    p.execute("target/release/the-way", "Description:")?; // TODO: yuck
     p.send_line("test description")?;
     p.exp_string("Language:")?;
     p.send_line("rust")?;
@@ -131,23 +128,14 @@ fn add_snippet_rexpect(
     p.send_line("code")?;
     p.exp_regex("Added snippet #1")?;
     p.wait_for_prompt()?;
-
-    // Change back to old directory
-    let mut p = spawn_bash(Some(30_000))?;
-    if let Some(previous_config_file) = previous_config_file {
-        p.send_line(&format!("export THE_WAY_CONFIG={}", previous_config_file))?;
-    } else {
-        p.send_line("unset THE_WAY_CONFIG")?;
-    }
-    Ok(())
+    Ok(p)
 }
 
 #[test]
 fn add_snippet() -> Result<(), Error> {
-    let previous_config_file = get_current_config_file()?;
     let temp_dir = create_temp_dir("add_snippet")?;
     let config_file = make_config_file(&temp_dir)?;
-    assert!(add_snippet_rexpect(config_file, previous_config_file).is_ok());
+    assert!(add_snippet_rexpect(config_file).is_ok());
     temp_dir.close()?;
     Ok(())
 }

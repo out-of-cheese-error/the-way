@@ -91,7 +91,7 @@ impl TheWay {
             }
             Some(command) => match command {
                 TheWayCommand::Import { file } => {
-                    for mut snippet in self.import(file)? {
+                    for mut snippet in self.import(file.as_deref())? {
                         snippet.index = self.get_current_snippet_index()? + 1;
                         self.add_snippet(&snippet)?;
                     }
@@ -203,8 +203,13 @@ impl TheWay {
 
     /// Imports snippets from a JSON file (ignores indices and appends to existing snippets)
     /// TODO: It may be nice to check for duplicates somehow, too expensive?
-    fn import(&self, file: &Path) -> Result<Vec<Snippet>, Error> {
-        let mut snippets = Snippet::read_from_file(file)?.collect::<Result<Vec<_>, _>>()?;
+    fn import(&self, file: Option<&Path>) -> Result<Vec<Snippet>, Error> {
+        let reader: Box<dyn io::Read> = match file {
+            Some(file) => Box::new(fs::File::open(file)?),
+            None => Box::new(io::stdin()),
+        };
+        let mut buffered = io::BufReader::new(reader);
+        let mut snippets = Snippet::read(&mut buffered).collect::<Result<Vec<_>, _>>()?;
         for snippet in &mut snippets {
             snippet.set_extension(&snippet.language.to_owned(), &self.languages);
         }
