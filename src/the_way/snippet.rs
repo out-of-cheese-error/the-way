@@ -64,7 +64,6 @@ impl Snippet {
     }
 
     /// Queries user for new snippet info
-    /// TODO: make sure empty tags work, empty description doesn't make sense though I think
     pub(crate) fn from_user(
         index: usize,
         languages: &HashMap<String, Language>,
