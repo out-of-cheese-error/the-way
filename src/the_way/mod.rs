@@ -4,10 +4,10 @@ use std::path::Path;
 use std::{fs, io};
 
 use anyhow::Error;
-use clap::Shell;
+use structopt::clap::Shell;
 use structopt::StructOpt;
 
-use crate::configuration::TheWayConfig;
+use crate::configuration::{run_config, TheWayConfig};
 use crate::errors::LostTheWay;
 use crate::language::{CodeHighlight, Language};
 use crate::the_way::{
@@ -46,7 +46,8 @@ impl TheWay {
     /// Reads `sled` trees and metadata file from the locations specified in config.
     /// (makes new ones the first time).
     pub(crate) fn start(cli: TheWayCLI, languages: HashMap<String, Language>) -> Result<(), Error> {
-        let config = TheWayConfig::get()?;
+        run_config(&cli)?;
+        let config = TheWayConfig::load()?;
         let mut the_way = Self {
             db: Self::get_db(&config.db_dir)?,
             cli,
@@ -112,9 +113,14 @@ impl TheWay {
                             self.highlighter.add_theme(file)?;
                             Ok(())
                         }
+                        ThemeCommand::Current => {
+                            println!("{}", self.highlighter.get_theme_name());
+                            Ok(())
+                        }
                     },
                 },
                 TheWayCommand::Clear { force } => self.clear(*force),
+                TheWayCommand::Config { cmd: _ } => Ok(()), // Already handled
             },
         }
     }

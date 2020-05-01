@@ -220,9 +220,7 @@ impl Snippet {
     ) -> Result<Vec<String>, Error> {
         let mut colorized = vec![String::from("\n")];
         colorized.extend_from_slice(&self.pretty_print_header(highlighter, language)?);
-        colorized.push("\n".into());
         colorized.extend_from_slice(&self.pretty_print_code(highlighter)?);
-        colorized.push("\n".into());
         Ok(colorized)
     }
 }

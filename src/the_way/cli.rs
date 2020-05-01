@@ -1,24 +1,24 @@
 //! StructOpt data
 use std::path::PathBuf;
 
-use clap::Shell;
+use structopt::clap::AppSettings;
+use structopt::clap::Shell;
 use structopt::StructOpt;
 
+use crate::configuration::ConfigCommand;
 use crate::the_way::filter::Filters;
 
 #[derive(Debug, StructOpt)]
 #[structopt(
-    name = "the-way",
-    about = "Record, retrieve, search, and categorize code snippets"
+name = "the-way",
+about = "Record, retrieve, search, and categorize code snippets",
+rename_all = "kebab-case",
+global_settings = & [AppSettings::DeriveDisplayOrder]
 )]
 pub(crate) struct TheWayCLI {
     /// Copy snippet at <INDEX> to clipboard
     #[structopt(short = "y", long = "cp")]
     pub(crate) copy: Option<usize>,
-
-    /// Delete snippet at <INDEX>
-    #[structopt(short, long)]
-    pub(crate) delete: Option<usize>,
 
     /// Show snippet at <INDEX>
     #[structopt(short, long)]
@@ -27,6 +27,10 @@ pub(crate) struct TheWayCLI {
     /// Change snippet at <INDEX>
     #[structopt(short, long)]
     pub(crate) change: Option<usize>,
+
+    /// Delete snippet at <INDEX>
+    #[structopt(short, long)]
+    pub(crate) delete: Option<usize>,
 
     /// Generate shell completions
     #[structopt(long = "sh", name = "SHELL", possible_values = & Shell::variants())]
@@ -43,23 +47,23 @@ pub(crate) enum TheWayCommand {
         #[structopt(flatten)]
         filters: Filters,
     },
-    /// Lists snippets
-    List {
-        #[structopt(flatten)]
-        filters: Filters,
+    /// Imports code snippets from a JSON file. Looks for description, language, and code fields
+    Import {
+        #[structopt(parse(from_os_str))]
+        file: PathBuf,
     },
     /// Saves (optionally filtered) snippets to a JSON file.
     Export {
         #[structopt(flatten)]
         filters: Filters,
         /// filename, writes to stdout if not given
-        #[structopt(long, short, parse(from_os_str))]
+        #[structopt(parse(from_os_str))]
         file: Option<PathBuf>,
     },
-    /// Imports code snippets from a JSON file. Looks for description, language, and code fields
-    Import {
-        #[structopt(long, short, parse(from_os_str))]
-        file: PathBuf,
+    /// Lists snippets
+    List {
+        #[structopt(flatten)]
+        filters: Filters,
     },
     /// View syntax highlighting themes (default + user-added)
     Themes {
@@ -72,18 +76,23 @@ pub(crate) enum TheWayCommand {
         #[structopt(long, short)]
         force: bool,
     },
+    /// See / change where your data is stored
+    /// Controlled by $THE_WAY_CONFIG env variable
+    Config {
+        #[structopt(subcommand)]
+        cmd: ConfigCommand,
+    },
 }
 
 #[derive(StructOpt, Debug)]
 pub(crate) enum ThemeCommand {
     /// Set your preferred syntax highlighting theme
-    Set {
-        #[structopt(long, short)]
-        theme: String,
-    },
+    Set { theme: String },
     /// Add a theme from a .tmTheme file
     Add {
-        #[structopt(long, short, parse(from_os_str))]
+        #[structopt(parse(from_os_str))]
         file: PathBuf,
     },
+    /// Prints the current theme name
+    Current,
 }

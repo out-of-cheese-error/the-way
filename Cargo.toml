@@ -13,15 +13,14 @@ categories = ["cli-tools"]
 [dependencies]
 # Argument parsing
 structopt = "0.3.14"
-clap = {version="2.33", features = ["yaml"]}
+
+# Configuration management
 confy = "0.4.0"
+directories = "2.0.2"
 
 # Error management
 anyhow = "1.0.28"
 thiserror = "1.0.15"
-
-# Path and file related
-directories = "2.0.2"
 
 # Database related
 sled = "0.31.0"
@@ -51,5 +50,6 @@ syntect = "4.1.1"
 hex = "0.4.2"
 
 [dev-dependencies]
-assert_cmd = "0.10"
-predicates = "1"
+assert_cmd = "1.0.1"
+predicates = "1.0.4"
+tempdir = "0.3.7"

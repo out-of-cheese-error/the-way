@@ -29,6 +29,9 @@ pub enum LostTheWay {
     ClipboardError,
     #[error("Search failed")]
     SearchError,
+    /// Errors related to changing the configuration file
+    #[error("{message:?}")]
+    ConfigError { message: String },
     /// Catch-all for stuff that should never happen
     #[error("{message:?}\nRedo from start.")]
     OutOfCheeseError { message: String },

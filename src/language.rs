@@ -201,6 +201,11 @@ impl CodeHighlight {
         self.theme_set.themes.keys().cloned().collect()
     }
 
+    /// Gets current theme name
+    pub(crate) fn get_theme_name(&self) -> String {
+        self.theme_name.to_owned()
+    }
+
     /// Adds a new theme from a .tmTheme file.
     /// The file is copied to the themes folder
     // TODO: should it automatically be set?
