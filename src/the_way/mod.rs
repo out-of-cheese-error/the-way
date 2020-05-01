@@ -91,10 +91,13 @@ impl TheWay {
             }
             Some(command) => match command {
                 TheWayCommand::Import { file } => {
+                    let mut num = 0;
                     for mut snippet in self.import(file.as_deref())? {
                         snippet.index = self.get_current_snippet_index()? + 1;
                         self.add_snippet(&snippet)?;
+                        num += 1;
                     }
+                    println!("Imported {} snippets", num);
                     Ok(())
                 }
                 TheWayCommand::Search { filters } => self.search(filters),

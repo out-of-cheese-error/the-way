@@ -3,8 +3,6 @@ use std::path::{Path, PathBuf};
 
 use anyhow::Error;
 use assert_cmd::Command;
-use predicates::prelude::*;
-use rexpect::session::PtyBashSession;
 use rexpect::spawn_bash;
 use tempdir::TempDir;
 
@@ -27,24 +25,6 @@ themes_dir = \"{}\"",
     Ok(config_file.to_path_buf())
 }
 
-fn get_current_config_file() -> Result<Option<String>, Error> {
-    let mut cmd = Command::cargo_bin("the-way")?;
-    let output = cmd
-        .arg("config")
-        .arg("get")
-        .assert()
-        .get_output()
-        .stdout
-        .clone();
-    let output = String::from_utf8(output)?;
-    let output = output.trim();
-    if !output.is_empty() {
-        Ok(Some(output.to_owned()))
-    } else {
-        Ok(None)
-    }
-}
-
 #[test]
 fn it_works() -> Result<(), Error> {
     let mut cmd = Command::cargo_bin("the-way")?;
@@ -58,16 +38,13 @@ fn change_config_file() -> Result<(), Error> {
     let temp_dir = create_temp_dir("change_config_file")?;
     let config_file = make_config_file(&temp_dir)?;
     let mut cmd = Command::cargo_bin("the-way")?;
-    let output = cmd
+    let result = cmd
         .env("THE_WAY_CONFIG", &config_file)
         .arg("config")
         .arg("get")
-        .assert()
-        .get_output()
-        .stdout
-        .clone();
-    let output_config_file = String::from_utf8(output)?.trim().to_owned();
-    let output_config_file = Path::new(&output_config_file);
+        .assert();
+    let output_config_file = String::from_utf8_lossy(&result.get_output().stdout);
+    let output_config_file = Path::new(output_config_file.trim());
     assert!(output_config_file.exists(), "{:?}", output_config_file);
     assert_eq!(output_config_file, config_file);
     temp_dir.close()?;
@@ -87,37 +64,37 @@ fn change_theme() -> Result<(), Error> {
         .assert()
         .success();
     let mut cmd = Command::cargo_bin("the-way")?;
-    let output = cmd
-        .env("THE_WAY_CONFIG", &config_file)
-        .arg("themes")
-        .arg("current")
-        .assert()
-        .get_output()
-        .stdout
-        .clone();
-    let theme_output = String::from_utf8(output)?;
-    assert_eq!(theme_output.trim(), theme);
-    temp_dir.close()?;
+    assert_eq!(
+        String::from_utf8_lossy(
+            &cmd.env("THE_WAY_CONFIG", &config_file)
+                .arg("themes")
+                .arg("current")
+                .assert()
+                .get_output()
+                .stdout
+        )
+        .trim(),
+        theme
+    );
     Ok(())
 }
 
-fn change_config_rexpect(config_file: PathBuf) -> rexpect::errors::Result<PtyBashSession> {
+fn add_snippet_rexpect(config_file: PathBuf) -> rexpect::errors::Result<()> {
     let mut p = spawn_bash(Some(30_000))?;
-    // Change config file
+    println!("Change config file");
     p.send_line(&format!(
         "export THE_WAY_CONFIG={}",
         config_file.to_string_lossy()
     ))?;
-
-    // Assert that the change worked
+    p.wait_for_prompt()?;
+    println!("Make bin");
+    p.send_line("cargo build --release")?;
+    p.wait_for_prompt()?;
+    println!("Assert that the change worked");
     p.send_line("target/release/the-way config get")?; // TODO: yuck
     p.exp_regex(config_file.to_string_lossy().as_ref())?;
-    Ok(p)
-}
-
-fn add_snippet_rexpect(config_file: PathBuf) -> rexpect::errors::Result<PtyBashSession> {
-    let mut p = change_config_rexpect(config_file)?;
-    // Add a snippet
+    p.wait_for_prompt()?;
+    println!("Add a snippet");
     p.execute("target/release/the-way", "Description:")?; // TODO: yuck
     p.send_line("test description")?;
     p.exp_string("Language:")?;
@@ -128,7 +105,7 @@ fn add_snippet_rexpect(config_file: PathBuf) -> rexpect::errors::Result<PtyBashS
     p.send_line("code")?;
     p.exp_regex("Added snippet #1")?;
     p.wait_for_prompt()?;
-    Ok(p)
+    Ok(())
 }
 
 #[test]
@@ -137,5 +114,54 @@ fn add_snippet() -> Result<(), Error> {
     let config_file = make_config_file(&temp_dir)?;
     assert!(add_snippet_rexpect(config_file).is_ok());
     temp_dir.close()?;
+    Ok(())
+}
+
+#[test]
+fn import_single_show() -> Result<(), Error> {
+    let contents = r#"{"description":"test description","language":"rust","tags":["tag1","tag2"],"code":"some\ntest\ncode\n"}"#;
+    let temp_dir = create_temp_dir("import")?;
+    let config_file = make_config_file(&temp_dir)?;
+    let mut cmd = Command::cargo_bin("the-way")?;
+    cmd.env("THE_WAY_CONFIG", &config_file)
+        .arg("import")
+        .write_stdin(contents)
+        .assert()
+        .success();
+    let mut cmd = Command::cargo_bin("the-way")?;
+    assert!(String::from_utf8_lossy(
+        &cmd.env("THE_WAY_CONFIG", &config_file)
+            .arg("show 1")
+            .assert()
+            .get_output()
+            .stdout,
+    )
+    .contains("test description"));
+    Ok(())
+}
+
+#[test]
+fn import_multiple_no_tags() -> Result<(), Error> {
+    let contents_1 = r#"{"description":"test description","language":"rust","tags":["tag1","tag2"],"code":"some\ntest\ncode\n"}"#;
+    let contents_2 =
+        r#"{"description":"test description 2","language":"python","code":"some\ntest\ncode\n"}"#;
+    let contents = format!("{}{}", contents_1, contents_2);
+    let temp_dir = create_temp_dir("import_multiple_no_tags")?;
+    let config_file = make_config_file(&temp_dir)?;
+    let mut cmd = Command::cargo_bin("the-way")?;
+    let output = cmd
+        .env("THE_WAY_CONFIG", &config_file)
+        .arg("import")
+        .write_stdin(contents)
+        .assert();
+    assert_eq!(
+        String::from_utf8_lossy(&output.get_output().stdout).trim(),
+        "Imported 2 snippets"
+    );
+    let mut cmd = Command::cargo_bin("the-way")?;
+    let list_output = cmd.env("THE_WAY_CONFIG", &config_file).arg("list").assert();
+    let list_output = String::from_utf8_lossy(&list_output.get_output().stdout);
+    assert!(list_output.contains("test description"));
+    assert!(list_output.contains("test description 2"));
     Ok(())
 }
