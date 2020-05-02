@@ -113,7 +113,7 @@ impl TheWay {
     }
 
     // TODO: think about how deletions should affect snippet indices
-    fn increment_snippet_index(&mut self) -> Result<(), Error> {
+    pub(crate) fn increment_snippet_index(&mut self) -> Result<(), Error> {
         self.db.insert(
             "snippet_index",
             (self.get_current_snippet_index()? + 1)
@@ -151,7 +151,6 @@ impl TheWay {
         self.add_to_snippet(index_key, &snippet.to_bytes()?)?;
         self.add_to_language(language_key, index_key)?;
         self.add_to_tags(&snippet.tags, index_key)?;
-        self.increment_snippet_index()?;
         Ok(snippet.index)
     }
 

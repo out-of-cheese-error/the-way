@@ -7,7 +7,7 @@ use directories::ProjectDirs;
 use structopt::StructOpt;
 
 use crate::errors::LostTheWay;
-use crate::the_way::cli::{TheWayCLI, TheWayCommand};
+use crate::the_way::cli::TheWayCLI;
 use crate::utils::NAME;
 
 #[derive(StructOpt, Debug)]
@@ -59,24 +59,22 @@ impl Default for TheWayConfig {
 }
 
 pub(crate) fn run_config(cli: &TheWayCLI) -> Result<(), Error> {
-    if let Some(command) = &cli.command {
-        if let TheWayCommand::Config { cmd } = command {
-            match cmd {
-                ConfigCommand::Default { file } => {
-                    let writer: Box<dyn io::Write> = match file {
-                        Some(file) => Box::new(fs::File::open(file)?),
-                        None => Box::new(io::stdout()),
-                    };
-                    let mut buffered = io::BufWriter::new(writer);
-                    let config_file = &TheWayConfig::get()?;
-                    if !config_file.exists() {
-                        let _: TheWayConfig = TheWayConfig::default();
-                    }
-                    let contents = fs::read_to_string(config_file)?;
-                    write!(&mut buffered, "{}", contents)?;
+    if let TheWayCLI::Config { cmd } = cli {
+        match cmd {
+            ConfigCommand::Default { file } => {
+                let writer: Box<dyn io::Write> = match file {
+                    Some(file) => Box::new(fs::File::open(file)?),
+                    None => Box::new(io::stdout()),
+                };
+                let mut buffered = io::BufWriter::new(writer);
+                let config_file = &TheWayConfig::get()?;
+                if !config_file.exists() {
+                    let _: TheWayConfig = TheWayConfig::default();
                 }
-                ConfigCommand::Get => println!("{}", TheWayConfig::get()?.to_str().unwrap()),
+                let contents = fs::read_to_string(config_file)?;
+                write!(&mut buffered, "{}", contents)?;
             }
+            ConfigCommand::Get => println!("{}", TheWayConfig::get()?.to_str().unwrap()),
         }
     }
     Ok(())

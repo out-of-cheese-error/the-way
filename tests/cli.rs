@@ -1,8 +1,9 @@
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use anyhow::Error;
 use assert_cmd::Command;
+use predicates::prelude::*;
 use rexpect::spawn_bash;
 use tempdir::TempDir;
 
@@ -38,15 +39,11 @@ fn change_config_file() -> Result<(), Error> {
     let temp_dir = create_temp_dir("change_config_file")?;
     let config_file = make_config_file(&temp_dir)?;
     let mut cmd = Command::cargo_bin("the-way")?;
-    let result = cmd
-        .env("THE_WAY_CONFIG", &config_file)
+    cmd.env("THE_WAY_CONFIG", &config_file)
         .arg("config")
         .arg("get")
-        .assert();
-    let output_config_file = String::from_utf8_lossy(&result.get_output().stdout);
-    let output_config_file = Path::new(output_config_file.trim());
-    assert!(output_config_file.exists(), "{:?}", output_config_file);
-    assert_eq!(output_config_file, config_file);
+        .assert()
+        .stdout(predicate::str::starts_with(config_file.to_string_lossy()));
     temp_dir.close()?;
     Ok(())
 }
@@ -64,18 +61,11 @@ fn change_theme() -> Result<(), Error> {
         .assert()
         .success();
     let mut cmd = Command::cargo_bin("the-way")?;
-    assert_eq!(
-        String::from_utf8_lossy(
-            &cmd.env("THE_WAY_CONFIG", &config_file)
-                .arg("themes")
-                .arg("current")
-                .assert()
-                .get_output()
-                .stdout
-        )
-        .trim(),
-        theme
-    );
+    cmd.env("THE_WAY_CONFIG", &config_file)
+        .arg("themes")
+        .arg("current")
+        .assert()
+        .stdout(predicate::str::contains(theme));
     Ok(())
 }
 
@@ -108,6 +98,7 @@ fn add_snippet_rexpect(config_file: PathBuf) -> rexpect::errors::Result<()> {
     Ok(())
 }
 
+#[ignore]
 #[test]
 fn add_snippet() -> Result<(), Error> {
     let temp_dir = create_temp_dir("add_snippet")?;
@@ -129,39 +120,75 @@ fn import_single_show() -> Result<(), Error> {
         .assert()
         .success();
     let mut cmd = Command::cargo_bin("the-way")?;
-    assert!(String::from_utf8_lossy(
-        &cmd.env("THE_WAY_CONFIG", &config_file)
-            .arg("show 1")
-            .assert()
-            .get_output()
-            .stdout,
-    )
-    .contains("test description"));
+    cmd.env("THE_WAY_CONFIG", &config_file)
+        .arg("-s")
+        .arg("1")
+        .assert()
+        .stdout(predicate::str::contains("test description"));
     Ok(())
 }
 
 #[test]
 fn import_multiple_no_tags() -> Result<(), Error> {
-    let contents_1 = r#"{"description":"test description","language":"rust","tags":["tag1","tag2"],"code":"some\ntest\ncode\n"}"#;
+    let contents_1 = r#"{"description":"test description 1","language":"rust","tags":["tag1","tag2"],"code":"some\ntest\ncode\n"}"#;
     let contents_2 =
         r#"{"description":"test description 2","language":"python","code":"some\ntest\ncode\n"}"#;
     let contents = format!("{}{}", contents_1, contents_2);
     let temp_dir = create_temp_dir("import_multiple_no_tags")?;
     let config_file = make_config_file(&temp_dir)?;
     let mut cmd = Command::cargo_bin("the-way")?;
-    let output = cmd
-        .env("THE_WAY_CONFIG", &config_file)
+    cmd.env("THE_WAY_CONFIG", &config_file)
         .arg("import")
         .write_stdin(contents)
-        .assert();
-    assert_eq!(
-        String::from_utf8_lossy(&output.get_output().stdout).trim(),
-        "Imported 2 snippets"
-    );
+        .assert()
+        .stdout(predicate::str::starts_with("Imported 2 snippets"));
     let mut cmd = Command::cargo_bin("the-way")?;
-    let list_output = cmd.env("THE_WAY_CONFIG", &config_file).arg("list").assert();
-    let list_output = String::from_utf8_lossy(&list_output.get_output().stdout);
-    assert!(list_output.contains("test description"));
-    assert!(list_output.contains("test description 2"));
+    cmd.env("THE_WAY_CONFIG", &config_file)
+        .arg("list")
+        .assert()
+        .stdout(
+            predicate::str::contains("test description 1")
+                .and(predicate::str::contains("test description 2")),
+        );
+    Ok(())
+}
+
+#[test]
+fn delete() -> Result<(), Error> {
+    let contents_1 = r#"{"description":"test description 1","language":"rust","tags":["tag1","tag2"],"code":"some\ntest\ncode\n"}"#;
+    let contents_2 =
+        r#"{"description":"test description 2","language":"python","code":"some\ntest\ncode\n"}"#;
+    let contents = format!("{}{}", contents_1, contents_2);
+    let temp_dir = create_temp_dir("delete")?;
+    let config_file = make_config_file(&temp_dir)?;
+    let mut cmd = Command::cargo_bin("the-way")?;
+    cmd.env("THE_WAY_CONFIG", &config_file)
+        .arg("import")
+        .write_stdin(contents)
+        .assert()
+        .stdout(predicate::str::starts_with("Imported 2 snippets"));
+    let mut cmd = Command::cargo_bin("the-way")?;
+    cmd.env("THE_WAY_CONFIG", &config_file)
+        .arg("list")
+        .assert()
+        .stdout(
+            predicate::str::contains("test description 1")
+                .and(predicate::str::contains("test description 2")),
+        );
+    let mut cmd = Command::cargo_bin("the-way")?;
+    cmd.env("THE_WAY_CONFIG", &config_file)
+        .arg("-d")
+        .arg("2")
+        .write_stdin("Y")
+        .assert()
+        .stdout(predicate::str::starts_with("Snippet #2 deleted"));
+    let mut cmd = Command::cargo_bin("the-way")?;
+    cmd.env("THE_WAY_CONFIG", &config_file)
+        .arg("list")
+        .assert()
+        .stdout(
+            predicate::str::contains("test description 1")
+                .and(predicate::str::contains("test description 2").not()),
+        );
     Ok(())
 }

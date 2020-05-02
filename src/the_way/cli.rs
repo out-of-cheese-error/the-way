@@ -15,35 +15,29 @@ about = "Record, retrieve, search, and categorize code snippets",
 rename_all = "kebab-case",
 global_settings = & [AppSettings::DeriveDisplayOrder]
 )]
-pub(crate) struct TheWayCLI {
-    /// Copy snippet at <INDEX> to clipboard
-    #[structopt(short = "y", long = "cp")]
-    pub(crate) copy: Option<usize>,
-
-    /// Show snippet at <INDEX>
-    #[structopt(short, long)]
-    pub(crate) show: Option<usize>,
-
-    /// Change snippet at <INDEX>
-    #[structopt(short, long)]
-    pub(crate) change: Option<usize>,
-
-    /// Delete snippet at <INDEX>
-    #[structopt(short, long)]
-    pub(crate) delete: Option<usize>,
-
-    /// Generate shell completions
-    #[structopt(long = "sh", name = "SHELL", possible_values = & Shell::variants())]
-    pub(crate) complete: Option<Shell>,
-
-    #[structopt(subcommand)]
-    pub(crate) command: Option<TheWayCommand>,
-}
-
-#[derive(StructOpt, Debug)]
-pub(crate) enum TheWayCommand {
+pub(crate) enum TheWayCLI {
+    /// Add a new snippet
+    New,
     /// Fuzzy search and copy selected to clipboard
     Search {
+        #[structopt(flatten)]
+        filters: Filters,
+    },
+    /// Copy snippet at <INDEX> to clipboard
+    Copy { index: usize },
+    /// Change snippet at <INDEX>
+    Change { index: usize },
+    /// Delete snippet at <INDEX>
+    Delete {
+        index: usize,
+        /// Don't ask for confirmation
+        #[structopt(long, short)]
+        force: bool,
+    },
+    /// Show snippet at <INDEX>
+    Show { index: usize },
+    /// Lists snippets
+    List {
         #[structopt(flatten)]
         filters: Filters,
     },
@@ -60,10 +54,10 @@ pub(crate) enum TheWayCommand {
         #[structopt(parse(from_os_str))]
         file: Option<PathBuf>,
     },
-    /// Lists snippets
-    List {
-        #[structopt(flatten)]
-        filters: Filters,
+    /// Generate shell completions
+    Complete {
+        #[structopt(possible_values = & Shell::variants())]
+        shell: Shell,
     },
     /// View syntax highlighting themes (default + user-added)
     Themes {

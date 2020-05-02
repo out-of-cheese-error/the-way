@@ -11,7 +11,7 @@ use crate::configuration::{run_config, TheWayConfig};
 use crate::errors::LostTheWay;
 use crate::language::{CodeHighlight, Language};
 use crate::the_way::{
-    cli::{TheWayCLI, TheWayCommand, ThemeCommand},
+    cli::{TheWayCLI, ThemeCommand},
     filter::Filters,
     snippet::Snippet,
 };
@@ -61,70 +61,48 @@ impl TheWay {
     }
 
     fn run(&mut self) -> Result<(), Error> {
-        match &self.cli.command {
-            None => {
-                let mut flag = false;
-                if let Some(index) = self.cli.delete {
-                    flag = true;
-                    self.delete(index)?;
+        match &self.cli {
+            TheWayCLI::New => self.the_way(),
+            TheWayCLI::Search { filters } => self.search(filters),
+            TheWayCLI::Copy { index } => self.copy(*index),
+            TheWayCLI::Change { index } => self.change(*index),
+            TheWayCLI::Delete { index, force } => self.delete(*index, *force),
+            TheWayCLI::Show { index } => self.show(*index),
+            TheWayCLI::List { filters } => self.list(filters),
+            TheWayCLI::Import { file } => {
+                let mut num = 0;
+                for mut snippet in self.import(file.as_deref())? {
+                    snippet.index = self.get_current_snippet_index()? + 1;
+                    self.add_snippet(&snippet)?;
+                    self.increment_snippet_index()?;
+                    num += 1;
                 }
-                if let Some(index) = self.cli.show {
-                    flag = true;
-                    self.show(index)?;
-                }
-                if let Some(index) = self.cli.copy {
-                    flag = true;
-                    self.copy(index)?;
-                }
-                if let Some(index) = self.cli.change {
-                    flag = true;
-                    self.change(index)?;
-                }
-                if let Some(shell) = self.cli.complete {
-                    flag = true;
-                    self.complete(shell)?;
-                }
-                if !flag {
-                    self.the_way()?;
-                }
+                println!("Imported {} snippets", num);
                 Ok(())
             }
-            Some(command) => match command {
-                TheWayCommand::Import { file } => {
-                    let mut num = 0;
-                    for mut snippet in self.import(file.as_deref())? {
-                        snippet.index = self.get_current_snippet_index()? + 1;
-                        self.add_snippet(&snippet)?;
-                        num += 1;
+            TheWayCLI::Export { filters, file } => self.export(filters, file.as_deref()),
+            TheWayCLI::Complete { shell } => self.complete(*shell),
+            TheWayCLI::Themes { cmd } => match cmd {
+                None => self.list_themes(),
+                Some(cmd) => match cmd {
+                    ThemeCommand::Set { theme } => {
+                        self.highlighter.set_theme(theme.to_owned())?;
+                        self.config.theme = theme.to_owned();
+                        self.config.store()?;
+                        Ok(())
                     }
-                    println!("Imported {} snippets", num);
-                    Ok(())
-                }
-                TheWayCommand::Search { filters } => self.search(filters),
-                TheWayCommand::List { filters } => self.list(filters),
-                TheWayCommand::Export { filters, file } => self.export(filters, file.as_deref()),
-                TheWayCommand::Themes { cmd } => match cmd {
-                    None => self.list_themes(),
-                    Some(cmd) => match cmd {
-                        ThemeCommand::Set { theme } => {
-                            self.highlighter.set_theme(theme.to_owned())?;
-                            self.config.theme = theme.to_owned();
-                            self.config.store()?;
-                            Ok(())
-                        }
-                        ThemeCommand::Add { file } => {
-                            self.highlighter.add_theme(file)?;
-                            Ok(())
-                        }
-                        ThemeCommand::Current => {
-                            println!("{}", self.highlighter.get_theme_name());
-                            Ok(())
-                        }
-                    },
+                    ThemeCommand::Add { file } => {
+                        self.highlighter.add_theme(file)?;
+                        Ok(())
+                    }
+                    ThemeCommand::Current => {
+                        println!("{}", self.highlighter.get_theme_name());
+                        Ok(())
+                    }
                 },
-                TheWayCommand::Clear { force } => self.clear(*force),
-                TheWayCommand::Config { cmd: _ } => Ok(()), // Already handled
             },
+            TheWayCLI::Clear { force } => self.clear(*force),
+            TheWayCLI::Config { cmd: _ } => Ok(()), // Already handled
         }
     }
 
@@ -137,16 +115,21 @@ impl TheWay {
     }
 
     /// Delete a snippet (and all associated data) from the trees and metadata
-    fn delete(&mut self, index: usize) -> Result<(), Error> {
-        let mut sure_delete;
-        loop {
-            sure_delete =
-                utils::user_input(&format!("Delete snippet #{} Y/N?", index), Some("N"), true)?
-                    .to_ascii_uppercase();
-            if sure_delete == "Y" || sure_delete == "N" {
-                break;
+    fn delete(&mut self, index: usize, force: bool) -> Result<(), Error> {
+        let sure_delete = if force {
+            "Y".into()
+        } else {
+            let mut sure_delete;
+            loop {
+                sure_delete =
+                    utils::user_input(&format!("Delete snippet #{} Y/N?", index), Some("N"), true)?
+                        .to_ascii_uppercase();
+                if sure_delete == "Y" || sure_delete == "N" {
+                    break;
+                }
             }
-        }
+            sure_delete
+        };
         if sure_delete == "Y" {
             self.delete_snippet(index)?;
             println!("Snippet #{} deleted", index);
@@ -164,12 +147,7 @@ impl TheWay {
         let old_snippet = self.get_snippet(index)?;
         let new_snippet = Snippet::from_user(index, &self.languages, Some(&old_snippet))?;
         self.delete_snippet(index)?;
-        let language_key = new_snippet.language.as_bytes();
-        let index_key = index.to_string();
-        let index_key = index_key.as_bytes();
-        self.add_to_language(language_key, index_key)?;
-        self.add_to_tags(&new_snippet.tags, index_key)?;
-        self.add_to_snippet(index_key, &new_snippet.to_bytes()?)?;
+        self.add_snippet(&new_snippet)?;
         println!("Snippet #{} changed", index);
         Ok(())
     }
