@@ -1,0 +1,131 @@
+# Based on the "trust" template v0.1.2
+# https://github.com/japaric/trust/tree/v0.1.2
+
+dist: trusty
+language: rust
+services: docker
+sudo: required
+
+
+env:
+  global:
+    - CRATE_NAME=the-way
+
+matrix:
+  # These are all the build jobs. Adjust as necessary. Comment out what you
+  # don't need
+  include:
+    # Android
+    #    - env: TARGET=aarch64-linux-android DISABLE_TESTS=1
+    #    - env: TARGET=arm-linux-androideabi DISABLE_TESTS=1
+    #    - env: TARGET=armv7-linux-androideabi DISABLE_TESTS=1
+    #    - env: TARGET=i686-linux-android DISABLE_TESTS=1
+    #    - env: TARGET=x86_64-linux-android DISABLE_TESTS=1
+
+    # iOS
+    #    - env: TARGET=aarch64-apple-ios DISABLE_TESTS=1
+    #      os: osx
+    #    - env: TARGET=armv7-apple-ios DISABLE_TESTS=1
+    #      os: osx
+    #    - env: TARGET=armv7s-apple-ios DISABLE_TESTS=1
+    #      os: osx
+    #    - env: TARGET=i386-apple-ios DISABLE_TESTS=1
+    #      os: osx
+    #    - env: TARGET=x86_64-apple-ios DISABLE_TESTS=1
+    #      os: osx
+
+    # Linux
+    - env: TARGET=aarch64-unknown-linux-gnu
+    - env: TARGET=arm-unknown-linux-gnueabi
+    - env: TARGET=armv7-unknown-linux-gnueabihf
+    - env: TARGET=i686-unknown-linux-gnu
+    - env: TARGET=i686-unknown-linux-musl
+    - env: TARGET=mips-unknown-linux-gnu
+    - env: TARGET=mips64-unknown-linux-gnuabi64
+    - env: TARGET=mips64el-unknown-linux-gnuabi64
+    - env: TARGET=mipsel-unknown-linux-gnu
+    - env: TARGET=powerpc-unknown-linux-gnu
+    - env: TARGET=powerpc64-unknown-linux-gnu
+    - env: TARGET=powerpc64le-unknown-linux-gnu
+    - env: TARGET=s390x-unknown-linux-gnu DISABLE_TESTS=1
+    - env: TARGET=x86_64-unknown-linux-gnu
+    - env: TARGET=x86_64-unknown-linux-musl
+
+    # OSX
+    - env: TARGET=i686-apple-darwin
+      os: osx
+    - env: TARGET=x86_64-apple-darwin
+      os: osx
+
+    # *BSD
+    - env: TARGET=i686-unknown-freebsd DISABLE_TESTS=1
+    - env: TARGET=x86_64-unknown-freebsd DISABLE_TESTS=1
+    - env: TARGET=x86_64-unknown-netbsd DISABLE_TESTS=1
+
+    # Windows
+    - env: TARGET=x86_64-pc-windows-gnu
+
+    # Bare metal
+    # These targets don't support std and as such are likely not suitable for
+    # most crates.
+    # - env: TARGET=thumbv6m-none-eabi
+    # - env: TARGET=thumbv7em-none-eabi
+    # - env: TARGET=thumbv7em-none-eabihf
+    # - env: TARGET=thumbv7m-none-eabi
+
+    # Testing other channels
+    - env: TARGET=x86_64-unknown-linux-gnu
+      rust: nightly
+    - env: TARGET=x86_64-apple-darwin
+      os: osx
+      rust: nightly
+
+before_install:
+  - set -e
+  - rustup self update
+
+install:
+  - sh ci/install.sh
+  - source ~/.cargo/env || true
+
+script:
+  - bash ci/script.sh
+
+after_script: set +e
+
+before_deploy:
+  - sh ci/before_deploy.sh
+
+deploy:
+  # update `api_key.secure`
+  # - Create a `public_repo` GitHub token. Go to: https://github.com/settings/tokens/new
+  # - Encrypt it: `travis encrypt 0123456789012345678901234567890123456789
+  # - Paste the output down here
+  api_key:
+    secure: gcmas3RWMb/3+s0DGX+1bpxaMrqWsi6ZruoPMaYsYvul/OxeWbEs+pk9EN1U4R9rCRIaouIgiMXdQBf5AK6CA7eukrzjI6iORPbur4rl+mTq9TvFEtn8WEOik5Yqm39IKFoTd1Yj6pKtmfSs9ieBftEaAZM68V1AXxB615JpQngDNSU/RRYZO4h7R1rkSoD74gMgcOOgTFpIZL8qa0m6oAAzqxd6qB9akWfRSUIzBqA6owhgI3vPWV63TaPyYqIMK9ruPkzp6nN7R2aINOjTdkOQvD59OrLMy3P3TZ0Jp0EfNEekhfK6+ZK9h3WBbHhcmz0lO7iXGww/TuQzxcgiNexAlwiRjTlyj/+fd8gGlh1lu3eWd8qV3vp6aRKFY11qKYZmiDTVEpGEYWOWh8ZVjG8ehGOjX76X6giSkdaUdW4AREknB8Hrgqau4I+qgsQv0y/1tISb1mZ4XwtdrnaRxLHnQtya+LAmxJqw9+dOXqI3DdQbEIuOelxaiVfJCbIKq59OcD5eehebfD8kNFIoc46EVSlh9lNSenaiGq5qOwlihljXyd5pW3FFVIxd1GEtG86v7Iw5PZ32spvXTqLvdNDiOx9vYR+MTwUExCgZCy3PK7gmf1O/SxfGT2LgMWhG9TW+TFow+wNphr5iB3ivOQRYrksNOLyyveyMCGiBviM=
+  file_glob: true
+  file: $CRATE_NAME-$TRAVIS_TAG-$TARGET.*
+  on:
+    # Here you can pick which targets will generate binary releases
+    # In this example, there are some targets that are tested using the stable
+    # and nightly channels. This condition makes sure there is only one release
+    # for such targets and that's generated using the stable channel
+    condition: $TRAVIS_RUST_VERSION = stable
+    tags: true
+  provider: releases
+  skip_cleanup: true
+
+cache: cargo
+before_cache:
+  # Travis can't cache files that are not readable by "others"
+  - chmod -R a+r $HOME/.cargo
+
+branches:
+  only:
+    # release tags
+    - /^v\d+\.\d+\.\d+.*$/
+    - master
+
+notifications:
+  email:
+    on_success: never

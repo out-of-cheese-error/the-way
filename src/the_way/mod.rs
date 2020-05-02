@@ -1,7 +1,7 @@
 //! CLI code
+use std::{fs, io};
 use std::collections::HashMap;
 use std::path::Path;
-use std::{fs, io};
 
 use anyhow::Error;
 use structopt::clap::Shell;
@@ -11,7 +11,7 @@ use crate::configuration::{run_config, TheWayConfig};
 use crate::errors::LostTheWay;
 use crate::language::{CodeHighlight, Language};
 use crate::the_way::{
-    cli::{TheWayCLI, ThemeCommand},
+    cli::{ThemeCommand, TheWayCLI},
     filter::Filters,
     snippet::Snippet,
 };
@@ -108,7 +108,7 @@ impl TheWay {
                 },
             },
             TheWayCLI::Clear { force } => self.clear(*force),
-            TheWayCLI::Config { cmd: _ } => Ok(()), // Already handled
+            TheWayCLI::Config { .. } => Ok(()), // Already handled
         }
     }
 

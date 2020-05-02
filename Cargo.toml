@@ -1,6 +1,6 @@
 [package]
 name = "the-way"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2018"
 authors = ["Ninjani"]
 description = "A code snippets manager for your terminal"
@@ -9,6 +9,10 @@ readme = "README.md"
 license = "MIT"
 keywords = ["cli", "code", "snippets"]
 categories = ["command-line-utilities"]
+exclude = [
+    "tests/",
+    "demo.gif",
+]
 
 [dependencies]
 # Argument parsing

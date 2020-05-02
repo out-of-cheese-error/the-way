@@ -42,7 +42,7 @@ impl TheWay {
             ),
             None => None,
         };
-        match (&filters.tags, snippets) {
+        match (filters.tags.clone(), snippets) {
             (Some(tags), Some(snippets)) => Ok(snippets
                 .into_iter()
                 .filter(|snippet| {

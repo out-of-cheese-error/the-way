@@ -1,5 +1,5 @@
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use anyhow::Error;
 use assert_cmd::Command;
@@ -93,7 +93,8 @@ fn change_theme() -> Result<(), Error> {
 }
 
 fn add_snippet_rexpect(config_file: PathBuf) -> rexpect::errors::Result<PtyBashSession> {
-    let mut p = spawn_bash(Some(30_000))?;
+    // shouldn't take more than 30 mins for a release build right?
+    let mut p = spawn_bash(Some(300_000))?;
     p.send_line(&format!(
         "export THE_WAY_CONFIG={}",
         config_file.to_string_lossy()
@@ -101,10 +102,10 @@ fn add_snippet_rexpect(config_file: PathBuf) -> rexpect::errors::Result<PtyBashS
     p.wait_for_prompt()?;
     p.send_line("cargo build --release")?;
     p.wait_for_prompt()?;
-    p.send_line("target/release/the-way config get")?; // TODO: yuck
+    p.send_line("target/release/the-way config get")?;
     p.exp_regex(config_file.to_string_lossy().as_ref())?;
     p.wait_for_prompt()?;
-    p.execute("target/release/the-way new", "Description:")?; // TODO: yuck
+    p.execute("target/release/the-way new", "Description:")?;
     p.send_line("test description 1")?;
     p.exp_string("Language:")?;
     p.send_line("rust")?;
@@ -119,7 +120,7 @@ fn add_snippet_rexpect(config_file: PathBuf) -> rexpect::errors::Result<PtyBashS
 
 fn change_snippet_rexpect(config_file: PathBuf) -> rexpect::errors::Result<()> {
     let mut p = add_snippet_rexpect(config_file)?;
-    p.execute("target/release/the-way change 1", "Description:")?; // TODO: yuck
+    p.execute("target/release/the-way change 1", "Description:")?;
     p.send_line("test description 2")?;
     p.exp_string("Language:")?;
     p.send_line("")?;
@@ -136,7 +137,7 @@ fn change_snippet_rexpect(config_file: PathBuf) -> rexpect::errors::Result<()> {
     Ok(())
 }
 
-#[ignore]
+#[ignore] // expensive, and change_snippet tests both
 #[test]
 fn add_snippet() -> Result<(), Error> {
     let temp_dir = create_temp_dir("add_snippet")?;
