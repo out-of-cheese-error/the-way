@@ -14,25 +14,25 @@ pub enum LostTheWay {
     #[error("You haven't tagged anything as {tag:?} yet.")]
     TagNotFound { tag: String },
     /// Thrown when no text is returned from an external editor
-    #[error("Your editor of choice didn't work.")]
+    #[error("EditorError: Your editor of choice didn't work.")]
     EditorError,
     /// Thrown when explicit Y not received from user for destructive things
     #[error("{message:?}\nDoing nothing.")]
     DoingNothing { message: String },
     /// Thrown when $HOME is not set
-    #[error("$HOME not set")]
+    #[error("Homeless: $HOME not set")]
     Homeless,
     /// Thrown when trying to load a theme which hasn't been added / doesn't exist
-    #[error("Couldn't load theme {theme:?}. Are you sure it exists and is valid?")]
+    #[error("ThemeError: Couldn't load theme {theme:?}. Are you sure it exists and is valid?")]
     ThemeError { theme: String },
-    #[error("Couldn't copy to clipboard")]
+    #[error("ClipboardError: Couldn't copy to clipboard")]
     ClipboardError,
-    #[error("Search failed")]
+    #[error("SearchError: Search failed")]
     SearchError,
     /// Errors related to changing the configuration file
-    #[error("{message:?}")]
+    #[error("ConfigError: {message:?}")]
     ConfigError { message: String },
     /// Catch-all for stuff that should never happen
-    #[error("{message:?}\nRedo from start.")]
+    #[error("OutOfCheeseError: {message:?}\nRedo from start.")]
     OutOfCheeseError { message: String },
 }

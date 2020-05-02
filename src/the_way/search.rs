@@ -81,7 +81,7 @@ fn search(input: Vec<SearchSnippet>) -> Result<(), Error> {
     let options = SkimOptionsBuilder::default()
         .height(Some("100%"))
         .preview(Some(""))
-        .preview_window(Some("up:60%"))
+        .preview_window(Some("up:70%"))
         .multi(true)
         .reverse(true)
         .build()
