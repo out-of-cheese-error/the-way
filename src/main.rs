@@ -1,5 +1,3 @@
-#![feature(exact_size_is_empty)]
-#![feature(move_ref_pattern)]
 #[macro_use]
 extern crate serde_derive;
 
