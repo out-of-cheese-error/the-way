@@ -14,6 +14,7 @@ See it in action (with some self-referential examples):
 
 
 ## Install
+### With cargo
 ```bash
 cargo install the-way
 ```
