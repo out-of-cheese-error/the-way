@@ -33,4 +33,4 @@ exec zsh
 - [ ] Language and code statistics
 
 ## Why "The Way"?
-The name is a reference to [the Way of Mrs.Cosmopolite](https://wiki.lspace.org/mediawiki/The_Way_of_Mrs._Cosmopilite), kōans for every situation.
+The name is a reference to [the Way of Mrs.Cosmopilite](https://wiki.lspace.org/mediawiki/The_Way_of_Mrs._Cosmopilite), kōans for every situation.
