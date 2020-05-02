@@ -23,36 +23,37 @@ pub(crate) enum TheWayCLI {
         #[structopt(flatten)]
         filters: Filters,
     },
-    /// Copy snippet at <INDEX> to clipboard
+    /// Copy snippet to clipboard
     Copy { index: usize },
-    /// Change snippet at <INDEX>
+    /// Change snippet
     Change { index: usize },
-    /// Delete snippet at <INDEX>
+    /// Delete snippet
     Delete {
         index: usize,
         /// Don't ask for confirmation
         #[structopt(long, short)]
         force: bool,
     },
-    /// Show snippet at <INDEX>
+    /// Show snippet
     Show { index: usize },
-    /// Lists snippets
+    /// Lists (optionally filtered) snippets
     List {
         #[structopt(flatten)]
         filters: Filters,
     },
-    /// Imports code snippets from a JSON file (or stdin if empty). Looks for description, language, and code fields
+    /// Imports code snippets from JSON. Looks for description, language, and code fields
     Import {
+        /// filename, reads from stdin if not given
         #[structopt(parse(from_os_str))]
         file: Option<PathBuf>,
     },
-    /// Saves (optionally filtered) snippets to a JSON file (or stdout if empty).
+    /// Saves (optionally filtered) snippets to JSON.
     Export {
-        #[structopt(flatten)]
-        filters: Filters,
         /// filename, writes to stdout if not given
         #[structopt(parse(from_os_str))]
         file: Option<PathBuf>,
+        #[structopt(flatten)]
+        filters: Filters,
     },
     /// Generate shell completions
     Complete {

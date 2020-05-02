@@ -1,9 +1,11 @@
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use anyhow::Error;
 use assert_cmd::Command;
+use clipboard::{ClipboardContext, ClipboardProvider};
 use predicates::prelude::*;
+use rexpect::session::PtyBashSession;
 use rexpect::spawn_bash;
 use tempdir::TempDir;
 
@@ -36,6 +38,16 @@ fn it_works() -> Result<(), Error> {
 
 #[test]
 fn change_config_file() -> Result<(), Error> {
+    // Test nonexistent file
+    let config_file = "no-such-file";
+    let mut cmd = Command::cargo_bin("the-way")?;
+    cmd.env("THE_WAY_CONFIG", config_file)
+        .arg("config")
+        .arg("get")
+        .assert()
+        .failure();
+
+    // Test changing file
     let temp_dir = create_temp_dir("change_config_file")?;
     let config_file = make_config_file(&temp_dir)?;
     let mut cmd = Command::cargo_bin("the-way")?;
@@ -52,7 +64,18 @@ fn change_config_file() -> Result<(), Error> {
 fn change_theme() -> Result<(), Error> {
     let temp_dir = create_temp_dir("change_theme")?;
     let config_file = make_config_file(&temp_dir)?;
-    let theme = "base16-ocean.dark";
+    // Test nonexistent theme
+    let theme = "no-such-theme";
+    let mut cmd = Command::cargo_bin("the-way")?;
+    cmd.env("THE_WAY_CONFIG", &config_file)
+        .arg("themes")
+        .arg("set")
+        .arg(theme)
+        .assert()
+        .failure();
+
+    // Test changing theme
+    let theme = "base16-mocha.dark";
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
         .arg("themes")
@@ -69,24 +92,20 @@ fn change_theme() -> Result<(), Error> {
     Ok(())
 }
 
-fn add_snippet_rexpect(config_file: PathBuf) -> rexpect::errors::Result<()> {
+fn add_snippet_rexpect(config_file: PathBuf) -> rexpect::errors::Result<PtyBashSession> {
     let mut p = spawn_bash(Some(30_000))?;
-    println!("Change config file");
     p.send_line(&format!(
         "export THE_WAY_CONFIG={}",
         config_file.to_string_lossy()
     ))?;
     p.wait_for_prompt()?;
-    println!("Make bin");
     p.send_line("cargo build --release")?;
     p.wait_for_prompt()?;
-    println!("Assert that the change worked");
     p.send_line("target/release/the-way config get")?; // TODO: yuck
     p.exp_regex(config_file.to_string_lossy().as_ref())?;
     p.wait_for_prompt()?;
-    println!("Add a snippet");
-    p.execute("target/release/the-way", "Description:")?; // TODO: yuck
-    p.send_line("test description")?;
+    p.execute("target/release/the-way new", "Description:")?; // TODO: yuck
+    p.send_line("test description 1")?;
     p.exp_string("Language:")?;
     p.send_line("rust")?;
     p.exp_regex("Tags \\(.*\\):")?;
@@ -95,6 +114,25 @@ fn add_snippet_rexpect(config_file: PathBuf) -> rexpect::errors::Result<()> {
     p.send_line("code")?;
     p.exp_regex("Added snippet #1")?;
     p.wait_for_prompt()?;
+    Ok(p)
+}
+
+fn change_snippet_rexpect(config_file: PathBuf) -> rexpect::errors::Result<()> {
+    let mut p = add_snippet_rexpect(config_file)?;
+    p.execute("target/release/the-way change 1", "Description:")?; // TODO: yuck
+    p.send_line("test description 2")?;
+    p.exp_string("Language:")?;
+    p.send_line("")?;
+    p.exp_regex("Tags \\(.*\\):")?;
+    p.send_line("")?;
+    p.exp_regex("Date \\[.*\\]:")?;
+    p.send_line("")?;
+    p.exp_regex("Code snippet \\(.*\\):")?;
+    p.send_line("code 2")?;
+    p.exp_regex("Snippet #1 changed")?;
+    p.wait_for_prompt()?;
+    p.send_line("target/release/the-way show 1")?;
+    assert!(p.wait_for_prompt()?.contains("test description 2"));
     Ok(())
 }
 
@@ -104,6 +142,15 @@ fn add_snippet() -> Result<(), Error> {
     let temp_dir = create_temp_dir("add_snippet")?;
     let config_file = make_config_file(&temp_dir)?;
     assert!(add_snippet_rexpect(config_file).is_ok());
+    temp_dir.close()?;
+    Ok(())
+}
+
+#[test]
+fn change_snippet() -> Result<(), Error> {
+    let temp_dir = create_temp_dir("change_snippet")?;
+    let config_file = make_config_file(&temp_dir)?;
+    assert!(change_snippet_rexpect(config_file).is_ok());
     temp_dir.close()?;
     Ok(())
 }
@@ -121,7 +168,7 @@ fn import_single_show() -> Result<(), Error> {
         .success();
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
-        .arg("-s")
+        .arg("show")
         .arg("1")
         .assert()
         .stdout(predicate::str::contains("test description"));
@@ -175,11 +222,22 @@ fn delete() -> Result<(), Error> {
             predicate::str::contains("test description 1")
                 .and(predicate::str::contains("test description 2")),
         );
+
+    // Test bad index
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
-        .arg("-d")
+        .arg("delete")
+        .arg("-f")
+        .arg("3")
+        .assert()
+        .failure();
+
+    // Test good index
+    let mut cmd = Command::cargo_bin("the-way")?;
+    cmd.env("THE_WAY_CONFIG", &config_file)
+        .arg("delete")
+        .arg("-f")
         .arg("2")
-        .write_stdin("Y")
         .assert()
         .stdout(predicate::str::starts_with("Snippet #2 deleted"));
     let mut cmd = Command::cargo_bin("the-way")?;
@@ -190,5 +248,53 @@ fn delete() -> Result<(), Error> {
             predicate::str::contains("test description 1")
                 .and(predicate::str::contains("test description 2").not()),
         );
+
+    // Test already deleted index
+    let mut cmd = Command::cargo_bin("the-way")?;
+    cmd.env("THE_WAY_CONFIG", &config_file)
+        .arg("delete")
+        .arg("-f")
+        .arg("2")
+        .assert()
+        .failure();
+    Ok(())
+}
+
+#[test]
+fn copy() -> Result<(), Error> {
+    let contents = r#"{"description":"test description","language":"rust","tags":["tag1","tag2"],"code":"some\ntest\ncode\n"}"#;
+    let temp_dir = create_temp_dir("copy")?;
+    let config_file = make_config_file(&temp_dir)?;
+    let mut cmd = Command::cargo_bin("the-way")?;
+    cmd.env("THE_WAY_CONFIG", &config_file)
+        .arg("import")
+        .write_stdin(contents)
+        .assert()
+        .success();
+
+    // Test bad index
+    let mut cmd = Command::cargo_bin("the-way")?;
+    cmd.env("THE_WAY_CONFIG", &config_file)
+        .arg("copy")
+        .arg("2")
+        .assert()
+        .failure();
+
+    // Test good index
+    let mut cmd = Command::cargo_bin("the-way")?;
+    cmd.env("THE_WAY_CONFIG", &config_file)
+        .arg("copy")
+        .arg("1")
+        .assert()
+        .stdout(predicate::str::starts_with(
+            "Snippet #1 copied to clipboard",
+        ));
+    let ctx: Result<ClipboardContext, _> = ClipboardProvider::new();
+    assert!(ctx.is_ok());
+    let mut ctx = ctx.unwrap();
+    let contents = ctx.get_contents();
+    assert!(contents.is_ok());
+    let contents = contents.unwrap();
+    assert!(contents.contains("some\ntest\ncode"));
     Ok(())
 }

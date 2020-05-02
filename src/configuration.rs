@@ -67,14 +67,14 @@ pub(crate) fn run_config(cli: &TheWayCLI) -> Result<(), Error> {
                     None => Box::new(io::stdout()),
                 };
                 let mut buffered = io::BufWriter::new(writer);
-                let config_file = &TheWayConfig::get()?;
+                let config_file = &TheWayConfig::get_default_config_file()?;
                 if !config_file.exists() {
                     let _: TheWayConfig = TheWayConfig::default();
                 }
                 let contents = fs::read_to_string(config_file)?;
                 write!(&mut buffered, "{}", contents)?;
             }
-            ConfigCommand::Get => println!("{}", TheWayConfig::get()?.to_str().unwrap()),
+            ConfigCommand::Get => println!("{}", TheWayConfig::get()?.to_string_lossy()),
         }
     }
     Ok(())
@@ -95,16 +95,28 @@ impl TheWayConfig {
         Ok(())
     }
 
+    fn get_default_config_file() -> Result<PathBuf, Error> {
+        let dir = get_project_dir()?;
+        let config_dir = dir.config_dir();
+        Ok(config_dir.join(format!("{}.toml", NAME)))
+    }
+
     /// Gets the current config file location
-    pub(crate) fn get() -> Result<PathBuf, Error> {
+    fn get() -> Result<PathBuf, Error> {
         let config_file = env::var("THE_WAY_CONFIG").ok();
         match config_file {
-            Some(file) => Ok(Path::new(&file).to_owned()),
-            None => {
-                let dir = get_project_dir()?;
-                let config_dir = dir.config_dir();
-                Ok(config_dir.join(format!("{}.toml", NAME)))
+            Some(file) => {
+                let path = Path::new(&file).to_owned();
+                if path.exists() {
+                    Ok(path)
+                } else {
+                    Err(LostTheWay::ConfigError {
+                        message: format!("No such file {}", file),
+                    }
+                    .into())
+                }
             }
+            None => Self::get_default_config_file(),
         }
     }
 

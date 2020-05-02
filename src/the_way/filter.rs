@@ -10,16 +10,16 @@ use crate::utils;
 
 #[derive(StructOpt, Debug)]
 pub(crate) struct Filters {
-    /// Snippets written in <LANGUAGE> (multiple with 'lang1 lang2')
+    /// Snippets written in <language> (multiple with 'lang1 lang2')
     #[structopt(short, long)]
     pub(crate) languages: Option<Vec<String>>,
-    /// Snippets with <TAG> (multiple with 'tag1 tag2')
+    /// Snippets with <tag> (multiple with 'tag1 tag2')
     #[structopt(short, long)]
     pub(crate) tags: Option<Vec<String>>,
-    /// Snippets from <DATE>
+    /// Snippets from <date> ("last friday" works too!)
     #[structopt(long, parse(try_from_str = utils::parse_date))]
     pub(crate) from: Option<Date<Utc>>,
-    /// Snippets from <DATE>
+    /// Snippets before <date>
     #[structopt(long, parse(try_from_str = utils::parse_date))]
     pub(crate) to: Option<Date<Utc>>,
 }

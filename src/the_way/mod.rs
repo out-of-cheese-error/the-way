@@ -65,8 +65,14 @@ impl TheWay {
             TheWayCLI::New => self.the_way(),
             TheWayCLI::Search { filters } => self.search(filters),
             TheWayCLI::Copy { index } => self.copy(*index),
-            TheWayCLI::Change { index } => self.change(*index),
-            TheWayCLI::Delete { index, force } => self.delete(*index, *force),
+            TheWayCLI::Change { index } => {
+                let index = *index;
+                self.change(index)
+            }
+            TheWayCLI::Delete { index, force } => {
+                let (index, force) = (*index, *force);
+                self.delete(index, force)
+            }
             TheWayCLI::Show { index } => self.show(*index),
             TheWayCLI::List { filters } => self.list(filters),
             TheWayCLI::Import { file } => {
