@@ -63,7 +63,6 @@ pub fn make_indices_string(index_list: &[usize]) -> Result<Vec<u8>, Error> {
 }
 
 /// Makes a date from a string, can be colloquial like "next Friday"
-/// TODO: check if chrono-english can parse "today" yet
 pub fn parse_date(date_string: &str) -> Result<Date<Utc>, Error> {
     if date_string.to_ascii_lowercase() == "today" {
         Ok(Utc::now().date())

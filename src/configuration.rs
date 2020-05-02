@@ -126,9 +126,17 @@ impl TheWayConfig {
         let config_file = env::var("THE_WAY_CONFIG").ok();
         match config_file {
             Some(file) => {
-                let config: TheWayConfig = confy::load_path(Path::new(&file))?;
-                config.make_dirs()?;
-                Ok(config)
+                let path = Path::new(&file).to_owned();
+                if path.exists() {
+                    let config: TheWayConfig = confy::load_path(Path::new(&file))?;
+                    config.make_dirs()?;
+                    Ok(config)
+                } else {
+                    Err(LostTheWay::ConfigError {
+                        message: format!("No such file {}", file),
+                    }
+                    .into())
+                }
             }
             None => Ok(confy::load(NAME)?),
         }
