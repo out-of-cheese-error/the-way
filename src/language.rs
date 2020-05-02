@@ -93,12 +93,12 @@ pub(crate) fn get_languages(yml_string: &str) -> Result<HashMap<String, Language
     for (name, language_yml) in languages {
         if let Some(extension) = language_yml.extensions.first() {
             let mut language =
-                Language::new(name.clone(), extension.to_owned(), language_yml.color)?;
+                Language::new(name.to_owned(), extension.to_owned(), language_yml.color)?;
             name_to_language.insert(name.to_ascii_lowercase(), language.clone());
             name_to_language.insert(name, language.clone());
             for alias in language_yml.aliases {
                 language.name = alias.clone();
-                name_to_language.insert(alias.to_owned(), language.clone());
+                name_to_language.insert(alias, language.clone());
             }
         }
     }
@@ -116,14 +116,14 @@ pub(crate) struct CodeHighlight {
 }
 
 impl CodeHighlight {
-    /// Loads themes from theme_dir and default syntax set.
+    /// Loads themes from `theme_dir` and default syntax set.
     /// Sets highlighting styles
     pub(crate) fn new(theme: &str, theme_dir: PathBuf) -> Result<Self, Error> {
         let mut theme_set = ThemeSet::load_defaults();
         theme_set
             .add_from_folder(&theme_dir)
-            .map_err(|_| LostTheWay::ThemeNotFound {
-                theme_name: String::from((&theme_dir).to_str().unwrap()),
+            .map_err(|_| LostTheWay::ThemeError {
+                theme: String::from((&theme_dir).to_str().unwrap()),
             })?;
         let mut highlighter = Self {
             syntax_set: SyntaxSet::load_defaults_newlines(),
@@ -192,13 +192,18 @@ impl CodeHighlight {
             self.set_styles();
             Ok(())
         } else {
-            Err(LostTheWay::ThemeNotFound { theme_name }.into())
+            Err(LostTheWay::ThemeError { theme: theme_name }.into())
         }
     }
 
     /// Gets currently available theme names
     pub(crate) fn get_themes(&self) -> Vec<String> {
         self.theme_set.themes.keys().cloned().collect()
+    }
+
+    /// Gets current theme name
+    pub(crate) fn get_theme_name(&self) -> String {
+        self.theme_name.to_owned()
     }
 
     /// Adds a new theme from a .tmTheme file.
@@ -209,22 +214,22 @@ impl CodeHighlight {
             theme_file
                 .file_stem()
                 .and_then(|x| x.to_str())
-                .ok_or(LostTheWay::ThemeNotFound {
-                    theme_name: theme_file.to_str().unwrap().into(),
+                .ok_or(LostTheWay::ThemeError {
+                    theme: theme_file.to_str().unwrap().into(),
                 })?;
         // Copy theme to theme file directory
         let new_theme_file = self.theme_dir.join(format!("{}.tmTheme", basename));
         fs::copy(theme_file, new_theme_file)?;
-        let theme = ThemeSet::get_theme(&theme_file).map_err(|_| LostTheWay::ThemeNotFound {
-            theme_name: theme_file.to_str().unwrap().into(),
+        let theme = ThemeSet::get_theme(&theme_file).map_err(|_| LostTheWay::ThemeError {
+            theme: theme_file.to_str().unwrap().into(),
         })?;
         self.theme_set.themes.insert(basename.to_owned(), theme);
         Ok(())
     }
 
     /// Makes a box colored according to GitHub language colors
-    pub(crate) fn highlight_block(&self, language_color: Color) -> Result<String, Error> {
-        Ok(CodeHighlight::highlight_string(
+    pub(crate) fn highlight_block(language_color: Color) -> Result<String, Error> {
+        Ok(Self::highlight_string(
             &format!("{} ", utils::BOX),
             Style::default().apply(StyleModifier {
                 foreground: Some(language_color),

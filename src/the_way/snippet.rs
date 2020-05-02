@@ -1,8 +1,6 @@
 //! Snippet information and methods
 use std::collections::HashMap;
-use std::fs::File;
 use std::io;
-use std::path::Path;
 
 use anyhow::Error;
 use chrono::{DateTime, Utc};
@@ -64,7 +62,6 @@ impl Snippet {
     }
 
     /// Queries user for new snippet info
-    /// TODO: make sure empty tags work, empty description doesn't make sense though I think
     pub(crate) fn from_user(
         index: usize,
         languages: &HashMap<String, Language>,
@@ -119,11 +116,11 @@ impl Snippet {
         Ok(bincode::deserialize(bytes)?)
     }
 
-    /// Read snippets from a JSON file and return consumable iterator
-    pub(crate) fn read_from_file(
-        json_file: &Path,
-    ) -> Result<impl Iterator<Item = serde_json::Result<Self>>, Error> {
-        Ok(serde_json::Deserializer::from_reader(File::open(json_file)?).into_iter::<Self>())
+    /// Read snippets from a JSON stream and return consumable iterator
+    pub(crate) fn read(
+        json_reader: &mut dyn io::Read,
+    ) -> impl Iterator<Item = serde_json::Result<Self>> + '_ {
+        serde_json::Deserializer::from_reader(json_reader).into_iter::<Self>()
     }
 
     /// Appends a snippet to a JSON object/file
@@ -168,16 +165,16 @@ impl Snippet {
 
     /// Highlights the title: "■ #index. description | language :tag1:tag2:\n"
     /// the block is colored according to the language
-    /// language uses accent_style
-    /// tags use dim_style
-    /// everything else is in main_style
+    /// language uses `accent_style`
+    /// tags use `dim_style`
+    /// everything else is in `main_style`
     pub(crate) fn pretty_print_header(
         &self,
         highlighter: &CodeHighlight,
         language: &Language,
     ) -> Result<Vec<String>, Error> {
         let mut colorized = Vec::new();
-        let block = highlighter.highlight_block(language.color)?;
+        let block = CodeHighlight::highlight_block(language.color)?;
         colorized.push(block);
         let text = format!("#{}. {} ", self.index, self.description);
         colorized.push(CodeHighlight::highlight_string(
@@ -220,9 +217,7 @@ impl Snippet {
     ) -> Result<Vec<String>, Error> {
         let mut colorized = vec![String::from("\n")];
         colorized.extend_from_slice(&self.pretty_print_header(highlighter, language)?);
-        colorized.push("\n".into());
         colorized.extend_from_slice(&self.pretty_print_code(highlighter)?);
-        colorized.push("\n".into());
         Ok(colorized)
     }
 }

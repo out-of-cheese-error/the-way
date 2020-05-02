@@ -23,14 +23,15 @@ pub enum LostTheWay {
     #[error("$HOME not set")]
     Homeless,
     /// Thrown when trying to load a theme which hasn't been added / doesn't exist
-    #[error(
-        "I don't have the {theme_name:?} theme. Add it from a theme file with the-way themes --add"
-    )]
-    ThemeNotFound { theme_name: String },
+    #[error("Couldn't load theme {theme:?}. Are you sure it exists and is valid?")]
+    ThemeError { theme: String },
     #[error("Couldn't copy to clipboard")]
     ClipboardError,
     #[error("Search failed")]
     SearchError,
+    /// Errors related to changing the configuration file
+    #[error("{message:?}")]
+    ConfigError { message: String },
     /// Catch-all for stuff that should never happen
     #[error("{message:?}\nRedo from start.")]
     OutOfCheeseError { message: String },

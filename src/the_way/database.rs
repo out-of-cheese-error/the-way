@@ -5,8 +5,7 @@ use anyhow::Error;
 use chrono::{DateTime, Utc};
 
 use crate::errors::LostTheWay;
-use crate::the_way::snippet::Snippet;
-use crate::the_way::TheWay;
+use crate::the_way::{snippet::Snippet, TheWay};
 use crate::utils;
 
 /// If key exists, add value to existing values - join with a semicolon
@@ -33,7 +32,7 @@ impl TheWay {
         Ok(())
     }
 
-    /// Gets snippet_index: snippet tree
+    /// Gets snippet index: snippet tree
     fn snippets_tree(&self) -> Result<sled::Tree, Error> {
         Ok(self.db.open_tree("snippets")?)
     }
@@ -56,7 +55,7 @@ impl TheWay {
         Ok(self.db.open_tree("language_to_snippet")?)
     }
 
-    /// Get the tag: snippet_indices tree
+    /// Get the tag: snippet indices tree
     fn tag_tree(&self) -> Result<sled::Tree, Error> {
         Ok(self.db.open_tree("tag_to_snippet")?)
     }
@@ -114,7 +113,7 @@ impl TheWay {
     }
 
     // TODO: think about how deletions should affect snippet indices
-    fn increment_snippet_index(&mut self) -> Result<(), Error> {
+    pub(crate) fn increment_snippet_index(&mut self) -> Result<(), Error> {
         self.db.insert(
             "snippet_index",
             (self.get_current_snippet_index()? + 1)
@@ -152,7 +151,6 @@ impl TheWay {
         self.add_to_snippet(index_key, &snippet.to_bytes()?)?;
         self.add_to_language(language_key, index_key)?;
         self.add_to_tags(&snippet.tags, index_key)?;
-        self.increment_snippet_index()?;
         Ok(snippet.index)
     }
 

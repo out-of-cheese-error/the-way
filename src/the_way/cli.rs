@@ -1,64 +1,64 @@
+//! StructOpt data
 use std::path::PathBuf;
 
-use chrono::{Date, Utc};
-use clap::Shell;
+use structopt::clap::AppSettings;
+use structopt::clap::Shell;
 use structopt::StructOpt;
 
-use crate::utils;
+use crate::configuration::ConfigCommand;
+use crate::the_way::filter::Filters;
 
 #[derive(Debug, StructOpt)]
 #[structopt(
-    name = "the-way",
-    about = "Record, retrieve, search, and categorize code snippets"
+name = "the-way",
+about = "Record, retrieve, search, and categorize code snippets",
+rename_all = "kebab-case",
+global_settings = & [AppSettings::DeriveDisplayOrder]
 )]
-pub(crate) struct TheWayCLI {
-    /// Copy snippet at <INDEX> to clipboard
-    #[structopt(short = "y", long = "cp")]
-    pub(crate) copy: Option<usize>,
-
-    /// Delete snippet at <INDEX>
-    #[structopt(short, long)]
-    pub(crate) delete: Option<usize>,
-
-    /// Show snippet at <INDEX>
-    #[structopt(short, long)]
-    pub(crate) show: Option<usize>,
-
-    /// Change snippet at <INDEX>
-    #[structopt(short, long)]
-    pub(crate) change: Option<usize>,
-
-    /// Generate shell completions
-    #[structopt(long = "sh", name = "SHELL", possible_values = & Shell::variants())]
-    pub(crate) complete: Option<Shell>,
-
-    #[structopt(subcommand)]
-    pub(crate) command: Option<TheWayCommand>,
-}
-
-#[derive(StructOpt, Debug)]
-pub(crate) enum TheWayCommand {
+pub(crate) enum TheWayCLI {
+    /// Add a new snippet
+    New,
     /// Fuzzy search and copy selected to clipboard
     Search {
         #[structopt(flatten)]
         filters: Filters,
     },
-    /// Lists snippets
+    /// Copy snippet to clipboard
+    Copy { index: usize },
+    /// Change snippet
+    Change { index: usize },
+    /// Delete snippet
+    Delete {
+        index: usize,
+        /// Don't ask for confirmation
+        #[structopt(long, short)]
+        force: bool,
+    },
+    /// Show snippet
+    Show { index: usize },
+    /// Lists (optionally filtered) snippets
     List {
         #[structopt(flatten)]
         filters: Filters,
     },
-    /// Saves (optionally filtered) snippets to a JSON file.
-    Export {
-        #[structopt(flatten)]
-        filters: Filters,
-        #[structopt(long, short, parse(from_os_str))]
+    /// Imports code snippets from JSON. Looks for description, language, and code fields
+    Import {
+        /// filename, reads from stdin if not given
+        #[structopt(parse(from_os_str))]
         file: Option<PathBuf>,
     },
-    /// Imports code snippets from a JSON file. Looks for description, language, and code fields
-    Import {
-        #[structopt(long, short, parse(from_os_str))]
-        file: PathBuf,
+    /// Saves (optionally filtered) snippets to JSON.
+    Export {
+        /// filename, writes to stdout if not given
+        #[structopt(parse(from_os_str))]
+        file: Option<PathBuf>,
+        #[structopt(flatten)]
+        filters: Filters,
+    },
+    /// Generate shell completions
+    Complete {
+        #[structopt(possible_values = & Shell::variants())]
+        shell: Shell,
     },
     /// View syntax highlighting themes (default + user-added)
     Themes {
@@ -71,34 +71,23 @@ pub(crate) enum TheWayCommand {
         #[structopt(long, short)]
         force: bool,
     },
+    /// See / change where your data is stored
+    /// Controlled by $THE_WAY_CONFIG env variable
+    Config {
+        #[structopt(subcommand)]
+        cmd: ConfigCommand,
+    },
 }
 
 #[derive(StructOpt, Debug)]
 pub(crate) enum ThemeCommand {
     /// Set your preferred syntax highlighting theme
-    Set {
-        #[structopt(long, short)]
-        theme: String,
-    },
+    Set { theme: String },
     /// Add a theme from a .tmTheme file
     Add {
-        #[structopt(long, short, parse(from_os_str))]
+        #[structopt(parse(from_os_str))]
         file: PathBuf,
     },
-}
-
-#[derive(StructOpt, Debug)]
-pub(crate) struct Filters {
-    /// Snippets from <DATE>
-    #[structopt(long, parse(try_from_str = utils::parse_date))]
-    pub(crate) from: Option<Date<Utc>>,
-    /// Snippets from <DATE>
-    #[structopt(long, parse(try_from_str = utils::parse_date))]
-    pub(crate) to: Option<Date<Utc>>,
-    /// Snippets written in <LANGUAGE> (multiple with 'lang1 lang2')
-    #[structopt(short, long)]
-    pub(crate) languages: Option<Vec<String>>,
-    /// Snippets with <TAG> (multiple with 'tag1 tag2')
-    #[structopt(short, long)]
-    pub(crate) tags: Option<Vec<String>>,
+    /// Prints the current theme name
+    Current,
 }
