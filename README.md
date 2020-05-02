@@ -23,8 +23,6 @@ the-way complete zsh > .oh_my_zsh/completions/_the-way
 exec zsh
 ```
 
-**Currently tested on nightly rust**
-
 ## Features
 - [X] Recognizes language extension to enable syntax highlighting in $EDITOR (if the editor supports it)
 - [X] Configurable syntax highlighting themes for display via `the-way themes`
