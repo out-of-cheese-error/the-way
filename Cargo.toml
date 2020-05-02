@@ -6,7 +6,7 @@ authors = ["Ninjani"]
 description = "A code snippets manager for your terminal"
 repository = "https://github.com/out-of-cheese-error/the-way"
 readme = "README.md"
-#license = "MIT OR Apache-2.0" # TODO: add license
+license = "MIT"
 keywords = ["cli", "snippets"]
 categories = ["cli-tools"]
 
