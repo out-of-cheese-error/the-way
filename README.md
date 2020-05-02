@@ -17,6 +17,11 @@ See it in action (with some self-referential examples):
 ```bash
 cargo install the-way
 ```
+Make shell completions:
+```bash
+the-way complete zsh > .oh_my_zsh/completions/_the-way
+exec zsh
+```
 
 **Currently tested on nightly rust**
 
