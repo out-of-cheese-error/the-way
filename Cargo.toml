@@ -7,8 +7,8 @@ description = "A code snippets manager for your terminal"
 repository = "https://github.com/out-of-cheese-error/the-way"
 readme = "README.md"
 license = "MIT"
-keywords = ["cli", "snippets"]
-categories = ["cli-tools"]
+keywords = ["cli", "code", "snippets"]
+categories = ["command-line-utilities"]
 
 [dependencies]
 # Argument parsing
