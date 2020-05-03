@@ -12,10 +12,11 @@ env:
 addons:
   apt:
     packages:
-      - libxcb-dev
       - xorg-dev
       - libxcb-composite0-dev
-      - libxmu-dev
+      - libx11-xcb-dev
+      - python3
+      - libgl1-mesa-dev
 
 matrix:
   # These are all the build jobs. Adjust as necessary. Comment out what you
