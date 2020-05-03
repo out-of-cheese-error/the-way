@@ -1,4 +1,4 @@
-![crates.io](https://img.shields.io/crates/v/the-way.svg)
+[![Crates.io](https://img.shields.io/crates/v/the-way.svg)](https://crates.io/crates/the-way)
 
 # The Way (`the-way`)
 A code snippets manager for your terminal.
