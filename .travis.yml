@@ -6,10 +6,10 @@ language: rust
 services: docker
 sudo: required
 
-
 env:
   global:
     - CRATE_NAME=the-way
+
 
 matrix:
   # These are all the build jobs. Adjust as necessary. Comment out what you
@@ -35,21 +35,23 @@ matrix:
     #      os: osx
 
     # Linux
-    - env: TARGET=aarch64-unknown-linux-gnu
-    - env: TARGET=arm-unknown-linux-gnueabi
-    - env: TARGET=armv7-unknown-linux-gnueabihf
-    - env: TARGET=i686-unknown-linux-gnu
-    - env: TARGET=i686-unknown-linux-musl
-    - env: TARGET=mips-unknown-linux-gnu
-    - env: TARGET=mips64-unknown-linux-gnuabi64
-    - env: TARGET=mips64el-unknown-linux-gnuabi64
-    - env: TARGET=mipsel-unknown-linux-gnu
-    - env: TARGET=powerpc-unknown-linux-gnu
-    - env: TARGET=powerpc64-unknown-linux-gnu
-    - env: TARGET=powerpc64le-unknown-linux-gnu
-    - env: TARGET=s390x-unknown-linux-gnu DISABLE_TESTS=1
-    - env: TARGET=x86_64-unknown-linux-gnu
-    - env: TARGET=x86_64-unknown-linux-musl
+    #    - env: TARGET=aarch64-unknown-linux-gnu
+    #    - env: TARGET=arm-unknown-linux-gnueabi
+    #    - env: TARGET=armv7-unknown-linux-gnueabihf
+    #    - env: TARGET=i686-unknown-linux-gnu
+    #      os: linux
+    #    - env: TARGET=i686-unknown-linux-musl
+    #    - env: TARGET=mips-unknown-linux-gnu
+    #    - env: TARGET=mips64-unknown-linux-gnuabi64
+    #    - env: TARGET=mips64el-unknown-linux-gnuabi64
+    #    - env: TARGET=mipsel-unknown-linux-gnu
+    #    - env: TARGET=powerpc-unknown-linux-gnu
+    #    - env: TARGET=powerpc64-unknown-linux-gnu
+    #    - env: TARGET=powerpc64le-unknown-linux-gnu
+    #    - env: TARGET=s390x-unknown-linux-gnu DISABLE_TESTS=1
+    #    - env: TARGET=x86_64-unknown-linux-gnu
+    #      os: linux
+    #    - env: TARGET=x86_64-unknown-linux-musl
 
     # OSX
     - env: TARGET=i686-apple-darwin
@@ -58,12 +60,12 @@ matrix:
       os: osx
 
     # *BSD
-    - env: TARGET=i686-unknown-freebsd DISABLE_TESTS=1
-    - env: TARGET=x86_64-unknown-freebsd DISABLE_TESTS=1
-    - env: TARGET=x86_64-unknown-netbsd DISABLE_TESTS=1
+    #    - env: TARGET=i686-unknown-freebsd DISABLE_TESTS=1
+    #    - env: TARGET=x86_64-unknown-freebsd DISABLE_TESTS=1
+    #    - env: TARGET=x86_64-unknown-netbsd DISABLE_TESTS=1
 
     # Windows
-    - env: TARGET=x86_64-pc-windows-gnu
+    #    - env: TARGET=x86_64-pc-windows-gnu
 
     # Bare metal
     # These targets don't support std and as such are likely not suitable for
@@ -74,8 +76,9 @@ matrix:
     # - env: TARGET=thumbv7m-none-eabi
 
     # Testing other channels
-    - env: TARGET=x86_64-unknown-linux-gnu
-      rust: nightly
+    #        - env: TARGET=x86_64-unknown-linux-gnu
+    #          rust: nightly
+    #          os: linux
     - env: TARGET=x86_64-apple-darwin
       os: osx
       rust: nightly
@@ -83,6 +86,7 @@ matrix:
 before_install:
   - set -e
   - rustup self update
+#  - if [ $TRAVIS_OS_NAME = linux ]; then sudo apt-get install xorg-dev python3 python libxcb-composite0-dev; fi
 
 install:
   - sh ci/install.sh
