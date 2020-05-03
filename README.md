@@ -1,5 +1,5 @@
 [![Build Status](https://travis-ci.org/out-of-cheese-error/the-way.svg?branch=master)](https://travis-ci.org/out-of-cheese-error/the-way)
-![crates.io](https://img.shields.io/crates/v/the-way.svg)
+[![Crates.io](https://img.shields.io/crates/v/the-way.svg)](https://crates.io/crates/the-way)
 
 # The Way (`the-way`)
 A code snippets manager for your terminal.
@@ -31,7 +31,7 @@ cargo install the-way
 
 Currently doesn't work on Windows (waiting on [this issue](https://github.com/lotabout/skim/issues/293))
 
-Make shell completions:
+### Make shell completions:
 ```bash
 the-way complete zsh > .oh_my_zsh/completions/_the-way
 exec zsh
@@ -41,7 +41,7 @@ exec zsh
 - [X] Recognizes language extension to enable syntax highlighting in $EDITOR (if the editor supports it)
 - [X] Configurable syntax highlighting themes for display via `the-way themes`
 - [X] Import/export to JSON
-- [X] Shell completion (e.g. `the-way complete zsh > ~/.oh-my-zsh/completions/_the-way`)
+- [X] Shell completion
 - [ ] Language and code statistics
 
 ## Why "The Way"?

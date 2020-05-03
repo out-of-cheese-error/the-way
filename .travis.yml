@@ -54,8 +54,8 @@ matrix:
     #    - env: TARGET=x86_64-unknown-linux-musl
 
     # OSX
-    #    - env: TARGET=i686-apple-darwin
-    #      os: osx
+    - env: TARGET=i686-apple-darwin
+      os: osx
     - env: TARGET=x86_64-apple-darwin
       os: osx
 
@@ -76,9 +76,9 @@ matrix:
     # - env: TARGET=thumbv7m-none-eabi
 
     # Testing other channels
-    #    - env: TARGET=x86_64-unknown-linux-gnu
-    #      rust: nightly
-    #      os: linux
+    #        - env: TARGET=x86_64-unknown-linux-gnu
+    #          rust: nightly
+    #          os: linux
     - env: TARGET=x86_64-apple-darwin
       os: osx
       rust: nightly
@@ -129,7 +129,6 @@ branches:
     # release tags
     - /^v\d+\.\d+\.\d+.*$/
     - master
-    - travis
 
 notifications:
   email:
