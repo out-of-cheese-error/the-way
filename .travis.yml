@@ -16,6 +16,10 @@ addons:
       - xorg-dev
       - libxcb-composite0-dev
       - libx11-xcb-dev
+      - libxcb1-dev
+      - libxcb-render0-dev
+      - libxcb-shape0-dev
+      - libxcb-xfixes0-dev
       - python3
       - python
       - libgl1-mesa-dev
