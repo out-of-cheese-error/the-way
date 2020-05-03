@@ -18,7 +18,6 @@ addons:
       - libx11-xcb-dev
       - python3
       - python
-      - libxcb
       - libgl1-mesa-dev
 
 matrix:
