@@ -9,6 +9,9 @@ sudo: required
 env:
   global:
     - CRATE_NAME=the-way
+    - RUST_BACKTRACE=1
+
+
 
 matrix:
   # These are all the build jobs. Adjust as necessary. Comment out what you
