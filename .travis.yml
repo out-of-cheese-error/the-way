@@ -125,6 +125,7 @@ branches:
     # release tags
     - /^v\d+\.\d+\.\d+.*$/
     - master
+    - travis
 
 notifications:
   email:
