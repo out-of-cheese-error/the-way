@@ -84,7 +84,7 @@ matrix:
 before_install:
   - set -e
   - rustup self update
-  - if [ $TRAVIS_OS_NAME = linux ]; then sudo apt-get install python3 libxcb-composite0-dev; fi
+  - if [ $TRAVIS_OS_NAME = linux ]; then sudo apt-get install xorg-dev libxcb-composite0-dev; fi
 
 install:
   - sh ci/install.sh
