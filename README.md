@@ -1,3 +1,6 @@
+[![Build Status](https://travis-ci.org/out-of-cheese-error/the-way.svg?branch=master)](https://travis-ci.org/out-of-cheese-error/the-way)
+![crates.io](https://img.shields.io/crates/v/the-way.svg)
+
 # The Way (`the-way`)
 A code snippets manager for your terminal.
 
