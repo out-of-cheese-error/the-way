@@ -14,11 +14,20 @@ See it in action (with some self-referential examples):
 
 
 ## Install
+### Prerequisites
+For Linux users (to get X11 and the clipboard to work):
+```bash
+apt-get install xorg-dev libxcb-composite0-dev
+```
+
 ### With cargo
 ```bash
 cargo install the-way
 ```
-Make shell completions:
+
+Currently doesn't work on Windows (waiting on [this issue](https://github.com/lotabout/skim/issues/293))
+
+### Make shell completions:
 ```bash
 the-way complete zsh > .oh_my_zsh/completions/_the-way
 exec zsh
