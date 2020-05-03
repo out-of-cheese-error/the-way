@@ -11,17 +11,11 @@ env:
     - CRATE_NAME=the-way
 addons:
   apt:
+    update: true
     packages:
-      - libxmu-dev
       - xorg-dev
-      - libxcb-composite0-dev
-      - libx11-xcb-dev
-      - libxcb1-dev
-      - libxcb-render0-dev
-      - libxcb-shape0-dev
-      - libxcb-xfixes0-dev
       - python3
-      - python
+      - libx11-xcb-dev
       - libgl1-mesa-dev
 
 matrix:
