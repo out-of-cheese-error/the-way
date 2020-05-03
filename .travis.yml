@@ -12,10 +12,13 @@ env:
 addons:
   apt:
     packages:
+      - libxmu-dev
       - xorg-dev
       - libxcb-composite0-dev
       - libx11-xcb-dev
       - python3
+      - python
+      - libxcb
       - libgl1-mesa-dev
 
 matrix:
