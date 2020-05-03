@@ -1,3 +1,5 @@
+![crates.io](https://img.shields.io/crates/v/the-way.svg)
+
 # The Way (`the-way`)
 A code snippets manager for your terminal.
 
