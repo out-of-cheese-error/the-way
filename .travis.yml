@@ -9,7 +9,13 @@ sudo: required
 env:
   global:
     - CRATE_NAME=the-way
-
+addons:
+  apt:
+    packages:
+      - libxcb-dev
+      - xorg-dev
+      - libxcb-composite0-dev
+      - libxmu-dev
 
 matrix:
   # These are all the build jobs. Adjust as necessary. Comment out what you
@@ -84,8 +90,6 @@ matrix:
 before_install:
   - set -e
   - rustup self update
-  - if [ $TRAVIS_OS_NAME = linux ]; then sudo apt-get install xorg-dev python3 python libxcb-composite0-dev; fi
-  - if [ $TRAVIS_OS_NAME = linux ]; then alias python3="python"; fi
 
 install:
   - sh ci/install.sh
