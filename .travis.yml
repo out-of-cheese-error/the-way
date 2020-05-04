@@ -9,7 +9,10 @@ sudo: required
 env:
   global:
     - CRATE_NAME=the-way
-
+addons:
+  apt:
+    packages:
+      - llvm
 matrix:
   # These are all the build jobs. Adjust as necessary. Comment out what you
   # don't need
