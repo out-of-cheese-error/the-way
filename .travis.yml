@@ -12,7 +12,7 @@ env:
 addons:
   apt:
     packages:
-      - llvm
+      - llvm-config
 matrix:
   # These are all the build jobs. Adjust as necessary. Comment out what you
   # don't need
