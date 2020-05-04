@@ -15,6 +15,7 @@ See it in action (with some self-referential examples):
 
 ![demo](demo.gif)
 
+> made with [Terminalizer](https://github.com/faressoft/terminalizer)
 
 ## Install
 
