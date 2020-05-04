@@ -9,14 +9,6 @@ sudo: required
 env:
   global:
     - CRATE_NAME=the-way
-addons:
-  apt:
-    packages:
-      - xorg-dev
-      - libxcb-composite0-dev
-      - libx11-xcb-dev
-      - python3
-      - libgl1-mesa-dev
 
 matrix:
   # These are all the build jobs. Adjust as necessary. Comment out what you
@@ -45,8 +37,8 @@ matrix:
     #    - env: TARGET=aarch64-unknown-linux-gnu
     #    - env: TARGET=arm-unknown-linux-gnueabi
     #    - env: TARGET=armv7-unknown-linux-gnueabihf
-    - env: TARGET=i686-unknown-linux-gnu
-      os: linux
+    #    - env: TARGET=i686-unknown-linux-gnu
+    #      os: linux
     #    - env: TARGET=i686-unknown-linux-musl
     #    - env: TARGET=mips-unknown-linux-gnu
     #    - env: TARGET=mips64-unknown-linux-gnuabi64
@@ -56,8 +48,8 @@ matrix:
     #    - env: TARGET=powerpc64-unknown-linux-gnu
     #    - env: TARGET=powerpc64le-unknown-linux-gnu
     #    - env: TARGET=s390x-unknown-linux-gnu DISABLE_TESTS=1
-    - env: TARGET=x86_64-unknown-linux-gnu
-      os: linux
+    #    - env: TARGET=x86_64-unknown-linux-gnu
+    #      os: linux
     #    - env: TARGET=x86_64-unknown-linux-musl
 
     # OSX
