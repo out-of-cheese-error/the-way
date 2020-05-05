@@ -10,6 +10,8 @@ env:
     - CRATE_NAME=the-way
 
 matrix:
+  allow_failures:
+    - rust: nightly
   # These are all the build jobs. Adjust as necessary. Comment out what you
   # don't need
   include:

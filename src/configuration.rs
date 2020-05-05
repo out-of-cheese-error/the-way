@@ -64,11 +64,8 @@ impl TheWayConfig {
             None => Box::new(io::stdout()),
         };
         let mut buffered = io::BufWriter::new(writer);
-        let config_file = &TheWayConfig::get_default_config_file()?;
-        if !config_file.exists() {
-            let _: TheWayConfig = TheWayConfig::default();
-        }
-        let contents = fs::read_to_string(config_file)?;
+        let contents =
+            "theme = 'base16-ocean.dark'\ndb_dir = 'the_way_db'\nthemes_dir = 'the_way_themes'";
         write!(&mut buffered, "{}", contents)?;
         Ok(())
     }

@@ -31,9 +31,14 @@ themes_dir = \"{}\"",
 
 #[test]
 fn it_works() -> Result<(), Error> {
+    let temp_dir = create_temp_dir("it_works")?;
+    let config_file = make_config_file(&temp_dir)?;
     let mut cmd = Command::cargo_bin("the-way")?;
     // Pretty much the only command that works without assuming any input or modifying anything
-    cmd.arg("list").assert().success();
+    cmd.env("THE_WAY_CONFIG", config_file)
+        .arg("list")
+        .assert()
+        .success();
     Ok(())
 }
 
