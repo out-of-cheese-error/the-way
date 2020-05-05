@@ -19,11 +19,8 @@ See it in action (with some self-referential examples):
 
 ## Install
 
-### Prerequisites
-For Linux users (to get X11 and the clipboard to work):
-```bash
-apt-get install xorg-dev libxcb-composite0-dev
-```
+### Binaries
+See the [releases](https://github.com/out-of-cheese-error/the-way/releases/latest)
 
 ### With cargo
 ```bash
