@@ -3,9 +3,9 @@ use std::process::{Command, Stdio};
 use std::str;
 
 use anyhow::Error;
-use chrono::{Date, DateTime, MAX_DATE, MIN_DATE, Utc};
-use chrono_english::{Dialect, parse_date_string};
-use dialoguer::{Editor, Input, theme};
+use chrono::{Date, DateTime, Utc, MAX_DATE, MIN_DATE};
+use chrono_english::{parse_date_string, Dialect};
+use dialoguer::{theme, Editor, Input};
 
 use crate::errors::LostTheWay;
 
@@ -25,10 +25,10 @@ pub const SEMICOLON: u8 = 59;
 /// See https://github.com/aweinstock314/rust-clipboard/issues/28#issuecomment-534295371
 pub fn copy_to_clipboard(text: String) -> Result<(), Error> {
     #[cfg(target_os = "macos")]
-        let mut command = Command::new("pbcopy");
+    let mut command = Command::new("pbcopy");
 
     #[cfg(target_os = "linux")]
-        let mut command = {
+    let mut command = {
         let mut c = Command::new("xclip");
         c.arg("-in");
         c.arg("-selection");

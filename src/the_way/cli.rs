@@ -23,19 +23,11 @@ pub(crate) enum TheWayCLI {
         #[structopt(flatten)]
         filters: Filters,
     },
-    /// Copy snippet to clipboard
-    Copy { index: usize },
-    /// Change snippet
-    Change { index: usize },
-    /// Delete snippet
-    Delete {
-        index: usize,
-        /// Don't ask for confirmation
-        #[structopt(long, short)]
-        force: bool,
+    /// Manage an existing snippet
+    Snippet {
+        #[structopt(subcommand)]
+        cmd: SnippetCommand,
     },
-    /// Show snippet
-    Show { index: usize },
     /// Lists (optionally filtered) snippets
     List {
         #[structopt(flatten)]
@@ -60,10 +52,10 @@ pub(crate) enum TheWayCLI {
         #[structopt(possible_values = & Shell::variants())]
         shell: Shell,
     },
-    /// View syntax highlighting themes (default + user-added)
+    /// Manage syntax highlighting themes
     Themes {
         #[structopt(subcommand)]
-        cmd: Option<ThemeCommand>,
+        cmd: ThemeCommand,
     },
     /// Clears all data
     Clear {
@@ -71,8 +63,9 @@ pub(crate) enum TheWayCLI {
         #[structopt(long, short)]
         force: bool,
     },
-    /// See / change where your data is stored
-    /// Controlled by $THE_WAY_CONFIG env variable
+    /// Manage snippets data location.
+    /// Controlled by $THE_WAY_CONFIG env variable,
+    /// use this to have independent snippet sources for different projects.
     Config {
         #[structopt(subcommand)]
         cmd: ConfigCommand,
@@ -80,7 +73,36 @@ pub(crate) enum TheWayCLI {
 }
 
 #[derive(StructOpt, Debug)]
+pub(crate) enum SnippetCommand {
+    /// Copy snippet to clipboard
+    Cp {
+        /// Index of snippet to copy
+        index: usize,
+    },
+    /// Change snippet
+    Edit {
+        /// Index of snippet to change
+        index: usize,
+    },
+    /// Delete snippet
+    Del {
+        /// Index of snippet to delete
+        index: usize,
+        /// Don't ask for confirmation
+        #[structopt(long, short)]
+        force: bool,
+    },
+    /// Show snippet
+    View {
+        /// Index of snippet to show
+        index: usize,
+    },
+}
+
+#[derive(StructOpt, Debug)]
 pub(crate) enum ThemeCommand {
+    /// List all theme choices (default + user-added)
+    List,
     /// Set your preferred syntax highlighting theme
     Set { theme: String },
     /// Add a theme from a .tmTheme file
@@ -89,5 +111,5 @@ pub(crate) enum ThemeCommand {
         file: PathBuf,
     },
     /// Prints the current theme name
-    Current,
+    Get,
 }

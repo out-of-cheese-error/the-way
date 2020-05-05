@@ -1,17 +1,17 @@
 //! CLI code
-use std::{fs, io};
 use std::collections::HashMap;
 use std::path::Path;
+use std::{fs, io};
 
 use anyhow::Error;
 use structopt::clap::Shell;
 use structopt::StructOpt;
 
-use crate::configuration::{run_config, TheWayConfig};
+use crate::configuration::{ConfigCommand, TheWayConfig};
 use crate::errors::LostTheWay;
 use crate::language::{CodeHighlight, Language};
 use crate::the_way::{
-    cli::{ThemeCommand, TheWayCLI},
+    cli::{SnippetCommand, TheWayCLI, ThemeCommand},
     filter::Filters,
     snippet::Snippet,
 };
@@ -46,7 +46,6 @@ impl TheWay {
     /// Reads `sled` trees and metadata file from the locations specified in config.
     /// (makes new ones the first time).
     pub(crate) fn start(cli: TheWayCLI, languages: HashMap<String, Language>) -> Result<(), Error> {
-        run_config(&cli)?;
         let config = TheWayConfig::load()?;
         let mut the_way = Self {
             db: Self::get_db(&config.db_dir)?,
@@ -64,16 +63,18 @@ impl TheWay {
         match &self.cli {
             TheWayCLI::New => self.the_way(),
             TheWayCLI::Search { filters } => self.search(filters),
-            TheWayCLI::Copy { index } => self.copy(*index),
-            TheWayCLI::Change { index } => {
-                let index = *index;
-                self.change(index)
-            }
-            TheWayCLI::Delete { index, force } => {
-                let (index, force) = (*index, *force);
-                self.delete(index, force)
-            }
-            TheWayCLI::Show { index } => self.show(*index),
+            TheWayCLI::Snippet { cmd } => match cmd {
+                SnippetCommand::Cp { index } => self.copy(*index),
+                SnippetCommand::Edit { index } => {
+                    let index = *index;
+                    self.edit(index)
+                }
+                SnippetCommand::Del { index, force } => {
+                    let (index, force) = (*index, *force);
+                    self.delete(index, force)
+                }
+                SnippetCommand::View { index } => self.view(*index),
+            },
             TheWayCLI::List { filters } => self.list(filters),
             TheWayCLI::Import { file } => {
                 let mut num = 0;
@@ -89,26 +90,24 @@ impl TheWay {
             TheWayCLI::Export { filters, file } => self.export(filters, file.as_deref()),
             TheWayCLI::Complete { shell } => self.complete(*shell),
             TheWayCLI::Themes { cmd } => match cmd {
-                None => self.list_themes(),
-                Some(cmd) => match cmd {
-                    ThemeCommand::Set { theme } => {
-                        self.highlighter.set_theme(theme.to_owned())?;
-                        self.config.theme = theme.to_owned();
-                        self.config.store()?;
-                        Ok(())
-                    }
-                    ThemeCommand::Add { file } => {
-                        self.highlighter.add_theme(file)?;
-                        Ok(())
-                    }
-                    ThemeCommand::Current => {
-                        println!("{}", self.highlighter.get_theme_name());
-                        Ok(())
-                    }
-                },
+                ThemeCommand::List => self.list_themes(),
+                ThemeCommand::Set { theme } => {
+                    self.highlighter.set_theme(theme.to_owned())?;
+                    self.config.theme = theme.to_owned();
+                    self.config.store()?;
+                    Ok(())
+                }
+                ThemeCommand::Add { file } => {
+                    self.highlighter.add_theme(file)?;
+                    Ok(())
+                }
+                ThemeCommand::Get => self.get_theme(),
             },
             TheWayCLI::Clear { force } => self.clear(*force),
-            TheWayCLI::Config { .. } => Ok(()), // Already handled
+            TheWayCLI::Config { cmd } => match cmd {
+                ConfigCommand::Default { file } => TheWayConfig::default_config(file.as_deref()),
+                ConfigCommand::Get => TheWayConfig::print_config_location(),
+            },
         }
     }
 
@@ -149,7 +148,7 @@ impl TheWay {
     }
 
     /// Modify a stored snippet's information
-    fn change(&mut self, index: usize) -> Result<(), Error> {
+    fn edit(&mut self, index: usize) -> Result<(), Error> {
         let old_snippet = self.get_snippet(index)?;
         let new_snippet = Snippet::from_user(index, &self.languages, Some(&old_snippet))?;
         self.delete_snippet(index)?;
@@ -159,7 +158,7 @@ impl TheWay {
     }
 
     /// Pretty prints a snippet to terminal
-    fn show(&self, index: usize) -> Result<(), Error> {
+    fn view(&self, index: usize) -> Result<(), Error> {
         let snippet = self.get_snippet(index)?;
         for line in snippet.pretty_print(
             &self.highlighter,
@@ -180,11 +179,17 @@ impl TheWay {
         Ok(())
     }
 
-    /// Syntax highlighting management
+    /// List syntax highlighting themes
     fn list_themes(&self) -> Result<(), Error> {
         for theme in self.highlighter.get_themes() {
             println!("{}", theme);
         }
+        Ok(())
+    }
+
+    /// Print current syntax highlighting theme
+    fn get_theme(&self) -> Result<(), Error> {
+        println!("{}", self.highlighter.get_theme_name());
         Ok(())
     }
 
