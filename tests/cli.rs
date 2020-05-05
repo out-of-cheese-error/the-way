@@ -3,6 +3,7 @@ use std::path::PathBuf;
 
 use anyhow::Error;
 use assert_cmd::Command;
+#[cfg(target_os = "macos")]
 use clipboard::{ClipboardContext, ClipboardProvider};
 use predicates::prelude::*;
 use rexpect::session::PtyBashSession;
@@ -261,6 +262,7 @@ fn delete() -> Result<(), Error> {
     Ok(())
 }
 
+#[cfg(target_os = "macos")]
 #[test]
 fn copy() -> Result<(), Error> {
     let contents = r#"{"description":"test description","language":"rust","tags":["tag1","tag2"],"code":"some\ntest\ncode\n"}"#;
