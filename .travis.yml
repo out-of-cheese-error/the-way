@@ -1,7 +1,7 @@
 # Based on the "trust" template v0.1.2
 # https://github.com/japaric/trust/tree/v0.1.2
 
-dist: trusty
+dist: xenial
 language: rust
 services: docker
 sudo: required
@@ -9,12 +9,7 @@ sudo: required
 env:
   global:
     - CRATE_NAME=the-way
-addons:
-  apt:
-    packages:
-      - llvm-dev
-      - libclang-dev
-      - clang
+
 matrix:
   # These are all the build jobs. Adjust as necessary. Comment out what you
   # don't need
@@ -42,7 +37,7 @@ matrix:
     #    - env: TARGET=aarch64-unknown-linux-gnu
     #    - env: TARGET=arm-unknown-linux-gnueabi
     #    - env: TARGET=armv7-unknown-linux-gnueabihf
-    - env: TARGET=i686-unknown-linux-gnu DISABLE_TESTS=1
+    - env: TARGET=i686-unknown-linux-gnu
       os: linux
     #    - env: TARGET=i686-unknown-linux-musl
     #    - env: TARGET=mips-unknown-linux-gnu
@@ -53,7 +48,7 @@ matrix:
     #    - env: TARGET=powerpc64-unknown-linux-gnu
     #    - env: TARGET=powerpc64le-unknown-linux-gnu
     #    - env: TARGET=s390x-unknown-linux-gnu DISABLE_TESTS=1
-    - env: TARGET=x86_64-unknown-linux-gnu DISABLE_TESTS=1
+    - env: TARGET=x86_64-unknown-linux-gnu
       os: linux
     #    - env: TARGET=x86_64-unknown-linux-musl
 
