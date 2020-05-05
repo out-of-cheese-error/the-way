@@ -4,17 +4,11 @@
 dist: xenial
 language: rust
 services: docker
-sudo: required
 
 env:
   global:
     - CRATE_NAME=the-way
-addons:
-  apt:
-    packages:
-      - llvm-dev
-      - libclang-dev
-      - clang
+
 matrix:
   # These are all the build jobs. Adjust as necessary. Comment out what you
   # don't need
