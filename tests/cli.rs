@@ -120,7 +120,7 @@ fn add_snippet_rexpect(config_file: PathBuf) -> rexpect::errors::Result<PtyBashS
 
 fn change_snippet_rexpect(config_file: PathBuf) -> rexpect::errors::Result<()> {
     let mut p = add_snippet_rexpect(config_file)?;
-    p.execute("target/release/the-way snippet edit 1", "Description:")?;
+    p.execute("target/release/the-way edit 1", "Description:")?;
     p.send_line("test description 2")?;
     p.exp_string("Language:")?;
     p.send_line("")?;
@@ -132,7 +132,7 @@ fn change_snippet_rexpect(config_file: PathBuf) -> rexpect::errors::Result<()> {
     p.send_line("code 2")?;
     p.exp_regex("Snippet #1 changed")?;
     p.wait_for_prompt()?;
-    p.send_line("target/release/the-way snippet view 1")?;
+    p.send_line("target/release/the-way view 1")?;
     assert!(p.wait_for_prompt()?.contains("test description 2"));
     Ok(())
 }
@@ -169,7 +169,6 @@ fn import_single_show() -> Result<(), Error> {
         .success();
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
-        .arg("snippet")
         .arg("view")
         .arg("1")
         .assert()
@@ -228,7 +227,6 @@ fn delete() -> Result<(), Error> {
     // Test bad index
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
-        .arg("snippet")
         .arg("del")
         .arg("-f")
         .arg("3")
@@ -238,7 +236,6 @@ fn delete() -> Result<(), Error> {
     // Test good index
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
-        .arg("snippet")
         .arg("del")
         .arg("-f")
         .arg("2")
@@ -256,7 +253,6 @@ fn delete() -> Result<(), Error> {
     // Test already deleted index
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
-        .arg("snippet")
         .arg("del")
         .arg("-f")
         .arg("2")
@@ -280,7 +276,6 @@ fn copy() -> Result<(), Error> {
     // Test bad index
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
-        .arg("snippet")
         .arg("cp")
         .arg("2")
         .assert()
@@ -289,7 +284,6 @@ fn copy() -> Result<(), Error> {
     // Test good index
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
-        .arg("snippet")
         .arg("cp")
         .arg("1")
         .assert()

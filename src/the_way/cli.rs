@@ -23,10 +23,28 @@ pub(crate) enum TheWayCLI {
         #[structopt(flatten)]
         filters: Filters,
     },
-    /// Manage an existing snippet
-    Snippet {
-        #[structopt(subcommand)]
-        cmd: SnippetCommand,
+    /// Change snippet
+    Edit {
+        /// Index of snippet to change
+        index: usize,
+    },
+    /// Delete snippet
+    Del {
+        /// Index of snippet to delete
+        index: usize,
+        /// Don't ask for confirmation
+        #[structopt(long, short)]
+        force: bool,
+    },
+    /// Copy snippet to clipboard
+    Cp {
+        /// Index of snippet to copy
+        index: usize,
+    },
+    /// View snippet
+    View {
+        /// Index of snippet to show
+        index: usize,
     },
     /// Lists (optionally filtered) snippets
     List {
@@ -47,6 +65,12 @@ pub(crate) enum TheWayCLI {
         #[structopt(flatten)]
         filters: Filters,
     },
+    /// Clears all data
+    Clear {
+        /// Don't ask for confirmation
+        #[structopt(long, short)]
+        force: bool,
+    },
     /// Generate shell completions
     Complete {
         #[structopt(possible_values = & Shell::variants())]
@@ -57,45 +81,12 @@ pub(crate) enum TheWayCLI {
         #[structopt(subcommand)]
         cmd: ThemeCommand,
     },
-    /// Clears all data
-    Clear {
-        /// Don't ask for confirmation
-        #[structopt(long, short)]
-        force: bool,
-    },
     /// Manage snippets data location.
     /// Controlled by $THE_WAY_CONFIG env variable,
     /// use this to have independent snippet sources for different projects.
     Config {
         #[structopt(subcommand)]
         cmd: ConfigCommand,
-    },
-}
-
-#[derive(StructOpt, Debug)]
-pub(crate) enum SnippetCommand {
-    /// Copy snippet to clipboard
-    Cp {
-        /// Index of snippet to copy
-        index: usize,
-    },
-    /// Change snippet
-    Edit {
-        /// Index of snippet to change
-        index: usize,
-    },
-    /// Delete snippet
-    Del {
-        /// Index of snippet to delete
-        index: usize,
-        /// Don't ask for confirmation
-        #[structopt(long, short)]
-        force: bool,
-    },
-    /// Show snippet
-    View {
-        /// Index of snippet to show
-        index: usize,
     },
 }
 

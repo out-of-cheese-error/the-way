@@ -11,7 +11,7 @@ use crate::configuration::{ConfigCommand, TheWayConfig};
 use crate::errors::LostTheWay;
 use crate::language::{CodeHighlight, Language};
 use crate::the_way::{
-    cli::{SnippetCommand, TheWayCLI, ThemeCommand},
+    cli::{TheWayCLI, ThemeCommand},
     filter::Filters,
     snippet::Snippet,
 };
@@ -63,18 +63,16 @@ impl TheWay {
         match &self.cli {
             TheWayCLI::New => self.the_way(),
             TheWayCLI::Search { filters } => self.search(filters),
-            TheWayCLI::Snippet { cmd } => match cmd {
-                SnippetCommand::Cp { index } => self.copy(*index),
-                SnippetCommand::Edit { index } => {
-                    let index = *index;
-                    self.edit(index)
-                }
-                SnippetCommand::Del { index, force } => {
-                    let (index, force) = (*index, *force);
-                    self.delete(index, force)
-                }
-                SnippetCommand::View { index } => self.view(*index),
-            },
+            TheWayCLI::Cp { index } => self.copy(*index),
+            TheWayCLI::Edit { index } => {
+                let index = *index;
+                self.edit(index)
+            }
+            TheWayCLI::Del { index, force } => {
+                let (index, force) = (*index, *force);
+                self.delete(index, force)
+            }
+            TheWayCLI::View { index } => self.view(*index),
             TheWayCLI::List { filters } => self.list(filters),
             TheWayCLI::Import { file } => {
                 let mut num = 0;
