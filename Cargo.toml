@@ -11,6 +11,8 @@ keywords = ["cli", "code", "snippets"]
 categories = ["command-line-utilities"]
 exclude = [
     "tests/",
+    "ci/",
+    ".travis.yml"
 ]
 
 [dependencies]
