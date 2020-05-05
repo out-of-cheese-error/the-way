@@ -3,6 +3,7 @@ use std::path::PathBuf;
 
 use anyhow::Error;
 use assert_cmd::Command;
+#[cfg(target_os = "macos")]
 use clipboard::{ClipboardContext, ClipboardProvider};
 use predicates::prelude::*;
 use rexpect::session::PtyBashSession;
@@ -30,9 +31,14 @@ themes_dir = \"{}\"",
 
 #[test]
 fn it_works() -> Result<(), Error> {
+    let temp_dir = create_temp_dir("it_works")?;
+    let config_file = make_config_file(&temp_dir)?;
     let mut cmd = Command::cargo_bin("the-way")?;
     // Pretty much the only command that works without assuming any input or modifying anything
-    cmd.arg("list").assert().success();
+    cmd.env("THE_WAY_CONFIG", config_file)
+        .arg("list")
+        .assert()
+        .success();
     Ok(())
 }
 
@@ -86,7 +92,7 @@ fn change_theme() -> Result<(), Error> {
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
         .arg("themes")
-        .arg("current")
+        .arg("get")
         .assert()
         .stdout(predicate::str::contains(theme));
     Ok(())
@@ -120,7 +126,7 @@ fn add_snippet_rexpect(config_file: PathBuf) -> rexpect::errors::Result<PtyBashS
 
 fn change_snippet_rexpect(config_file: PathBuf) -> rexpect::errors::Result<()> {
     let mut p = add_snippet_rexpect(config_file)?;
-    p.execute("target/release/the-way change 1", "Description:")?;
+    p.execute("target/release/the-way edit 1", "Description:")?;
     p.send_line("test description 2")?;
     p.exp_string("Language:")?;
     p.send_line("")?;
@@ -132,7 +138,7 @@ fn change_snippet_rexpect(config_file: PathBuf) -> rexpect::errors::Result<()> {
     p.send_line("code 2")?;
     p.exp_regex("Snippet #1 changed")?;
     p.wait_for_prompt()?;
-    p.send_line("target/release/the-way show 1")?;
+    p.send_line("target/release/the-way view 1")?;
     assert!(p.wait_for_prompt()?.contains("test description 2"));
     Ok(())
 }
@@ -169,7 +175,7 @@ fn import_single_show() -> Result<(), Error> {
         .success();
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
-        .arg("show")
+        .arg("view")
         .arg("1")
         .assert()
         .stdout(predicate::str::contains("test description"));
@@ -227,7 +233,7 @@ fn delete() -> Result<(), Error> {
     // Test bad index
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
-        .arg("delete")
+        .arg("del")
         .arg("-f")
         .arg("3")
         .assert()
@@ -236,7 +242,7 @@ fn delete() -> Result<(), Error> {
     // Test good index
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
-        .arg("delete")
+        .arg("del")
         .arg("-f")
         .arg("2")
         .assert()
@@ -253,7 +259,7 @@ fn delete() -> Result<(), Error> {
     // Test already deleted index
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
-        .arg("delete")
+        .arg("del")
         .arg("-f")
         .arg("2")
         .assert()
@@ -261,6 +267,7 @@ fn delete() -> Result<(), Error> {
     Ok(())
 }
 
+#[cfg(target_os = "macos")]
 #[test]
 fn copy() -> Result<(), Error> {
     let contents = r#"{"description":"test description","language":"rust","tags":["tag1","tag2"],"code":"some\ntest\ncode\n"}"#;
@@ -276,7 +283,7 @@ fn copy() -> Result<(), Error> {
     // Test bad index
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
-        .arg("copy")
+        .arg("cp")
         .arg("2")
         .assert()
         .failure();
@@ -284,7 +291,7 @@ fn copy() -> Result<(), Error> {
     // Test good index
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
-        .arg("copy")
+        .arg("cp")
         .arg("1")
         .assert()
         .stdout(predicate::str::starts_with(

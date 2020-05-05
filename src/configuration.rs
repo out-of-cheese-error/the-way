@@ -7,12 +7,11 @@ use directories::ProjectDirs;
 use structopt::StructOpt;
 
 use crate::errors::LostTheWay;
-use crate::the_way::cli::TheWayCLI;
 use crate::utils::NAME;
 
 #[derive(StructOpt, Debug)]
 pub(crate) enum ConfigCommand {
-    /// Prints / writes the default configuration options
+    /// Prints / writes the default configuration options.
     /// Set the generated config file as default by setting the $THE_WAY_CONFIG environment variable
     Default {
         #[structopt(parse(from_os_str))]
@@ -58,29 +57,24 @@ impl Default for TheWayConfig {
     }
 }
 
-pub(crate) fn run_config(cli: &TheWayCLI) -> Result<(), Error> {
-    if let TheWayCLI::Config { cmd } = cli {
-        match cmd {
-            ConfigCommand::Default { file } => {
-                let writer: Box<dyn io::Write> = match file {
-                    Some(file) => Box::new(fs::File::open(file)?),
-                    None => Box::new(io::stdout()),
-                };
-                let mut buffered = io::BufWriter::new(writer);
-                let config_file = &TheWayConfig::get_default_config_file()?;
-                if !config_file.exists() {
-                    let _: TheWayConfig = TheWayConfig::default();
-                }
-                let contents = fs::read_to_string(config_file)?;
-                write!(&mut buffered, "{}", contents)?;
-            }
-            ConfigCommand::Get => println!("{}", TheWayConfig::get()?.to_string_lossy()),
-        }
-    }
-    Ok(())
-}
-
 impl TheWayConfig {
+    pub(crate) fn default_config(file: Option<&Path>) -> Result<(), Error> {
+        let writer: Box<dyn io::Write> = match file {
+            Some(file) => Box::new(fs::File::open(file)?),
+            None => Box::new(io::stdout()),
+        };
+        let mut buffered = io::BufWriter::new(writer);
+        let contents =
+            "theme = 'base16-ocean.dark'\ndb_dir = 'the_way_db'\nthemes_dir = 'the_way_themes'";
+        write!(&mut buffered, "{}", contents)?;
+        Ok(())
+    }
+
+    pub(crate) fn print_config_location() -> Result<(), Error> {
+        println!("{}", TheWayConfig::get()?.to_string_lossy());
+        Ok(())
+    }
+
     fn make_dirs(&self) -> Result<(), Error> {
         if !self.db_dir.exists() {
             fs::create_dir(&self.db_dir).map_err(|e: io::Error| LostTheWay::ConfigError {
