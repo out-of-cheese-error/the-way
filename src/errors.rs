@@ -17,13 +17,13 @@ pub enum LostTheWay {
     #[error("EditorError: Your editor of choice didn't work.")]
     EditorError,
     /// Thrown when explicit Y not received from user for destructive things
-    #[error("{message:?}\nDoing nothing.")]
-    DoingNothing { message: String },
+    #[error("I'm a coward. Doing nothing.")]
+    DoingNothing,
     /// Thrown when $HOME is not set
     #[error("Homeless: $HOME not set")]
     Homeless,
     /// Thrown when trying to load a theme which hasn't been added / doesn't exist
-    #[error("ThemeError: Couldn't load theme {theme:?}. Are you sure it exists and is valid?")]
+    #[error("ThemeError: {theme:?}")]
     ThemeError { theme: String },
     #[error("ClipboardError: Couldn't copy to clipboard")]
     ClipboardError,

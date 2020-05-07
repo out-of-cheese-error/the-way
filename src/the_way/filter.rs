@@ -1,7 +1,6 @@
 //! Code related to filtering search, list, and export results
 use std::collections::HashSet;
 
-use anyhow::Error;
 use chrono::{Date, Utc};
 use structopt::StructOpt;
 
@@ -26,7 +25,7 @@ pub(crate) struct Filters {
 
 impl TheWay {
     /// Filters a list of snippets by given language/tag/date
-    pub(crate) fn filter_snippets(&self, filters: &Filters) -> Result<Vec<Snippet>, Error> {
+    pub(crate) fn filter_snippets(&self, filters: &Filters) -> color_eyre::Result<Vec<Snippet>> {
         let from_date = utils::date_start(filters.from);
         let to_date = utils::date_end(filters.to);
         let snippets: Option<Vec<_>> = match &filters.languages {

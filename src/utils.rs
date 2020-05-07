@@ -2,9 +2,9 @@ use std::io::Write;
 use std::process::{Command, Stdio};
 use std::str;
 
-use anyhow::Error;
 use chrono::{Date, DateTime, Utc, MAX_DATE, MIN_DATE};
 use chrono_english::{parse_date_string, Dialect};
+use color_eyre::Help;
 use dialoguer::{theme, Editor, Input};
 
 use crate::errors::LostTheWay;
@@ -23,7 +23,7 @@ pub const SEMICOLON: u8 = 59;
 
 /// Set clipboard contents to text
 /// See https://github.com/aweinstock314/rust-clipboard/issues/28#issuecomment-534295371
-pub fn copy_to_clipboard(text: String) -> Result<(), Error> {
+pub fn copy_to_clipboard(text: String) -> color_eyre::Result<()> {
     #[cfg(target_os = "macos")]
     let mut command = Command::new("pbcopy");
 
@@ -60,21 +60,21 @@ pub fn split_tags(input: &str) -> Vec<String> {
 }
 
 /// Converts an array of bytes to a string
-pub fn u8_to_str(input: &[u8]) -> Result<String, Error> {
+pub fn u8_to_str(input: &[u8]) -> color_eyre::Result<String> {
     Ok(str::from_utf8(input)?.to_owned())
 }
 
 /// Splits byte array by semicolon into usize
-pub fn split_indices_usize(index_list: &[u8]) -> Result<Vec<usize>, Error> {
+pub fn split_indices_usize(index_list: &[u8]) -> color_eyre::Result<Vec<usize>> {
     let index_list_string = str::from_utf8(index_list)?;
     Ok(index_list_string
         .split(str::from_utf8(&[SEMICOLON])?)
         .map(str::parse)
-        .collect::<Result<Vec<_>, _>>()?)
+        .collect::<color_eyre::Result<Vec<_>, _>>()?)
 }
 
 /// List of usize into semicolon-joined byte array
-pub fn make_indices_string(index_list: &[usize]) -> Result<Vec<u8>, Error> {
+pub fn make_indices_string(index_list: &[usize]) -> color_eyre::Result<Vec<u8>> {
     Ok(index_list
         .iter()
         .map(|index| index.to_string())
@@ -85,7 +85,7 @@ pub fn make_indices_string(index_list: &[usize]) -> Result<Vec<u8>, Error> {
 }
 
 /// Makes a date from a string, can be colloquial like "next Friday"
-pub fn parse_date(date_string: &str) -> Result<Date<Utc>, Error> {
+pub fn parse_date(date_string: &str) -> color_eyre::Result<Date<Utc>> {
     if date_string.to_ascii_lowercase() == "today" {
         Ok(Utc::now().date())
     } else {
@@ -112,14 +112,12 @@ pub fn date_end(to_date: Option<Date<Utc>>) -> DateTime<Utc> {
 }
 
 /// Gets input from external editor, optionally displays default text in editor
-pub fn external_editor_input(default: Option<&str>, extension: &str) -> Result<String, Error> {
-    match Editor::new()
+pub fn external_editor_input(default: Option<&str>, extension: &str) -> color_eyre::Result<String> {
+    Ok(Editor::new()
         .extension(extension)
         .edit(default.unwrap_or(""))?
-    {
-        Some(input) => Ok(input),
-        None => Err(LostTheWay::EditorError.into()),
-    }
+        .ok_or(LostTheWay::EditorError)
+        .suggestion("Set your default editor using the $EDITOR environment variable")?)
 }
 
 /// Takes user input from terminal, optionally has a default and optionally displays it.
@@ -127,7 +125,7 @@ pub fn user_input(
     message: &str,
     default: Option<&str>,
     show_default: bool,
-) -> Result<String, Error> {
+) -> color_eyre::Result<String> {
     match default {
         Some(default) => Ok(Input::with_theme(&theme::ColorfulTheme::default())
             .with_prompt(message)

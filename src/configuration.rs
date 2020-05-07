@@ -2,7 +2,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::{env, fs, io};
 
-use anyhow::Error;
+use color_eyre::Help;
 use directories::ProjectDirs;
 use structopt::StructOpt;
 
@@ -29,7 +29,7 @@ pub(crate) struct TheWayConfig {
 }
 
 /// Main project directory, cross-platform
-fn get_project_dir() -> Result<ProjectDirs, Error> {
+fn get_project_dir() -> color_eyre::Result<ProjectDirs> {
     Ok(ProjectDirs::from("rs", "", NAME).ok_or(LostTheWay::Homeless)?)
 }
 
@@ -58,7 +58,7 @@ impl Default for TheWayConfig {
 }
 
 impl TheWayConfig {
-    pub(crate) fn default_config(file: Option<&Path>) -> Result<(), Error> {
+    pub(crate) fn default_config(file: Option<&Path>) -> color_eyre::Result<()> {
         let writer: Box<dyn io::Write> = match file {
             Some(file) => Box::new(fs::File::open(file)?),
             None => Box::new(io::stdout()),
@@ -70,12 +70,12 @@ impl TheWayConfig {
         Ok(())
     }
 
-    pub(crate) fn print_config_location() -> Result<(), Error> {
+    pub(crate) fn print_config_location() -> color_eyre::Result<()> {
         println!("{}", TheWayConfig::get()?.to_string_lossy());
         Ok(())
     }
 
-    fn make_dirs(&self) -> Result<(), Error> {
+    fn make_dirs(&self) -> color_eyre::Result<()> {
         if !self.db_dir.exists() {
             fs::create_dir(&self.db_dir).map_err(|e: io::Error| LostTheWay::ConfigError {
                 message: format!("Couldn't create db dir {:?}, {}", self.db_dir, e),
@@ -89,14 +89,14 @@ impl TheWayConfig {
         Ok(())
     }
 
-    fn get_default_config_file() -> Result<PathBuf, Error> {
+    fn get_default_config_file() -> color_eyre::Result<PathBuf> {
         let dir = get_project_dir()?;
         let config_dir = dir.config_dir();
         Ok(config_dir.join(format!("{}.toml", NAME)))
     }
 
     /// Gets the current config file location
-    fn get() -> Result<PathBuf, Error> {
+    fn get() -> color_eyre::Result<PathBuf> {
         let config_file = env::var("THE_WAY_CONFIG").ok();
         match config_file {
             Some(file) => {
@@ -104,10 +104,14 @@ impl TheWayConfig {
                 if path.exists() {
                     Ok(path)
                 } else {
-                    Err(LostTheWay::ConfigError {
+                    let error: color_eyre::Result<PathBuf> = Err(LostTheWay::ConfigError {
                         message: format!("No such file {}", file),
                     }
-                    .into())
+                    .into());
+                    error.suggestion(format!(
+                        "Use `the-way config default {}` to write out the default configuration",
+                        file
+                    ))
                 }
             }
             None => Self::get_default_config_file(),
@@ -115,7 +119,7 @@ impl TheWayConfig {
     }
 
     /// Read config from default location
-    pub(crate) fn load() -> Result<Self, Error> {
+    pub(crate) fn load() -> color_eyre::Result<Self> {
         // Reads THE_WAY_CONFIG environment variable to get config file location
         let config_file = env::var("THE_WAY_CONFIG").ok();
         match config_file {
@@ -126,10 +130,14 @@ impl TheWayConfig {
                     config.make_dirs()?;
                     Ok(config)
                 } else {
-                    Err(LostTheWay::ConfigError {
+                    let error: color_eyre::Result<Self> = Err(LostTheWay::ConfigError {
                         message: format!("No such file {}", file),
                     }
-                    .into())
+                    .into());
+                    error.suggestion(format!(
+                        "Use `the-way config default {}` to write out the default configuration",
+                        file
+                    ))
                 }
             }
             None => Ok(confy::load(NAME)?),
@@ -137,7 +145,7 @@ impl TheWayConfig {
     }
 
     /// Write possibly modified config
-    pub(crate) fn store(&self) -> Result<(), Error> {
+    pub(crate) fn store(&self) -> color_eyre::Result<()> {
         // Reads THE_WAY_CONFIG environment variable to get config file location
         let config_file = env::var("THE_WAY_CONFIG").ok();
         match config_file {
