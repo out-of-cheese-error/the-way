@@ -24,7 +24,8 @@ confy = "0.4.0"
 directories = "2.0.2"
 
 # Error management
-anyhow = "1.0.28"
+eyre = "0.4"
+color-eyre = { version = "0.2", default-features = false }
 thiserror = "1.0.15"
 
 # Database related

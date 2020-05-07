@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::{fs, io};
 
-use anyhow::Error;
+use color_eyre::Help;
 use structopt::clap::Shell;
 use structopt::StructOpt;
 
@@ -45,7 +45,10 @@ impl TheWay {
     /// Initialize program with command line input.
     /// Reads `sled` trees and metadata file from the locations specified in config.
     /// (makes new ones the first time).
-    pub(crate) fn start(cli: TheWayCLI, languages: HashMap<String, Language>) -> Result<(), Error> {
+    pub(crate) fn start(
+        cli: TheWayCLI,
+        languages: HashMap<String, Language>,
+    ) -> color_eyre::Result<()> {
         let config = TheWayConfig::load()?;
         let mut the_way = Self {
             db: Self::get_db(&config.db_dir)?,
@@ -59,7 +62,7 @@ impl TheWay {
         Ok(())
     }
 
-    fn run(&mut self) -> Result<(), Error> {
+    fn run(&mut self) -> color_eyre::Result<()> {
         match &self.cli {
             TheWayCLI::New => self.the_way(),
             TheWayCLI::Search { filters } => self.search(filters),
@@ -110,7 +113,7 @@ impl TheWay {
     }
 
     /// Adds a new snippet
-    fn the_way(&mut self) -> Result<(), Error> {
+    fn the_way(&mut self) -> color_eyre::Result<()> {
         let snippet =
             Snippet::from_user(self.get_current_snippet_index()? + 1, &self.languages, None)?;
         println!("Added snippet #{}", self.add_snippet(&snippet)?);
@@ -118,7 +121,7 @@ impl TheWay {
     }
 
     /// Delete a snippet (and all associated data) from the trees and metadata
-    fn delete(&mut self, index: usize, force: bool) -> Result<(), Error> {
+    fn delete(&mut self, index: usize, force: bool) -> color_eyre::Result<()> {
         let sure_delete = if force {
             "Y".into()
         } else {
@@ -138,15 +141,13 @@ impl TheWay {
             println!("Snippet #{} deleted", index);
             Ok(())
         } else {
-            Err(LostTheWay::DoingNothing {
-                message: "I'm a coward.".into(),
-            }
-            .into())
+            let error: color_eyre::Result<()> = Err(LostTheWay::DoingNothing.into());
+            error.suggestion("Press Y next time!")
         }
     }
 
     /// Modify a stored snippet's information
-    fn edit(&mut self, index: usize) -> Result<(), Error> {
+    fn edit(&mut self, index: usize) -> color_eyre::Result<()> {
         let old_snippet = self.get_snippet(index)?;
         let new_snippet = Snippet::from_user(index, &self.languages, Some(&old_snippet))?;
         self.delete_snippet(index)?;
@@ -156,7 +157,7 @@ impl TheWay {
     }
 
     /// Pretty prints a snippet to terminal
-    fn view(&self, index: usize) -> Result<(), Error> {
+    fn view(&self, index: usize) -> color_eyre::Result<()> {
         let snippet = self.get_snippet(index)?;
         for line in snippet.pretty_print(
             &self.highlighter,
@@ -170,7 +171,7 @@ impl TheWay {
     }
 
     /// Copy a snippet to clipboard
-    fn copy(&self, index: usize) -> Result<(), Error> {
+    fn copy(&self, index: usize) -> color_eyre::Result<()> {
         let snippet = self.get_snippet(index)?;
         utils::copy_to_clipboard(snippet.code)?;
         println!("Snippet #{} copied to clipboard", index);
@@ -178,7 +179,7 @@ impl TheWay {
     }
 
     /// List syntax highlighting themes
-    fn list_themes(&self) -> Result<(), Error> {
+    fn list_themes(&self) -> color_eyre::Result<()> {
         for theme in self.highlighter.get_themes() {
             println!("{}", theme);
         }
@@ -186,14 +187,14 @@ impl TheWay {
     }
 
     /// Print current syntax highlighting theme
-    fn get_theme(&self) -> Result<(), Error> {
+    fn get_theme(&self) -> color_eyre::Result<()> {
         println!("{}", self.highlighter.get_theme_name());
         Ok(())
     }
 
     /// Imports snippets from a JSON file (ignores indices and appends to existing snippets)
     /// TODO: It may be nice to check for duplicates somehow, too expensive?
-    fn import(&self, file: Option<&Path>) -> Result<Vec<Snippet>, Error> {
+    fn import(&self, file: Option<&Path>) -> color_eyre::Result<Vec<Snippet>> {
         let reader: Box<dyn io::Read> = match file {
             Some(file) => Box::new(fs::File::open(file)?),
             None => Box::new(io::stdin()),
@@ -207,7 +208,7 @@ impl TheWay {
     }
 
     /// Saves (optionally filtered) snippets to a JSON file
-    fn export(&self, filters: &Filters, file: Option<&Path>) -> Result<(), Error> {
+    fn export(&self, filters: &Filters, file: Option<&Path>) -> color_eyre::Result<()> {
         let writer: Box<dyn io::Write> = match file {
             Some(file) => Box::new(fs::File::open(file)?),
             None => Box::new(io::stdout()),
@@ -221,7 +222,7 @@ impl TheWay {
     }
 
     /// Lists snippets (optionally filtered)
-    fn list(&self, filters: &Filters) -> Result<(), Error> {
+    fn list(&self, filters: &Filters) -> color_eyre::Result<()> {
         let snippets = self.filter_snippets(filters)?;
 
         let mut colorized = Vec::new();
@@ -244,20 +245,20 @@ impl TheWay {
 
     /// Displays all snippet descriptions in a skim fuzzy search window
     /// A preview window on the right shows the indices of snippets matching the query
-    fn search(&self, filters: &Filters) -> Result<(), Error> {
+    fn search(&self, filters: &Filters) -> color_eyre::Result<()> {
         let snippets = self.filter_snippets(&filters)?;
         self.make_search(snippets)?;
         Ok(())
     }
 
     /// Generates shell completions
-    fn complete(&self, shell: Shell) -> Result<(), Error> {
+    fn complete(&self, shell: Shell) -> color_eyre::Result<()> {
         TheWayCLI::clap().gen_completions_to(utils::NAME, shell, &mut io::stdout());
         Ok(())
     }
 
     /// Removes all `sled` trees
-    fn clear(&self, force: bool) -> Result<(), Error> {
+    fn clear(&self, force: bool) -> color_eyre::Result<()> {
         let sure_delete = if force {
             "Y".into()
         } else {
@@ -283,10 +284,8 @@ impl TheWay {
             self.reset_index()?;
             Ok(())
         } else {
-            Err(LostTheWay::DoingNothing {
-                message: "I'm a coward.".into(),
-            }
-            .into())
+            let error: color_eyre::Result<()> = Err(LostTheWay::DoingNothing.into());
+            error.suggestion("Press Y next time!")
         }
     }
 }

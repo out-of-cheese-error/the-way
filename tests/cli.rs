@@ -1,7 +1,6 @@
 use std::fs;
 use std::path::PathBuf;
 
-use anyhow::Error;
 use assert_cmd::Command;
 #[cfg(target_os = "macos")]
 use clipboard::{ClipboardContext, ClipboardProvider};
@@ -10,11 +9,11 @@ use rexpect::session::PtyBashSession;
 use rexpect::spawn_bash;
 use tempdir::TempDir;
 
-fn create_temp_dir(name: &str) -> Result<TempDir, Error> {
+fn create_temp_dir(name: &str) -> color_eyre::Result<TempDir> {
     Ok(TempDir::new(name)?)
 }
 
-fn make_config_file(tempdir: &TempDir) -> Result<PathBuf, Error> {
+fn make_config_file(tempdir: &TempDir) -> color_eyre::Result<PathBuf> {
     let db_dir = tempdir.path().join("db");
     let themes_dir = tempdir.path().join("themes");
     let config_contents = format!(
@@ -30,7 +29,7 @@ themes_dir = \"{}\"",
 }
 
 #[test]
-fn it_works() -> Result<(), Error> {
+fn it_works() -> color_eyre::Result<()> {
     let temp_dir = create_temp_dir("it_works")?;
     let config_file = make_config_file(&temp_dir)?;
     let mut cmd = Command::cargo_bin("the-way")?;
@@ -43,7 +42,7 @@ fn it_works() -> Result<(), Error> {
 }
 
 #[test]
-fn change_config_file() -> Result<(), Error> {
+fn change_config_file() -> color_eyre::Result<()> {
     // Test nonexistent file
     let config_file = "no-such-file";
     let mut cmd = Command::cargo_bin("the-way")?;
@@ -67,7 +66,7 @@ fn change_config_file() -> Result<(), Error> {
 }
 
 #[test]
-fn change_theme() -> Result<(), Error> {
+fn change_theme() -> color_eyre::Result<()> {
     let temp_dir = create_temp_dir("change_theme")?;
     let config_file = make_config_file(&temp_dir)?;
     // Test nonexistent theme
@@ -145,7 +144,7 @@ fn change_snippet_rexpect(config_file: PathBuf) -> rexpect::errors::Result<()> {
 
 #[ignore] // expensive, and change_snippet tests both
 #[test]
-fn add_snippet() -> Result<(), Error> {
+fn add_snippet() -> color_eyre::Result<()> {
     let temp_dir = create_temp_dir("add_snippet")?;
     let config_file = make_config_file(&temp_dir)?;
     assert!(add_snippet_rexpect(config_file).is_ok());
@@ -154,7 +153,7 @@ fn add_snippet() -> Result<(), Error> {
 }
 
 #[test]
-fn change_snippet() -> Result<(), Error> {
+fn change_snippet() -> color_eyre::Result<()> {
     let temp_dir = create_temp_dir("change_snippet")?;
     let config_file = make_config_file(&temp_dir)?;
     assert!(change_snippet_rexpect(config_file).is_ok());
@@ -163,7 +162,7 @@ fn change_snippet() -> Result<(), Error> {
 }
 
 #[test]
-fn import_single_show() -> Result<(), Error> {
+fn import_single_show() -> color_eyre::Result<()> {
     let contents = r#"{"description":"test description","language":"rust","tags":["tag1","tag2"],"code":"some\ntest\ncode\n"}"#;
     let temp_dir = create_temp_dir("import")?;
     let config_file = make_config_file(&temp_dir)?;
@@ -183,7 +182,7 @@ fn import_single_show() -> Result<(), Error> {
 }
 
 #[test]
-fn import_multiple_no_tags() -> Result<(), Error> {
+fn import_multiple_no_tags() -> color_eyre::Result<()> {
     let contents_1 = r#"{"description":"test description 1","language":"rust","tags":["tag1","tag2"],"code":"some\ntest\ncode\n"}"#;
     let contents_2 =
         r#"{"description":"test description 2","language":"python","code":"some\ntest\ncode\n"}"#;
@@ -208,7 +207,7 @@ fn import_multiple_no_tags() -> Result<(), Error> {
 }
 
 #[test]
-fn delete() -> Result<(), Error> {
+fn delete() -> color_eyre::Result<()> {
     let contents_1 = r#"{"description":"test description 1","language":"rust","tags":["tag1","tag2"],"code":"some\ntest\ncode\n"}"#;
     let contents_2 =
         r#"{"description":"test description 2","language":"python","code":"some\ntest\ncode\n"}"#;
@@ -269,7 +268,7 @@ fn delete() -> Result<(), Error> {
 
 #[cfg(target_os = "macos")]
 #[test]
-fn copy() -> Result<(), Error> {
+fn copy() -> color_eyre::Result<()> {
     let contents = r#"{"description":"test description","language":"rust","tags":["tag1","tag2"],"code":"some\ntest\ncode\n"}"#;
     let temp_dir = create_temp_dir("copy")?;
     let config_file = make_config_file(&temp_dir)?;
@@ -297,7 +296,7 @@ fn copy() -> Result<(), Error> {
         .stdout(predicate::str::starts_with(
             "Snippet #1 copied to clipboard",
         ));
-    let ctx: Result<ClipboardContext, _> = ClipboardProvider::new();
+    let ctx: color_eyre::Result<ClipboardContext, _> = ClipboardProvider::new();
     assert!(ctx.is_ok());
     let mut ctx = ctx.unwrap();
     let contents = ctx.get_contents();

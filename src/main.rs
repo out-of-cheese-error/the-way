@@ -1,7 +1,6 @@
 #[macro_use]
 extern crate serde_derive;
 
-use anyhow::Error;
 use structopt::StructOpt;
 
 use crate::language::get_languages;
@@ -13,7 +12,7 @@ mod language;
 mod the_way;
 mod utils;
 
-fn main() -> Result<(), Error> {
+fn main() -> color_eyre::Result<()> {
     let languages_yml = include_str!("languages.yml");
     let languages = get_languages(languages_yml)?;
     let cli = TheWayCLI::from_args();

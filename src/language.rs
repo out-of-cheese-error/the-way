@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use anyhow::Error;
+use color_eyre::Help;
 use hex::FromHex;
 use serde_yaml::Value;
 use syntect::easy::HighlightLines;
@@ -39,7 +39,7 @@ impl Default for Language {
 }
 
 impl Language {
-    fn new(name: String, extension: String, color: Option<String>) -> Result<Self, Error> {
+    fn new(name: String, extension: String, color: Option<String>) -> color_eyre::Result<Self> {
         Ok(Self {
             name,
             extension,
@@ -47,7 +47,7 @@ impl Language {
         })
     }
 
-    fn get_color(color_string: Option<String>) -> Result<Color, Error> {
+    fn get_color(color_string: Option<String>) -> color_eyre::Result<Color> {
         let mut language_color = [0; 3];
         if let Some(color) = color_string {
             language_color = <[u8; 3]>::from_hex(&color.get(1..).unwrap_or("FFFFFF"))?;
@@ -77,7 +77,7 @@ impl Language {
 
 /// Loads language information from GitHub's languages.yml file
 // TODO: find a way to keep this up to date without downloading it every time
-fn read_languages_from_yml(yml_string: &str) -> Result<HashMap<String, LanguageYML>, Error> {
+fn read_languages_from_yml(yml_string: &str) -> color_eyre::Result<HashMap<String, LanguageYML>> {
     let language_strings: HashMap<String, Value> = serde_yaml::from_str(yml_string)?;
     let mut languages = HashMap::with_capacity(language_strings.len());
     for (key, value) in language_strings {
@@ -87,7 +87,7 @@ fn read_languages_from_yml(yml_string: &str) -> Result<HashMap<String, LanguageY
 }
 
 /// Loads language extension and color information for each language and its aliases
-pub(crate) fn get_languages(yml_string: &str) -> Result<HashMap<String, Language>, Error> {
+pub(crate) fn get_languages(yml_string: &str) -> color_eyre::Result<HashMap<String, Language>> {
     let languages = read_languages_from_yml(yml_string)?;
     let mut name_to_language = HashMap::new();
     for (name, language_yml) in languages {
@@ -118,13 +118,17 @@ pub(crate) struct CodeHighlight {
 impl CodeHighlight {
     /// Loads themes from `theme_dir` and default syntax set.
     /// Sets highlighting styles
-    pub(crate) fn new(theme: &str, theme_dir: PathBuf) -> Result<Self, Error> {
+    pub(crate) fn new(theme: &str, theme_dir: PathBuf) -> color_eyre::Result<Self> {
         let mut theme_set = ThemeSet::load_defaults();
         theme_set
             .add_from_folder(&theme_dir)
             .map_err(|_| LostTheWay::ThemeError {
                 theme: String::from((&theme_dir).to_str().unwrap()),
-            })?;
+            })
+            .suggestion(format!(
+                "Make sure {:#?} is a valid directory that has .tmTheme files",
+                &theme_dir
+            ))?;
         let mut highlighter = Self {
             syntax_set: SyntaxSet::load_defaults_newlines(),
             theme_name: theme.into(),
@@ -186,13 +190,19 @@ impl CodeHighlight {
     }
 
     /// Sets the current theme
-    pub(crate) fn set_theme(&mut self, theme_name: String) -> Result<(), Error> {
+    pub(crate) fn set_theme(&mut self, theme_name: String) -> color_eyre::Result<()> {
         if self.theme_set.themes.contains_key(&theme_name) {
             self.theme_name = theme_name;
             self.set_styles();
             Ok(())
         } else {
-            Err(LostTheWay::ThemeError { theme: theme_name }.into())
+            let error: color_eyre::Result<()> =
+                Err(LostTheWay::ThemeError { theme: theme_name }.into());
+            error.suggestion(
+                "That theme doesn't exist. \
+            Use `the-way themes list` to see all theme possibilities \
+            or use `the-way themes add` to add a new one.",
+            )
         }
     }
 
@@ -209,26 +219,31 @@ impl CodeHighlight {
     /// Adds a new theme from a .tmTheme file.
     /// The file is copied to the themes folder
     // TODO: should it automatically be set?
-    pub(crate) fn add_theme(&mut self, theme_file: &Path) -> Result<(), Error> {
-        let basename =
-            theme_file
-                .file_stem()
-                .and_then(|x| x.to_str())
-                .ok_or(LostTheWay::ThemeError {
-                    theme: theme_file.to_str().unwrap().into(),
-                })?;
+    pub(crate) fn add_theme(&mut self, theme_file: &Path) -> color_eyre::Result<()> {
+        let theme = ThemeSet::get_theme(&theme_file)
+            .map_err(|_| LostTheWay::ThemeError {
+                theme: theme_file.to_str().unwrap().into(),
+            })
+            .suggestion(format!(
+                "Couldn't load a theme from {}, are you sure this is a valid .tmTheme file?",
+                theme_file.display()
+            ))?;
+        let basename = theme_file
+            .file_stem()
+            .and_then(|x| x.to_str())
+            .ok_or(LostTheWay::ThemeError {
+                theme: theme_file.to_str().unwrap().into(),
+            })
+            .suggestion("Something's fishy with the filename, valid Unicode?")?;
         // Copy theme to theme file directory
         let new_theme_file = self.theme_dir.join(format!("{}.tmTheme", basename));
         fs::copy(theme_file, new_theme_file)?;
-        let theme = ThemeSet::get_theme(&theme_file).map_err(|_| LostTheWay::ThemeError {
-            theme: theme_file.to_str().unwrap().into(),
-        })?;
         self.theme_set.themes.insert(basename.to_owned(), theme);
         Ok(())
     }
 
     /// Makes a box colored according to GitHub language colors
-    pub(crate) fn highlight_block(language_color: Color) -> Result<String, Error> {
+    pub(crate) fn highlight_block(language_color: Color) -> color_eyre::Result<String> {
         Ok(Self::highlight_string(
             &format!("{} ", utils::BOX),
             Style::default().apply(StyleModifier {
@@ -244,7 +259,11 @@ impl CodeHighlight {
         as_24_bit_terminal_escaped(&[(style, line)], false)
     }
 
-    pub(crate) fn highlight_code(&self, code: &str, extension: &str) -> Result<Vec<String>, Error> {
+    pub(crate) fn highlight_code(
+        &self,
+        code: &str,
+        extension: &str,
+    ) -> color_eyre::Result<Vec<String>> {
         let mut colorized = Vec::new();
         let extension = extension.split('.').nth(1).unwrap_or(".txt");
         let syntax = self.syntax_set.find_syntax_by_extension(extension).ok_or(

@@ -2,7 +2,6 @@
 use std::borrow::Cow;
 use std::sync::Arc;
 
-use anyhow::Error;
 use skim::prelude::{unbounded, SkimOptionsBuilder};
 use skim::{AnsiString, ItemPreview, Skim, SkimItem, SkimItemReceiver, SkimItemSender};
 
@@ -47,7 +46,7 @@ impl<'a> SkimItem for SearchSnippet {
 
 impl TheWay {
     /// Converts a list of snippets into searchable objects and opens the search window
-    pub(crate) fn make_search(&self, snippets: Vec<Snippet>) -> Result<(), Error> {
+    pub(crate) fn make_search(&self, snippets: Vec<Snippet>) -> color_eyre::Result<()> {
         let default_language = Language::default();
         let search_snippets: Vec<_> = snippets
             .into_iter()
@@ -77,7 +76,7 @@ impl TheWay {
 
 /// Makes a fuzzy search window with the bottom panel listing each snippet's index, description,
 /// language and tags (all searchable) and the top panel showing the code for the selected snippet.
-fn search(input: Vec<SearchSnippet>) -> Result<(), Error> {
+fn search(input: Vec<SearchSnippet>) -> color_eyre::Result<()> {
     let options = SkimOptionsBuilder::default()
         .height(Some("100%"))
         .preview(Some(""))
