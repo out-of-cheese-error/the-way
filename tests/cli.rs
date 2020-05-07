@@ -97,20 +97,20 @@ fn change_theme() -> color_eyre::Result<()> {
     Ok(())
 }
 
-fn add_snippet_rexpect(config_file: PathBuf) -> rexpect::errors::Result<PtyBashSession> {
-    // shouldn't take more than 30 mins for a release build right?
+fn add_snippet_rexpect(
+    config_file: PathBuf,
+    executable_dir: &str,
+) -> rexpect::errors::Result<PtyBashSession> {
     let mut p = spawn_bash(Some(300_000))?;
     p.send_line(&format!(
         "export THE_WAY_CONFIG={}",
         config_file.to_string_lossy()
     ))?;
     p.wait_for_prompt()?;
-    p.send_line("cargo build --release")?;
-    p.wait_for_prompt()?;
-    p.send_line("target/release/the-way config get")?;
+    p.send_line(&format!("{}/the-way config get", executable_dir))?;
     p.exp_regex(config_file.to_string_lossy().as_ref())?;
     p.wait_for_prompt()?;
-    p.execute("target/release/the-way new", "Description:")?;
+    p.execute(&format!("{}/the-way new", executable_dir), "Description:")?;
     p.send_line("test description 1")?;
     p.exp_string("Language:")?;
     p.send_line("rust")?;
@@ -123,9 +123,15 @@ fn add_snippet_rexpect(config_file: PathBuf) -> rexpect::errors::Result<PtyBashS
     Ok(p)
 }
 
-fn change_snippet_rexpect(config_file: PathBuf) -> rexpect::errors::Result<()> {
-    let mut p = add_snippet_rexpect(config_file)?;
-    p.execute("target/release/the-way edit 1", "Description:")?;
+fn change_snippet_rexpect(
+    config_file: PathBuf,
+    executable_dir: &str,
+) -> rexpect::errors::Result<()> {
+    let mut p = add_snippet_rexpect(config_file, executable_dir)?;
+    p.execute(
+        &format!("{}/the-way edit 1", executable_dir),
+        "Description:",
+    )?;
     p.send_line("test description 2")?;
     p.exp_string("Language:")?;
     p.send_line("")?;
@@ -137,7 +143,7 @@ fn change_snippet_rexpect(config_file: PathBuf) -> rexpect::errors::Result<()> {
     p.send_line("code 2")?;
     p.exp_regex("Snippet #1 changed")?;
     p.wait_for_prompt()?;
-    p.send_line("target/release/the-way view 1")?;
+    p.send_line(&format!("{}/the-way view 1", executable_dir))?;
     assert!(p.wait_for_prompt()?.contains("test description 2"));
     Ok(())
 }
@@ -147,7 +153,12 @@ fn change_snippet_rexpect(config_file: PathBuf) -> rexpect::errors::Result<()> {
 fn add_snippet() -> color_eyre::Result<()> {
     let temp_dir = create_temp_dir("add_snippet")?;
     let config_file = make_config_file(&temp_dir)?;
-    assert!(add_snippet_rexpect(config_file).is_ok());
+    let target_dir = std::env::var("TARGET").ok();
+    let executable_dir = match target_dir {
+        Some(t) => format!("target/{}/release", t),
+        None => "target/release".into(),
+    };
+    assert!(add_snippet_rexpect(config_file, &executable_dir).is_ok());
     temp_dir.close()?;
     Ok(())
 }
@@ -156,7 +167,12 @@ fn add_snippet() -> color_eyre::Result<()> {
 fn change_snippet() -> color_eyre::Result<()> {
     let temp_dir = create_temp_dir("change_snippet")?;
     let config_file = make_config_file(&temp_dir)?;
-    assert!(change_snippet_rexpect(config_file).is_ok());
+    let target_dir = std::env::var("TARGET").ok();
+    let executable_dir = match target_dir {
+        Some(t) => format!("target/{}/release", t),
+        None => "target/release".into(),
+    };
+    assert!(change_snippet_rexpect(config_file, &executable_dir).is_ok());
     temp_dir.close()?;
     Ok(())
 }
