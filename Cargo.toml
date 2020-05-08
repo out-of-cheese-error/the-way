@@ -25,7 +25,7 @@ directories = "2.0.2"
 
 # Error management
 eyre = "0.4"
-color-eyre = { version = "0.2", default-features = false }
+color-eyre = { version = "0.3", default-features = false }
 thiserror = "1.0.15"
 
 # Database related
