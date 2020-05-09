@@ -5,7 +5,7 @@
 A code snippets manager for your terminal.
 
 Record and retrieve snippets you use every day, or once in a blue moon,
-without having to spin up a browser. Just call `the-way` to add a snippet with a 
+without having to spin up a browser. Just call `the-way new` to add a snippet with a 
 description, a language, and some tags attached. `the-way search` fuzzy 
 searches your snippets library (with optional filters on language and tags) and 
 lets you copy a particular snippet to your clipboard, so you can paste 
@@ -21,6 +21,9 @@ See it in action (with some self-referential examples):
 
 ### Binaries
 See the [releases](https://github.com/out-of-cheese-error/the-way/releases/latest)
+
+* OSX - allow `the-way` via System Preferences (necessary in Catalina at least)
+* Linux - `chmod +x the-way` 
 
 ### With cargo
 ```bash
