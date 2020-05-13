@@ -10,7 +10,7 @@ main() {
         return
     fi
 
-    cross test --target $TARGET --release -- --test-threads=1
+    cross test --target $TARGET --release -- --test-threads=1 --nocapture
 }
 
 # we don't run the "test phase" when doing deploys
