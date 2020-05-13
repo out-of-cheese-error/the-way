@@ -123,6 +123,41 @@ fn add_snippet_rexpect(
     Ok(p)
 }
 
+fn add_two_snippets_rexpect(
+    config_file: PathBuf,
+    executable_dir: &str,
+) -> rexpect::errors::Result<()> {
+    let mut p = spawn_bash(Some(300_000))?;
+    p.send_line(&format!(
+        "export THE_WAY_CONFIG={}",
+        config_file.to_string_lossy()
+    ))?;
+    p.wait_for_prompt()?;
+    p.send_line(&format!("{}/the-way config get", executable_dir))?;
+    p.exp_regex(config_file.to_string_lossy().as_ref())?;
+    p.wait_for_prompt()?;
+    p.execute(&format!("{}/the-way new", executable_dir), "Description:")?;
+    p.send_line("test description 1")?;
+    p.exp_string("Language:")?;
+    p.send_line("rust")?;
+    p.exp_regex("Tags \\(.*\\):")?;
+    p.send_line("tag1 tag2")?;
+    p.exp_regex("Code snippet \\(.*\\):")?;
+    p.send_line("code")?;
+    p.exp_regex("Added snippet #1")?;
+    p.wait_for_prompt()?;
+    p.execute(&format!("{}/the-way new", executable_dir), "Description:")?;
+    p.send_line("test description 2")?;
+    p.exp_string("Language:")?;
+    p.send_line("python")?;
+    p.exp_regex("Tags \\(.*\\):")?;
+    p.send_line("tag1 tag2")?;
+    p.exp_regex("Code snippet \\(.*\\):")?;
+    p.send_line("code")?;
+    p.exp_regex("Added snippet #2")?;
+    Ok(())
+}
+
 fn change_snippet_rexpect(
     config_file: PathBuf,
     executable_dir: &str,
@@ -159,6 +194,20 @@ fn add_snippet() -> color_eyre::Result<()> {
         None => "target/release".into(),
     };
     assert!(add_snippet_rexpect(config_file, &executable_dir).is_ok());
+    temp_dir.close()?;
+    Ok(())
+}
+
+#[test]
+fn add_two_snippets() -> color_eyre::Result<()> {
+    let temp_dir = create_temp_dir("add_two_snippets")?;
+    let config_file = make_config_file(&temp_dir)?;
+    let target_dir = std::env::var("TARGET").ok();
+    let executable_dir = match target_dir {
+        Some(t) => format!("target/{}/release", t),
+        None => "target/release".into(),
+    };
+    assert!(add_two_snippets_rexpect(config_file, &executable_dir).is_ok());
     temp_dir.close()?;
     Ok(())
 }
