@@ -133,14 +133,20 @@ impl TheWayConfig {
                     let error: color_eyre::Result<Self> = Err(LostTheWay::ConfigError {
                         message: format!("No such file {}", file),
                     }
-                    .into());
+                        .into());
                     error.suggestion(format!(
                         "Use `the-way config default {}` to write out the default configuration",
                         file
                     ))
                 }
             }
-            None => Ok(confy::load(NAME)?),
+            None => {
+                Ok(confy::load(NAME).suggestion(LostTheWay::ConfigError {
+                    message: "Couldn't load from the default config location, maybe you don't have access? \
+                    Try running `the-way config default config_file.toml`, modify the generated file if necessary, \
+                then `export THE_WAY_CONFIG=<full/path/to/config_file.toml>`".into()
+                })?)
+            },
         }
     }
 
@@ -149,8 +155,14 @@ impl TheWayConfig {
         // Reads THE_WAY_CONFIG environment variable to get config file location
         let config_file = env::var("THE_WAY_CONFIG").ok();
         match config_file {
-            Some(file) => confy::store_path(Path::new(&file), &(*self).clone())?,
-            None => confy::store(NAME, &(*self).clone())?,
+            Some(file) => confy::store_path(Path::new(&file), &(*self).clone()).suggestion(LostTheWay::ConfigError {
+                message: "The current config_file location does not seem to have write access. \
+                   Use `export THE_WAY_CONFIG=<full/path/to/config_file.toml>` to set a new location".into()
+            })?,
+            None => confy::store(NAME, &(*self).clone()).suggestion(LostTheWay::ConfigError {
+                message: "The current config_file location does not seem to have write access. \
+                    Use `export THE_WAY_CONFIG=<full/path/to/config_file.toml>` to set a new location".into()
+            })?,
         };
         Ok(())
     }
