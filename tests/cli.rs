@@ -190,6 +190,7 @@ fn add_snippet() -> color_eyre::Result<()> {
     let temp_dir = create_temp_dir("add_snippet")?;
     let config_file = make_config_file(&temp_dir)?;
     let target_dir = std::env::var("TARGET").ok();
+    println!("{:?}", target_dir);
     let executable_dir = match target_dir {
         Some(t) => format!("target/{}/release", t),
         None => "target/release".into(),
