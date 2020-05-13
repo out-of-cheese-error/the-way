@@ -113,7 +113,7 @@ impl TheWay {
             },
             TheWayCLI::Clear { force } => self.clear(*force),
             TheWayCLI::Config { cmd } => match cmd {
-                ConfigCommand::Default { file } => TheWayConfig::default_config(file.as_deref()),
+                ConfigCommand::Default { file } => TheWayConfig::default_config(file.as_deref()), //Already handled
                 ConfigCommand::Get => TheWayConfig::print_config_location(),
             },
         }
@@ -124,6 +124,7 @@ impl TheWay {
         let snippet =
             Snippet::from_user(self.get_current_snippet_index()? + 1, &self.languages, None)?;
         println!("Added snippet #{}", self.add_snippet(&snippet)?);
+        self.increment_snippet_index()?;
         Ok(())
     }
 
