@@ -50,11 +50,10 @@ impl TheWay {
         languages: HashMap<String, Language>,
     ) -> color_eyre::Result<()> {
         if let TheWayCLI::Config { cmd } = &cli {
-            match cmd {
-                ConfigCommand::Default { file } => TheWayConfig::default_config(file.as_deref())?,
-                ConfigCommand::Get => TheWayConfig::print_config_location()?,
-            };
-            return Ok(());
+            if let ConfigCommand::Default { file } = cmd {
+                TheWayConfig::default_config(file.as_deref())?;
+                return Ok(());
+            }
         }
         let config = TheWayConfig::load()?;
         let mut the_way = Self {
