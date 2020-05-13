@@ -132,10 +132,11 @@ fn add_two_snippets_rexpect(
         "export THE_WAY_CONFIG={}",
         config_file.to_string_lossy()
     ))?;
+    println!("{}", executable_dir);
     p.wait_for_prompt()?;
     p.send_line(&format!("{}/the-way config get", executable_dir))?;
-    p.exp_regex(config_file.to_string_lossy().as_ref())?;
-    p.wait_for_prompt()?;
+    println!("{}", p.exp_regex(config_file.to_string_lossy().as_ref())?);
+    println!("config change success");
     p.execute(&format!("{}/the-way new", executable_dir), "Description:")?;
     p.send_line("test description 1")?;
     p.exp_string("Language:")?;
