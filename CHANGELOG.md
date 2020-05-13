@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.4] - 2020-05-13
+### Fixed
+"Failed to open configuration file" error when running `the-way config default` - the config command now runs without having a valid 
+config file location (i.e. one that has read and write permissions) since you can use the command to make a valid file. 
+Any other command that needs a valid config file and can't load it now throws a more helpful error telling you how to fix it.
+Fixes Issue [#41](https://github.com/out-of-cheese-error/the-way/issues/41)
+
 ## [0.2.3] - 2020-05-08
 ### Added
 Colorful errors with suggestions, courtesy of [color_eyre](https://github.com/yaahc/color-eyre)
@@ -52,6 +59,7 @@ I'll make sure to add changes to it from now, the previous two releases weren't 
 - A first working version of the-way
 - cargo install option
     
+[0.2.4]: https://github.com/out-of-cheese-error/the-way/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/out-of-cheese-error/the-way/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/out-of-cheese-error/the-way/releases/tag/v0.2.2
 [0.2.1]: https://github.com/out-of-cheese-error/the-way/releases/tag/v0.2.1-osx
