@@ -7,15 +7,11 @@ use clipboard::{ClipboardContext, ClipboardProvider};
 use predicates::prelude::*;
 use rexpect::session::PtyBashSession;
 use rexpect::spawn_bash;
-use tempdir::TempDir;
+use tempfile::{tempdir, TempDir};
 
-fn create_temp_dir(name: &str) -> color_eyre::Result<TempDir> {
-    Ok(TempDir::new(name)?)
-}
-
-fn make_config_file(tempdir: &TempDir) -> color_eyre::Result<PathBuf> {
-    let db_dir = tempdir.path().join("db");
-    let themes_dir = tempdir.path().join("themes");
+fn make_config_file(temp_dir: &TempDir) -> color_eyre::Result<PathBuf> {
+    let db_dir = temp_dir.path().join("db");
+    let themes_dir = temp_dir.path().join("themes");
     let config_contents = format!(
         "theme = 'base16-ocean.dark'\n\
 db_dir = \"{}\"\n\
@@ -23,14 +19,14 @@ themes_dir = \"{}\"",
         db_dir.to_str().unwrap(),
         themes_dir.to_str().unwrap()
     );
-    let config_file = tempdir.path().join("the-way.toml");
+    let config_file = temp_dir.path().join("the-way.toml");
     fs::write(&config_file, config_contents)?;
     Ok(config_file.to_path_buf())
 }
 
 #[test]
 fn it_works() -> color_eyre::Result<()> {
-    let temp_dir = create_temp_dir("it_works")?;
+    let temp_dir = tempdir()?;
     let config_file = make_config_file(&temp_dir)?;
     let mut cmd = Command::cargo_bin("the-way")?;
     // Pretty much the only command that works without assuming any input or modifying anything
@@ -38,6 +34,7 @@ fn it_works() -> color_eyre::Result<()> {
         .arg("list")
         .assert()
         .success();
+    temp_dir.close()?;
     Ok(())
 }
 
@@ -53,7 +50,7 @@ fn change_config_file() -> color_eyre::Result<()> {
         .failure();
 
     // Test changing file
-    let temp_dir = create_temp_dir("change_config_file")?;
+    let temp_dir = tempdir()?;
     let config_file = make_config_file(&temp_dir)?;
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
@@ -67,7 +64,7 @@ fn change_config_file() -> color_eyre::Result<()> {
 
 #[test]
 fn change_theme() -> color_eyre::Result<()> {
-    let temp_dir = create_temp_dir("change_theme")?;
+    let temp_dir = tempdir()?;
     let config_file = make_config_file(&temp_dir)?;
     // Test nonexistent theme
     let theme = "no-such-theme";
@@ -94,6 +91,7 @@ fn change_theme() -> color_eyre::Result<()> {
         .arg("get")
         .assert()
         .stdout(predicate::str::contains(theme));
+    temp_dir.close()?;
     Ok(())
 }
 
@@ -178,7 +176,7 @@ fn change_snippet_rexpect(config_file: PathBuf) -> rexpect::errors::Result<()> {
 #[ignore] // expensive, and change_snippet tests both
 #[test]
 fn add_snippet() -> color_eyre::Result<()> {
-    let temp_dir = create_temp_dir("add_snippet")?;
+    let temp_dir = tempdir()?;
     let config_file = make_config_file(&temp_dir)?;
     assert!(add_snippet_rexpect(config_file).is_ok());
     temp_dir.close()?;
@@ -187,7 +185,7 @@ fn add_snippet() -> color_eyre::Result<()> {
 
 #[test]
 fn add_two_snippets() -> color_eyre::Result<()> {
-    let temp_dir = create_temp_dir("add_two_snippets")?;
+    let temp_dir = tempdir()?;
     let config_file = make_config_file(&temp_dir)?;
     assert!(add_two_snippets_rexpect(config_file).is_ok());
     temp_dir.close()?;
@@ -196,7 +194,7 @@ fn add_two_snippets() -> color_eyre::Result<()> {
 
 #[test]
 fn change_snippet() -> color_eyre::Result<()> {
-    let temp_dir = create_temp_dir("change_snippet")?;
+    let temp_dir = tempdir()?;
     let config_file = make_config_file(&temp_dir)?;
     assert!(change_snippet_rexpect(config_file).is_ok());
     temp_dir.close()?;
@@ -206,7 +204,7 @@ fn change_snippet() -> color_eyre::Result<()> {
 #[test]
 fn import_single_show() -> color_eyre::Result<()> {
     let contents = r#"{"description":"test description","language":"rust","tags":["tag1","tag2"],"code":"some\ntest\ncode\n"}"#;
-    let temp_dir = create_temp_dir("import")?;
+    let temp_dir = tempdir()?;
     let config_file = make_config_file(&temp_dir)?;
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
@@ -220,6 +218,7 @@ fn import_single_show() -> color_eyre::Result<()> {
         .arg("1")
         .assert()
         .stdout(predicate::str::contains("test description"));
+    temp_dir.close()?;
     Ok(())
 }
 
@@ -229,7 +228,7 @@ fn import_multiple_no_tags() -> color_eyre::Result<()> {
     let contents_2 =
         r#"{"description":"test description 2","language":"python","code":"some\ntest\ncode\n"}"#;
     let contents = format!("{}{}", contents_1, contents_2);
-    let temp_dir = create_temp_dir("import_multiple_no_tags")?;
+    let temp_dir = tempdir()?;
     let config_file = make_config_file(&temp_dir)?;
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
@@ -245,6 +244,7 @@ fn import_multiple_no_tags() -> color_eyre::Result<()> {
             predicate::str::contains("test description 1")
                 .and(predicate::str::contains("test description 2")),
         );
+    temp_dir.close()?;
     Ok(())
 }
 
@@ -254,7 +254,7 @@ fn delete() -> color_eyre::Result<()> {
     let contents_2 =
         r#"{"description":"test description 2","language":"python","code":"some\ntest\ncode\n"}"#;
     let contents = format!("{}{}", contents_1, contents_2);
-    let temp_dir = create_temp_dir("delete")?;
+    let temp_dir = tempdir()?;
     let config_file = make_config_file(&temp_dir)?;
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
@@ -305,6 +305,7 @@ fn delete() -> color_eyre::Result<()> {
         .arg("2")
         .assert()
         .failure();
+    temp_dir.close()?;
     Ok(())
 }
 
@@ -312,7 +313,7 @@ fn delete() -> color_eyre::Result<()> {
 #[test]
 fn copy() -> color_eyre::Result<()> {
     let contents = r#"{"description":"test description","language":"rust","tags":["tag1","tag2"],"code":"some\ntest\ncode\n"}"#;
-    let temp_dir = create_temp_dir("copy")?;
+    let temp_dir = tempdir()?;
     let config_file = make_config_file(&temp_dir)?;
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
@@ -345,5 +346,6 @@ fn copy() -> color_eyre::Result<()> {
     assert!(contents.is_ok());
     let contents = contents.unwrap();
     assert!(contents.contains("some\ntest\ncode"));
+    temp_dir.close()?;
     Ok(())
 }
