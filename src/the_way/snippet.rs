@@ -74,22 +74,29 @@ impl Snippet {
                 Some(s.date.date().format("%Y-%m-%d").to_string()),
                 Some(s.code.as_str()),
             ),
-            None => (None, None, Some("".into()), None, None),
+            None => (None, None, None, None, None),
         };
 
-        let description = utils::user_input("Description", old_description, false)?;
-        let language = utils::user_input("Language", old_language, false)?.to_ascii_lowercase();
+        let description = utils::user_input("Description", old_description, true, false)?;
+        let language =
+            utils::user_input("Language", old_language, true, false)?.to_ascii_lowercase();
         let extension = Language::get_extension(&language, languages);
-        let tags = utils::user_input("Tags (space separated)", old_tags.as_deref(), false)?;
+        let tags = utils::user_input("Tags (space separated)", old_tags.as_deref(), true, true)?;
         let date = match old_date {
-            Some(_) => utils::parse_date(&utils::user_input("Date", old_date.as_deref(), true)?)?
-                .and_hms(0, 0, 0),
+            Some(_) => utils::parse_date(&utils::user_input(
+                "Date",
+                old_date.as_deref(),
+                true,
+                false,
+            )?)?
+            .and_hms(0, 0, 0),
             None => Utc::now(),
         };
         let mut code = utils::user_input(
             "Code snippet (<RET> to edit in external editor)",
-            Some("\n"),
+            None,
             false,
+            true,
         )?;
         if code.is_empty() {
             code = utils::external_editor_input(old_code.as_deref(), &extension)?;

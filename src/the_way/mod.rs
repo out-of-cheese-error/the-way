@@ -4,6 +4,7 @@ use std::path::Path;
 use std::{fs, io};
 
 use color_eyre::Help;
+use dialoguer::Confirm;
 use structopt::clap::Shell;
 use structopt::StructOpt;
 
@@ -129,21 +130,12 @@ impl TheWay {
 
     /// Delete a snippet (and all associated data) from the trees and metadata
     fn delete(&mut self, index: usize, force: bool) -> color_eyre::Result<()> {
-        let sure_delete = if force {
-            "Y".into()
-        } else {
-            let mut sure_delete;
-            loop {
-                sure_delete =
-                    utils::user_input(&format!("Delete snippet #{} Y/N?", index), Some("N"), true)?
-                        .to_ascii_uppercase();
-                if sure_delete == "Y" || sure_delete == "N" {
-                    break;
-                }
-            }
-            sure_delete
-        };
-        if sure_delete == "Y" {
+        if force
+            || Confirm::new()
+                .with_prompt(&format!("Delete snippet #{}?", index))
+                .default(false)
+                .interact()?
+        {
             self.delete_snippet(index)?;
             println!("Snippet #{} deleted", index);
             Ok(())
@@ -266,20 +258,12 @@ impl TheWay {
 
     /// Removes all `sled` trees
     fn clear(&self, force: bool) -> color_eyre::Result<()> {
-        let sure_delete = if force {
-            "Y".into()
-        } else {
-            let mut sure_delete;
-            loop {
-                sure_delete =
-                    utils::user_input("Clear all data Y/N?", Some("N"), true)?.to_ascii_uppercase();
-                if sure_delete == "Y" || sure_delete == "N" {
-                    break;
-                }
-            }
-            sure_delete
-        };
-        if sure_delete == "Y" {
+        if force
+            || Confirm::new()
+                .with_prompt("Clear all data?")
+                .default(false)
+                .interact()?
+        {
             for path in fs::read_dir(&self.config.db_dir)? {
                 let path = path?.path();
                 if path.is_dir() {

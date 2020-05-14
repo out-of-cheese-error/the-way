@@ -43,7 +43,7 @@ chrono = { version = "0.4.11", features = ["serde"] }
 chrono-english = "0.1.4"
 
 # Taking user input
-dialoguer = "0.5.0"
+dialoguer = "0.6.2"
 
 # Fuzzy search
 skim = "0.8.1"
