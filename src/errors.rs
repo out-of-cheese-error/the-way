@@ -14,7 +14,7 @@ pub enum LostTheWay {
     #[error("You haven't tagged anything as {tag:?} yet.")]
     TagNotFound { tag: String },
     /// Thrown when no text is returned from an external editor
-    #[error("EditorError: Your editor of choice didn't work.")]
+    #[error("EditorError")]
     EditorError,
     /// Thrown when explicit Y not received from user for destructive things
     #[error("I'm a coward. Doing nothing.")]

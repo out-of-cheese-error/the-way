@@ -115,9 +115,10 @@ pub fn date_end(to_date: Option<Date<Utc>>) -> DateTime<Utc> {
 pub fn external_editor_input(default: Option<&str>, extension: &str) -> color_eyre::Result<String> {
     Ok(Editor::new()
         .extension(extension)
-        .edit(default.unwrap_or(""))?
+        .edit(default.unwrap_or(""))
+        .suggestion("Set your default editor using the $EDITOR or $VISUAL environment variables")?
         .ok_or(LostTheWay::EditorError)
-        .suggestion("Set your default editor using the $EDITOR environment variable")?)
+        .suggestion("Make sure to save next time if you want to record a snippet!")?)
 }
 
 /// Takes user input from terminal, optionally has a default and optionally displays it.
@@ -125,18 +126,21 @@ pub fn user_input(
     message: &str,
     default: Option<&str>,
     show_default: bool,
+    allow_empty: bool,
 ) -> color_eyre::Result<String> {
     match default {
         Some(default) => Ok(Input::with_theme(&theme::ColorfulTheme::default())
             .with_prompt(message)
             .default(default.to_owned())
             .show_default(show_default)
+            .allow_empty(allow_empty)
             .interact()?
             .trim()
             .to_owned()),
         None => Ok(
             Input::<String>::with_theme(&theme::ColorfulTheme::default())
                 .with_prompt(message)
+                .allow_empty(allow_empty)
                 .interact()?
                 .trim()
                 .to_owned(),
