@@ -38,6 +38,12 @@ the-way complete zsh > .oh_my_zsh/completions/_the-way
 exec zsh
 ```
 
+### Syntax highlighting themes
+Theme files need to be in Sublime's [.tmTheme](https://www.sublimetext.com/docs/3/color_schemes_tmtheme.html) format. 
+Searching GitHub for [.tmTheme](https://github.com/search?q=.tmTheme) pulls up some examples. Use `the-way themes add <theme.tmTheme>`
+to add a new theme to your themes folder, and then `the-way themes set <theme>` to make it your default. 
+`the-way themes list` shows all available themes.
+
 ## Features
 - [X] Recognizes language extension to enable syntax highlighting in $EDITOR (if the editor supports it)
 - [X] Configurable syntax highlighting themes for display via `the-way themes`

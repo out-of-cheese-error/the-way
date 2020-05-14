@@ -96,7 +96,7 @@ pub(crate) enum ThemeCommand {
     List,
     /// Set your preferred syntax highlighting theme
     Set { theme: String },
-    /// Add a theme from a .tmTheme file
+    /// Add a theme from a Sublime Text ".tmTheme" file.
     Add {
         #[structopt(parse(from_os_str))]
         file: PathBuf,
