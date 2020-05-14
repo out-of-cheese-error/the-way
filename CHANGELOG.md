@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2020-05-14
+I hope I'm following semver correctly, this is the minor version update and not a patch update because the CLI input prompt style changed
+Also, no one should be using 0.2.4 b/c of the database bug.
+
+### Added
+Documentation for adding syntax highlighting themes to the README (Issue [#47](https://github.com/out-of-cheese-error/the-way/issues/47))
+
+### Changed
+Updated [dialoguer](https://github.com/mitsuhiko/dialoguer) to 0.6.2.
+This makes `new` and `edit` look much nicer. Destructive commands (`clear` and `del`) now use dialoguer's Confirm prompt.
+
+### Fixed
+The code preview for `search` shows the correct number of lines now in the top right corner, previously it showed 3 extra because of newlines.
+This fixes Issue [#46](https://github.com/out-of-cheese-error/the-way/issues/46)
+
 ## [0.2.5] - 2020-05-13
 ### Fixed
 Fixed a pretty terrible bug - this is why tests matter. Snippet index is incremented after adding a snippet, also this is tested now 
@@ -64,6 +79,7 @@ I'll make sure to add changes to it from now, the previous two releases weren't 
 - A first working version of the-way
 - cargo install option
     
+[0.3.0]: https://github.com/out-of-cheese-error/the-way/compare/v0.2.5...v0.3.0
 [0.2.5]: https://github.com/out-of-cheese-error/the-way/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/out-of-cheese-error/the-way/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/out-of-cheese-error/the-way/compare/v0.2.2...v0.2.3
