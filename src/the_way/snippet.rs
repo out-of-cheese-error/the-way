@@ -196,15 +196,12 @@ impl Snippet {
         Ok(colorized)
     }
 
-    /// Highlights code (with newlines before and after for readability)
+    /// Highlights code
     pub(crate) fn pretty_print_code(
         &self,
         highlighter: &CodeHighlight,
     ) -> color_eyre::Result<Vec<String>> {
-        let mut colorized = vec![String::from("\n")];
-        colorized.extend_from_slice(&highlighter.highlight_code(&self.code, &self.extension)?);
-        colorized.push(String::from("\n"));
-        colorized.push(String::from("\n"));
+        let mut colorized = highlighter.highlight_code(&self.code, &self.extension)?;
         colorized.push(String::from(utils::END_ANSI));
         Ok(colorized)
     }
@@ -216,7 +213,10 @@ impl Snippet {
     ) -> color_eyre::Result<Vec<String>> {
         let mut colorized = vec![String::from("\n")];
         colorized.extend_from_slice(&self.pretty_print_header(highlighter, language)?);
+        colorized.push(String::from("\n"));
         colorized.extend_from_slice(&self.pretty_print_code(highlighter)?);
+        colorized.push(String::from("\n"));
+        colorized.push(String::from("\n"));
         Ok(colorized)
     }
 }
