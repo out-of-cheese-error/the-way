@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use std::{env, fs, io};
 
 use color_eyre::Help;
-use directories::ProjectDirs;
+use directories_next::ProjectDirs;
 use structopt::StructOpt;
 
 use crate::errors::LostTheWay;

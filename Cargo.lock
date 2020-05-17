@@ -98,9 +98,9 @@ checksum = "f8aac770f1885fd7e387acedd76065302551364496e46b3dd00860b2f8359b9d"
 
 [[package]]
 name = "backtrace"
-version = "0.3.46"
+version = "0.3.41"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1e692897359247cc6bb902933361652380af0f1b7651ae5c5013407f30e109e"
+checksum = "a4ed64ae6d9ebfd9893193c4b2532b1292ec97bd8271c9d7d0fa90cd78a34cba"
 dependencies = [
  "addr2line",
  "backtrace-sys",
@@ -205,9 +205,9 @@ checksum = "c3d87b23d6a92cd03af510a5ade527033f6aa6fa92161e2d5863a907d4c5e31d"
 
 [[package]]
 name = "cfg-if"
-version = "0.1.10"
+version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4785bdd1c96b2a846b2bd7cc02e86b6b3dbf14e7e53446c4f54c92a361040822"
+checksum = "b486ce3ccf7ffd79fdeb678eac06a9e6c09fc88d33836340becb8fffe87c5e33"
 
 [[package]]
 name = "chrono"
@@ -504,6 +504,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "directories-next"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f0eb8b8ae081506cda17ad2fa227e0d7d1e127993d7f217f50467c1476556394"
+dependencies = [
+ "cfg-if",
+ "dirs-sys-next",
+]
+
+[[package]]
 name = "dirs"
 version = "2.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -520,6 +530,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "afa0b23de8fd801745c471deffa6e12d248f962c9fd4b4c33787b055599bde7b"
 dependencies = [
  "cfg-if",
+ "libc",
+ "redox_users",
+ "winapi 0.3.8",
+]
+
+[[package]]
+name = "dirs-sys-next"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9c60f7b8a8953926148223260454befb50c751d3c50e1c178c4fd1ace4083c9a"
+dependencies = [
  "libc",
  "redox_users",
  "winapi 0.3.8",
@@ -693,9 +714,9 @@ dependencies = [
 
 [[package]]
 name = "goblin"
-version = "0.2.2"
+version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0f2fff0ff486bd58c2b2333f966dec6b9625752115a955812dc639f2e71fd004"
+checksum = "3081214398d39e4bd7f2c1975f0488ed04614ffdd976c6fc7a0708278552c0da"
 dependencies = [
  "log",
  "plain",
@@ -1617,7 +1638,7 @@ dependencies = [
  "color-eyre",
  "confy",
  "dialoguer",
- "directories",
+ "directories-next",
  "eyre",
  "hex",
  "predicates",
