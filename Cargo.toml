@@ -21,7 +21,7 @@ structopt = "0.3.14"
 
 # Configuration management
 confy = "0.4.0"
-directories = "2.0.2"
+directories-next = "1.0.0"
 
 # Error management
 eyre = "0.4"
