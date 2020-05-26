@@ -266,6 +266,7 @@ impl CodeHighlight {
     ) -> color_eyre::Result<Vec<String>> {
         let mut colorized = Vec::new();
         let extension = extension.split('.').nth(1).unwrap_or(".txt");
+        // TODO: replace github languages with sublime set to match them up? Or vice versa
         let syntax = self
             .syntax_set
             .find_syntax_by_extension(extension)
