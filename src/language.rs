@@ -266,11 +266,10 @@ impl CodeHighlight {
     ) -> color_eyre::Result<Vec<String>> {
         let mut colorized = Vec::new();
         let extension = extension.split('.').nth(1).unwrap_or(".txt");
-        let syntax = self.syntax_set.find_syntax_by_extension(extension).ok_or(
-            LostTheWay::LanguageNotFound {
-                language: extension.into(),
-            },
-        )?;
+        let syntax = self
+            .syntax_set
+            .find_syntax_by_extension(extension)
+            .unwrap_or(self.syntax_set.find_syntax_by_extension(".txt").unwrap());
         let mut h = HighlightLines::new(syntax, &self.theme_set.themes[&self.theme_name]);
         for line in LinesWithEndings::from(code) {
             let ranges: Vec<(Style, &str)> = h.highlight(line, &self.syntax_set);
