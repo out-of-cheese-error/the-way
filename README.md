@@ -34,7 +34,7 @@ Currently doesn't work on Windows (waiting on [this issue](https://github.com/lo
 
 ### Make shell completions:
 ```bash
-the-way complete zsh > .oh_my_zsh/completions/_the-way
+the-way complete zsh > .oh-my-zsh/completions/_the-way
 exec zsh
 ```
 
