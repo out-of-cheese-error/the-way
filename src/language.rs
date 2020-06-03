@@ -265,12 +265,12 @@ impl CodeHighlight {
         extension: &str,
     ) -> color_eyre::Result<Vec<String>> {
         let mut colorized = Vec::new();
-        let extension = extension.split('.').nth(1).unwrap_or(".txt");
+        let extension = extension.split('.').nth(1).unwrap_or("txt");
         let syntax = self.syntax_set.find_syntax_by_extension(extension);
         // TODO: replace github languages with sublime set to match them up? Or vice versa
         let syntax = match syntax {
             Some(syntax) => syntax,
-            None => self.syntax_set.find_syntax_by_extension(".txt").unwrap(),
+            None => self.syntax_set.find_syntax_by_extension("txt").unwrap(),
         };
         let mut h = HighlightLines::new(syntax, &self.theme_set.themes[&self.theme_name]);
         for line in LinesWithEndings::from(code) {
