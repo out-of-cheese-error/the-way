@@ -197,7 +197,7 @@ impl Snippet {
         let text = format!(":{}:\n", self.tags.join(":"));
         colorized.push(CodeHighlight::highlight_string(
             &text,
-            highlighter.dim_style,
+            highlighter.tag_style,
         ));
         colorized.push(utils::END_ANSI.to_owned());
         Ok(colorized)

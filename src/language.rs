@@ -105,14 +105,16 @@ pub(crate) fn get_languages(yml_string: &str) -> color_eyre::Result<HashMap<Stri
     Ok(name_to_language)
 }
 
+#[derive(Debug)]
 pub(crate) struct CodeHighlight {
     syntax_set: SyntaxSet,
-    theme_set: ThemeSet,
-    theme_name: String,
+    pub(crate) theme_set: ThemeSet,
+    pub(crate) theme_name: String,
     theme_dir: PathBuf,
     pub(crate) main_style: Style,
     pub(crate) accent_style: Style,
-    pub(crate) dim_style: Style,
+    pub(crate) tag_style: Style,
+    pub(crate) highlight_style: Style,
 }
 
 impl CodeHighlight {
@@ -136,7 +138,8 @@ impl CodeHighlight {
             theme_dir,
             main_style: Style::default(),
             accent_style: Style::default(),
-            dim_style: Style::default(),
+            tag_style: Style::default(),
+            highlight_style: Style::default(),
         };
         highlighter.set_styles();
         Ok(highlighter)
@@ -146,7 +149,8 @@ impl CodeHighlight {
     fn set_styles(&mut self) {
         self.set_main_style();
         self.set_accent_style();
-        self.set_dim_style();
+        self.set_tag_style();
+        self.set_highlight_style();
     }
 
     /// Style used to print description
@@ -163,15 +167,14 @@ impl CodeHighlight {
     }
 
     /// Style used to print tags
-    // TODO: this is too dim sometimes
-    fn set_dim_style(&mut self) {
-        let dim_color = self.theme_set.themes[&self.theme_name]
+    fn set_tag_style(&mut self) {
+        let tag_color = self.theme_set.themes[&self.theme_name]
             .settings
-            .selection
-            .unwrap_or(Color::WHITE);
-        self.dim_style = self.dim_style.apply(StyleModifier {
-            foreground: Some(dim_color),
-            background: None,
+            .line_highlight
+            .unwrap_or(self.main_style.foreground);
+        self.tag_style = self.tag_style.apply(StyleModifier {
+            foreground: Some(tag_color),
+            background: self.theme_set.themes[&self.theme_name].settings.background,
             font_style: Some(FontStyle::ITALIC),
         });
     }
@@ -181,9 +184,22 @@ impl CodeHighlight {
         let accent_color = self.theme_set.themes[&self.theme_name]
             .settings
             .caret
-            .unwrap_or(Color::WHITE);
+            .unwrap_or(self.main_style.foreground);
         self.accent_style = self.accent_style.apply(StyleModifier {
             foreground: Some(accent_color),
+            background: None,
+            font_style: None,
+        });
+    }
+
+    /// Style used to highlight lines in search
+    fn set_highlight_style(&mut self) {
+        let highlight_color = self.theme_set.themes[&self.theme_name]
+            .settings
+            .selection
+            .unwrap_or(Color::WHITE);
+        self.highlight_style = self.highlight_style.apply(StyleModifier {
+            foreground: Some(highlight_color),
             background: None,
             font_style: None,
         });
