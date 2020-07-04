@@ -246,7 +246,17 @@ impl TheWay {
     /// A preview window on the right shows the indices of snippets matching the query
     fn search(&self, filters: &Filters) -> color_eyre::Result<()> {
         let snippets = self.filter_snippets(&filters)?;
-        self.make_search(snippets)?;
+        self.make_search(
+            snippets,
+            &format!(
+                "#{}",
+                hex::encode(vec![
+                    self.highlighter.highlight_style.foreground.r,
+                    self.highlighter.highlight_style.foreground.g,
+                    self.highlighter.highlight_style.foreground.b,
+                ])
+            ),
+        )?;
         Ok(())
     }
 
