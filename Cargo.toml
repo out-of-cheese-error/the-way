@@ -29,7 +29,7 @@ color-eyre = { version = "0.4.1", default-features = false }
 thiserror = "1.0.15"
 
 # Database related
-sled = "0.31.0"
+sled = "0.32"
 bincode = "1.2.1"
 
 # Serializing
