@@ -21,6 +21,7 @@ use crate::utils;
 pub(crate) mod cli;
 mod database;
 mod filter;
+mod gist;
 mod search;
 mod snippet;
 
@@ -116,6 +117,7 @@ impl TheWay {
                 ConfigCommand::Default { file } => TheWayConfig::default_config(file.as_deref()), //Already handled
                 ConfigCommand::Get => TheWayConfig::print_config_location(),
             },
+            TheWayCLI::Sync => self.sync(),
         }
     }
 

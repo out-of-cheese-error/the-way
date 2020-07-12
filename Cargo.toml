@@ -42,8 +42,9 @@ serde_yaml = "0.8.11"
 chrono = { version = "0.4.11", features = ["serde"] }
 chrono-english = "0.1.4"
 
-# Taking user input
+# Taking user input and showing progress
 dialoguer = "0.6.2"
+indicatif = "0.15.0"
 
 # Fuzzy search
 skim = "0.8.1"
@@ -51,6 +52,9 @@ skim = "0.8.1"
 # Terminal syntax highlighting
 syntect = { version = "4.2", default-features = false, features = ["default-fancy"]}
 hex = "0.4.2"
+
+# Sync to Gist/GitLab
+reqwest = {version="0.10.4", features=["json", "blocking"]}
 
 [dev-dependencies]
 assert_cmd = "1.0.1"

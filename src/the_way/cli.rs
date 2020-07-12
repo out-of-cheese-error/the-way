@@ -88,6 +88,8 @@ pub(crate) enum TheWayCLI {
         #[structopt(subcommand)]
         cmd: ConfigCommand,
     },
+    /// Sync snippets to a Gist
+    Sync,
 }
 
 #[derive(StructOpt, Debug)]

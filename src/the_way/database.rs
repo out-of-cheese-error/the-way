@@ -96,6 +96,14 @@ impl TheWay {
         to_date: DateTime<Utc>,
     ) -> color_eyre::Result<Vec<Snippet>> {
         Ok(self
+            .list_snippets()?
+            .into_iter()
+            .filter(|snippet| snippet.in_date_range(from_date, to_date))
+            .collect())
+    }
+
+    pub(crate) fn list_snippets(&self) -> color_eyre::Result<Vec<Snippet>> {
+        Ok(self
             .snippets_tree()?
             .iter()
             .map(|item| {
@@ -107,10 +115,7 @@ impl TheWay {
                 })
                 .and_then(|(_, snippet)| Snippet::from_bytes(&snippet))
             })
-            .collect::<color_eyre::Result<Vec<_>, _>>()?
-            .into_iter()
-            .filter(|snippet| snippet.in_date_range(from_date, to_date))
-            .collect())
+            .collect::<color_eyre::Result<Vec<_>>>()?)
     }
 
     // TODO: think about how deletions should affect snippet indices

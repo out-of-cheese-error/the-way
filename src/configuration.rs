@@ -26,6 +26,8 @@ pub(crate) struct TheWayConfig {
     pub(crate) theme: String,
     pub(crate) db_dir: PathBuf,
     pub(crate) themes_dir: PathBuf,
+    pub(crate) github_access_token: Option<String>,
+    pub(crate) gist_id: Option<String>,
 }
 
 /// Main project directory, cross-platform
@@ -51,6 +53,8 @@ impl Default for TheWayConfig {
             theme,
             db_dir,
             themes_dir,
+            github_access_token: None,
+            gist_id: None,
         };
         config.make_dirs().unwrap();
         config

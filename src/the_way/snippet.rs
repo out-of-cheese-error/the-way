@@ -14,20 +14,23 @@ pub(crate) struct Snippet {
     #[serde(default)]
     pub(crate) index: usize,
     /// Snippet description, what does it do?
-    description: String,
+    pub(crate) description: String,
     /// Language the snippet is written in
     pub(crate) language: String,
     /// Snippet code
     pub(crate) code: String,
     /// extension
     #[serde(default)]
-    extension: String,
+    pub(crate) extension: String,
     /// Tags attached to the snippet
     #[serde(default)]
     pub(crate) tags: Vec<String>,
-    /// Date of recording the snippet
+    /// Time of recording the snippet
     #[serde(default = "Utc::now")]
     date: DateTime<Utc>,
+    /// Time of last update
+    #[serde(default = "Utc::now")]
+    pub(crate) updated: DateTime<Utc>,
 }
 
 impl Snippet {
@@ -39,6 +42,7 @@ impl Snippet {
         extension: String,
         tags: &str,
         date: DateTime<Utc>,
+        updated: DateTime<Utc>,
         code: String,
     ) -> Self {
         Self {
@@ -48,6 +52,7 @@ impl Snippet {
             extension,
             tags: utils::split_tags(tags),
             date,
+            updated,
             code,
         }
     }
@@ -108,6 +113,7 @@ impl Snippet {
             extension,
             &tags,
             date,
+            Utc::now(),
             code,
         ))
     }
