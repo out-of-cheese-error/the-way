@@ -171,12 +171,12 @@ impl CodeHighlight {
         let tag_color = self.theme_set.themes[&self.theme_name]
             .settings
             .tags_foreground
-            .unwrap_or(
+            .unwrap_or_else(|| {
                 self.theme_set.themes[&self.theme_name]
                     .settings
                     .line_highlight
-                    .unwrap_or(self.main_style.foreground),
-            );
+                    .unwrap_or(self.main_style.foreground)
+            });
         self.tag_style = self.tag_style.apply(StyleModifier {
             foreground: Some(tag_color),
             background: self.theme_set.themes[&self.theme_name].settings.background,

@@ -234,24 +234,27 @@ impl TheWay {
                 .get(&format!("snippet_{}{}", snippet.index, snippet.extension))
             {
                 Some(gist_file) => {
-                    if snippet.updated < gist.updated_at {
-                        // Snippet updated in Gist => download to local
-                        if gist_file.content != snippet.code {
-                            let index_key = snippet.index.to_string();
-                            let index_key = index_key.as_bytes();
-                            snippet.code = gist_file.content.clone();
-                            self.add_to_snippet(index_key, &snippet.to_bytes()?)?;
-                            downloaded += 1;
+                    match snippet.updated.cmp(&gist.updated_at) {
+                        std::cmp::Ordering::Less => {
+                            // Snippet updated in Gist => download to local
+                            if gist_file.content != snippet.code {
+                                let index_key = snippet.index.to_string();
+                                let index_key = index_key.as_bytes();
+                                snippet.code = gist_file.content.clone();
+                                self.add_to_snippet(index_key, &snippet.to_bytes()?)?;
+                                downloaded += 1;
+                            }
                         }
-                    // Snippet updated locally => upload to Gist
-                    } else if snippet.updated > gist.updated_at {
-                        files.insert(
-                            format!("snippet_{}{}", snippet.index, snippet.extension),
-                            Some(GistContent {
-                                content: snippet.code.as_str(),
-                            }),
-                        );
-                        updated += 1;
+                        std::cmp::Ordering::Greater => {
+                            files.insert(
+                                format!("snippet_{}{}", snippet.index, snippet.extension),
+                                Some(GistContent {
+                                    content: snippet.code.as_str(),
+                                }),
+                            );
+                            updated += 1;
+                        }
+                        _ => {}
                     }
                 }
                 // Not in Gist => add
