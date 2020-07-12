@@ -211,7 +211,7 @@ impl TheWay {
     /// Saves (optionally filtered) snippets to a JSON file
     fn export(&self, filters: &Filters, file: Option<&Path>) -> color_eyre::Result<()> {
         let writer: Box<dyn io::Write> = match file {
-            Some(file) => Box::new(fs::File::open(file)?),
+            Some(file) => Box::new(fs::File::create(file)?),
             None => Box::new(io::stdout()),
         };
         let mut buffered = io::BufWriter::new(writer);
