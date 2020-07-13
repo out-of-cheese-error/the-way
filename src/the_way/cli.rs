@@ -11,10 +11,10 @@ use crate::the_way::filter::Filters;
 #[derive(Debug, StructOpt)]
 #[structopt(
 name = "the-way",
-about = "Record, retrieve, search, and categorize code snippets",
 rename_all = "kebab-case",
 global_settings = & [AppSettings::DeriveDisplayOrder]
 )]
+/// Record, retrieve, search, and categorize code snippets
 pub enum TheWayCLI {
     /// Add a new snippet
     New,
@@ -23,12 +23,18 @@ pub enum TheWayCLI {
         #[structopt(flatten)]
         filters: Filters,
     },
+    /// Sync snippets to a Gist
+    ///
+    /// Controlled by $THE_WAY_GITHUB_TOKEN env variable.
+    /// Set this to an access token with the "gist" scope obtained from https://github.com/settings/tokens/new
+    Sync,
     /// Change snippet
     Edit {
         /// Index of snippet to change
         index: usize,
     },
     /// Delete snippet
+    #[structopt(alias = "delete")]
     Del {
         /// Index of snippet to delete
         index: usize,
@@ -37,6 +43,7 @@ pub enum TheWayCLI {
         force: bool,
     },
     /// Copy snippet to clipboard
+    #[structopt(alias = "copy")]
     Cp {
         /// Index of snippet to copy
         index: usize,
@@ -51,7 +58,9 @@ pub enum TheWayCLI {
         #[structopt(flatten)]
         filters: Filters,
     },
-    /// Imports code snippets from JSON. Looks for description, language, and code fields
+    /// Imports code snippets from JSON.
+    ///
+    /// Looks for description, language, and code fields
     Import {
         /// filename, reads from stdin if not given
         #[structopt(parse(from_os_str))]
@@ -81,15 +90,15 @@ pub enum TheWayCLI {
         #[structopt(subcommand)]
         cmd: ThemeCommand,
     },
-    /// Manage snippets data location.
+    /// Manage the-way data locations.
+    ///
     /// Controlled by $THE_WAY_CONFIG env variable,
     /// use this to have independent snippet sources for different projects.
+    #[structopt(alias = "configure")]
     Config {
         #[structopt(subcommand)]
         cmd: ConfigCommand,
     },
-    /// Sync snippets to a Gist
-    Sync,
 }
 
 #[derive(StructOpt, Debug)]
