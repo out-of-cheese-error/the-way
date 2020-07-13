@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use assert_cmd::Command;
 use predicates::prelude::*;
-use rexpect::session::PtyBashSession;
+use rexpect::session::PtyReplSession;
 use rexpect::spawn_bash;
 use tempfile::{tempdir, TempDir};
 
@@ -93,8 +93,8 @@ fn change_theme() -> color_eyre::Result<()> {
     Ok(())
 }
 
-fn add_snippet_rexpect(config_file: PathBuf) -> rexpect::errors::Result<PtyBashSession> {
-    let mut p = spawn_bash(Some(300_000))?;
+fn add_snippet_rexpect(config_file: PathBuf) -> rexpect::errors::Result<PtyReplSession> {
+    let mut p = spawn_bash(Some(3000))?;
     p.send_line(&format!(
         "export THE_WAY_CONFIG={}",
         config_file.to_string_lossy()
@@ -119,7 +119,7 @@ fn add_snippet_rexpect(config_file: PathBuf) -> rexpect::errors::Result<PtyBashS
 }
 
 fn add_two_snippets_rexpect(config_file: PathBuf) -> rexpect::errors::Result<()> {
-    let mut p = spawn_bash(Some(300_000))?;
+    let mut p = spawn_bash(Some(3000))?;
     p.send_line(&format!(
         "export THE_WAY_CONFIG={}",
         config_file.to_string_lossy()
