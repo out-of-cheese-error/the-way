@@ -288,4 +288,29 @@ impl TheWay {
             error.suggestion("Press Y next time!")
         }
     }
+
+    /// Syncs snippets to Gist
+    fn sync(&mut self) -> color_eyre::Result<()> {
+        // Check if environment variable has changed
+        self.config.github_access_token = std::env::var("THE_WAY_GITHUB_TOKEN")
+            .ok()
+            .or_else(|| self.config.github_access_token.clone());
+        // Get token from user if not set
+        if self.config.github_access_token.is_none() {
+            println!("Get a GitHub access token from https://github.com/settings/tokens/new (add the \"gist\" scope)\n");
+            self.config.github_access_token = Some(
+                dialoguer::Password::with_theme(&dialoguer::theme::ColorfulTheme::default())
+                    .with_prompt("GitHub access token")
+                    .interact()?,
+            );
+        }
+        if self.config.gist_id.is_some() {
+            self.sync_gist()?;
+        } else {
+            self.config.gist_id =
+                Some(self.make_gist(self.config.github_access_token.as_ref().unwrap())?);
+        }
+        self.config.store()?;
+        Ok(())
+    }
 }

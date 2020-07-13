@@ -1,151 +1,24 @@
 use std::collections::HashMap;
-use std::env;
 
-use chrono::{DateTime, Utc};
 use color_eyre::Help;
-use reqwest::header;
 
 use crate::errors::LostTheWay;
+use crate::gist::{CreateGistPayload, GistClient, GistContent, UpdateGistPayload};
 use crate::the_way::TheWay;
+use crate::utils;
 
-const GITHUB_API_URL: &str = "https://api.github.com";
-const GITHUB_BASE_PATH: &str = "";
-const USER_AGENT: &str = "the-way";
 const DESCRIPTION: &str = "The Way Code Snippets";
-const ACCEPT: &str = "application/vnd.github.v3+json";
 const INDEX: &str = "# Is it not written...\n";
-
-#[derive(Serialize, Debug)]
-struct GistContent<'a> {
-    content: &'a str,
-}
-
-#[derive(Serialize, Debug)]
-struct CreateGistPayload<'a> {
-    description: &'a str,
-    public: bool,
-    files: HashMap<String, GistContent<'a>>,
-}
-
-#[derive(Serialize, Debug)]
-struct UpdateGistPayload<'a> {
-    description: &'a str,
-    files: HashMap<String, Option<GistContent<'a>>>,
-}
-
-#[derive(Deserialize, Debug)]
-struct Gist {
-    html_url: String,
-    id: String,
-    updated_at: DateTime<Utc>,
-    files: HashMap<String, GistFile>,
-}
-
-#[derive(Deserialize, Debug)]
-struct GistFile {
-    filename: String,
-    content: String,
-}
-
-struct GistClient {
-    client: reqwest::blocking::Client,
-}
-
-impl GistClient {
-    fn new(access_token: &str) -> color_eyre::Result<Self> {
-        let mut headers = header::HeaderMap::new();
-        headers.insert(
-            header::AUTHORIZATION,
-            header::HeaderValue::from_str(&format!("token {}", access_token))?,
-        );
-        headers.insert(
-            header::USER_AGENT,
-            header::HeaderValue::from_str(USER_AGENT)?,
-        );
-        headers.insert(header::ACCEPT, header::HeaderValue::from_str(ACCEPT)?);
-        let client = reqwest::blocking::Client::builder()
-            .default_headers(headers)
-            .build()?;
-        Ok(GistClient { client })
-    }
-
-    /// Create a new Gist with the given payload
-    fn create_gist(&self, payload: &CreateGistPayload<'_>) -> color_eyre::Result<Gist> {
-        let url = format!("{}{}/gists", GITHUB_API_URL, GITHUB_BASE_PATH);
-        let text = self.client.post(&url).json(payload).send()?.text()?;
-
-        let result = serde_json::from_str::<Gist>(&text)
-            .map_err(|_| LostTheWay::SyncError { message: text })
-            .suggestion(
-                "Make sure your GitHub access token is valid.\n\
-        Get one from https://github.com/settings/tokens/new (add the \"gist\" scope).\n\
-        Set it to the environment variable $THE_WAY_GITHUB_TOKEN",
-            )?;
-        Ok(result)
-    }
-
-    /// Update an existing Gist
-    fn update_gist(
-        &self,
-        gist_id: &str,
-        payload: &UpdateGistPayload<'_>,
-    ) -> color_eyre::Result<Gist> {
-        let url = format!("{}{}/gists", GITHUB_API_URL, GITHUB_BASE_PATH);
-        let text = self
-            .client
-            .patch(&format!("{}/{}", url, gist_id))
-            .json(&payload)
-            .send()?
-            .text()?;
-        let result = serde_json::from_str::<Gist>(&text)
-            .map_err(|_| LostTheWay::SyncError { message: text })
-            .suggestion(
-                "Make sure your GitHub access token is valid.\n\
-        Get one from https://github.com/settings/tokens/new (add the \"gist\" scope).\n\
-        Set it to the environment variable $THE_WAY_GITHUB_TOKEN",
-            )?;
-        Ok(result)
-    }
-
-    /// Retrieve a Gist by ID
-    fn get_gist(&self, gist_id: &str) -> color_eyre::Result<Gist> {
-        let url = format!("{}{}/gists", GITHUB_API_URL, GITHUB_BASE_PATH);
-        let text = self
-            .client
-            .get(&format!("{}/{}", url, gist_id))
-            .send()?
-            .text()?;
-        let result = serde_json::from_str::<Gist>(&text)
-            .map_err(|_| LostTheWay::SyncError { message: text })
-            .suggestion(
-                "Make sure your GitHub access token is valid.\n\
-        Get one from https://github.com/settings/tokens/new (add the \"gist\" scope).\n\
-        Set it to the environment variable $THE_WAY_GITHUB_TOKEN",
-            )?;
-        Ok(result)
-    }
-}
-
-fn get_spinner(message: &str) -> indicatif::ProgressBar {
-    let spinner = indicatif::ProgressBar::new_spinner();
-    spinner.enable_steady_tick(200);
-    spinner.set_style(
-        indicatif::ProgressStyle::default_spinner()
-            .tick_chars("/|\\- ")
-            .template("{spinner:.dim.bold.blue} {wide_msg}"),
-    );
-    spinner.set_message(message);
-    spinner
-}
+const USER_AGENT: &str = "the-way";
 
 impl TheWay {
     /// Creates a Gist with each code snippet as a separate file (named snippet_<index>.<ext>)
     /// and an index file (index.md) listing each snippet's description
-    fn make_gist(&self, access_token: &str) -> color_eyre::Result<String> {
+    pub(crate) fn make_gist(&self, access_token: &str) -> color_eyre::Result<String> {
         // Make client
-        let client = GistClient::new(access_token)?;
+        let client = GistClient::new(access_token, USER_AGENT)?;
         // Start creating
-        let spinner = get_spinner("Creating Gist...");
+        let spinner = utils::get_spinner("Creating Gist...");
 
         // Make snippet files
         let mut files = HashMap::new();
@@ -200,12 +73,15 @@ impl TheWay {
         Ok(result.id)
     }
 
-    fn sync_gist(&mut self) -> color_eyre::Result<()> {
+    pub(crate) fn sync_gist(&mut self) -> color_eyre::Result<()> {
         // Make client
-        let client = GistClient::new(self.config.github_access_token.as_ref().unwrap())?;
+        let client = GistClient::new(
+            self.config.github_access_token.as_ref().unwrap(),
+            USER_AGENT,
+        )?;
 
         // Start sync
-        let spinner = get_spinner("Syncing...");
+        let spinner = utils::get_spinner("Syncing...");
 
         let mut updated = 0;
         let mut added = 0;
@@ -308,20 +184,26 @@ impl TheWay {
                 }
             }
         }
-        files.insert(
-            "index.md".to_owned(),
-            Some(GistContent {
-                content: index.as_str(),
-            }),
-        );
         // Update Gist
-        client.update_gist(
-            &gist.id,
-            &UpdateGistPayload {
-                description: DESCRIPTION,
-                files,
-            },
-        )?;
+        if let Some(index_file) = gist.files.get("index.md") {
+            if index_file.content != index {
+                files.insert(
+                    "index.md".to_owned(),
+                    Some(GistContent {
+                        content: index.as_str(),
+                    }),
+                );
+            }
+        }
+        if !files.is_empty() {
+            client.update_gist(
+                &gist.id,
+                &UpdateGistPayload {
+                    description: DESCRIPTION,
+                    files,
+                },
+            )?;
+        }
         spinner.finish_with_message("Done!");
         if added > 0 {
             println!("Added {} snippet(s)\n", added);
@@ -339,30 +221,6 @@ impl TheWay {
             println!("Everything up to date\n");
         }
         println!("Gist: {}", gist.html_url);
-        Ok(())
-    }
-
-    pub(crate) fn sync(&mut self) -> color_eyre::Result<()> {
-        // Check if environment variable has changed
-        self.config.github_access_token = env::var("THE_WAY_GITHUB_TOKEN")
-            .ok()
-            .or_else(|| self.config.github_access_token.clone());
-        // Get token from user if not set
-        if self.config.github_access_token.is_none() {
-            println!("Get a GitHub access token from https://github.com/settings/tokens/new (add the \"gist\" scope)\n");
-            self.config.github_access_token = Some(
-                dialoguer::Password::with_theme(&dialoguer::theme::ColorfulTheme::default())
-                    .with_prompt("GitHub access token")
-                    .interact()?,
-            );
-        }
-        if self.config.gist_id.is_some() {
-            self.sync_gist()?;
-        } else {
-            self.config.gist_id =
-                Some(self.make_gist(self.config.github_access_token.as_ref().unwrap())?);
-        }
-        self.config.store()?;
         Ok(())
     }
 }

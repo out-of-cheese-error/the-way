@@ -147,3 +147,15 @@ pub fn user_input(
         ),
     }
 }
+
+pub fn get_spinner(message: &str) -> indicatif::ProgressBar {
+    let spinner = indicatif::ProgressBar::new_spinner();
+    spinner.enable_steady_tick(200);
+    spinner.set_style(
+        indicatif::ProgressStyle::default_spinner()
+            .tick_chars("/|\\- ")
+            .template("{spinner:.dim.bold.blue} {wide_msg}"),
+    );
+    spinner.set_message(message);
+    spinner
+}

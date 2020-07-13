@@ -22,12 +22,12 @@ pub enum ConfigCommand {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub(crate) struct TheWayConfig {
+pub struct TheWayConfig {
     pub(crate) theme: String,
     pub(crate) db_dir: PathBuf,
     pub(crate) themes_dir: PathBuf,
     pub(crate) github_access_token: Option<String>,
-    pub(crate) gist_id: Option<String>,
+    pub gist_id: Option<String>,
 }
 
 /// Main project directory, cross-platform
@@ -123,7 +123,7 @@ impl TheWayConfig {
     }
 
     /// Read config from default location
-    pub(crate) fn load() -> color_eyre::Result<Self> {
+    pub fn load() -> color_eyre::Result<Self> {
         // Reads THE_WAY_CONFIG environment variable to get config file location
         let config_file = env::var("THE_WAY_CONFIG").ok();
         match config_file {
