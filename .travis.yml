@@ -8,11 +8,6 @@ services: docker
 env:
   global:
     - CRATE_NAME=the-way
-addons:
-  apt:
-    packages:
-      - libssl-dev
-      - pkg-config
 
 matrix:
   allow_failures:
@@ -89,6 +84,7 @@ matrix:
 before_install:
   - set -e
   - rustup self update
+  - if [ $TRAVIS_OS_NAME = linux ]; then sudo apt-get install libssl-dev pkg-config; fi
 
 install:
   - sh ci/install.sh
