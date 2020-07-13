@@ -15,7 +15,7 @@ about = "Record, retrieve, search, and categorize code snippets",
 rename_all = "kebab-case",
 global_settings = & [AppSettings::DeriveDisplayOrder]
 )]
-pub(crate) enum TheWayCLI {
+pub enum TheWayCLI {
     /// Add a new snippet
     New,
     /// Fuzzy search and copy selected to clipboard
@@ -93,7 +93,7 @@ pub(crate) enum TheWayCLI {
 }
 
 #[derive(StructOpt, Debug)]
-pub(crate) enum ThemeCommand {
+pub enum ThemeCommand {
     /// List all theme choices (default + user-added)
     List,
     /// Set your preferred syntax highlighting theme

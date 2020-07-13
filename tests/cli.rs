@@ -9,6 +9,8 @@ use rexpect::session::PtyBashSession;
 use rexpect::spawn_bash;
 use tempfile::{tempdir, TempDir};
 
+use the_way::the_way::snippet::Snippet;
+
 fn make_config_file(temp_dir: &TempDir) -> color_eyre::Result<PathBuf> {
     let db_dir = temp_dir.path().join("db");
     let themes_dir = temp_dir.path().join("themes");
@@ -244,6 +246,45 @@ fn import_multiple_no_tags() -> color_eyre::Result<()> {
             predicate::str::contains("test description 1")
                 .and(predicate::str::contains("test description 2")),
         );
+    temp_dir.close()?;
+    Ok(())
+}
+
+#[test]
+fn export() -> color_eyre::Result<()> {
+    let contents_1 = r#"{"description":"test description 1","language":"rust","tags":["tag1","tag2"],"code":"some\ntest\ncode\n"}"#;
+    let contents_2 =
+        r#"{"description":"test description 2","language":"python","code":"some\ntest\ncode\n"}"#;
+    let contents = format!("{}{}", contents_1, contents_2);
+    let temp_dir = tempdir()?;
+    let config_file = make_config_file(&temp_dir)?;
+
+    // import
+    let mut cmd = Command::cargo_bin("the-way")?;
+    cmd.env("THE_WAY_CONFIG", &config_file)
+        .arg("import")
+        .write_stdin(contents)
+        .assert()
+        .stdout(predicate::str::starts_with("Imported 2 snippets"));
+
+    // export
+    let mut cmd = Command::cargo_bin("the-way")?;
+    let file = temp_dir.path().join("snippets.json");
+    cmd.env("THE_WAY_CONFIG", &config_file)
+        .arg("export")
+        .arg(file.to_str().unwrap())
+        .assert()
+        .success();
+
+    let snippets = serde_json::Deserializer::from_reader(fs::File::open(&file)?)
+        .into_iter::<Snippet>()
+        .collect::<Result<Vec<_>, _>>()?;
+
+    assert_eq!(snippets.len(), 2);
+
+    for snippet in snippets {
+        assert_eq!(snippet.code, "some\ntest\ncode\n");
+    }
     temp_dir.close()?;
     Ok(())
 }

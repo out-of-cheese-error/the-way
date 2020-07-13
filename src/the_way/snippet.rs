@@ -9,28 +9,28 @@ use crate::utils;
 
 /// Stores information about a quote
 #[derive(Serialize, Deserialize, Debug)]
-pub(crate) struct Snippet {
+pub struct Snippet {
     /// Snippet index, used to retrieve, copy, or modify a snippet
     #[serde(default)]
-    pub(crate) index: usize,
+    pub index: usize,
     /// Snippet description, what does it do?
-    pub(crate) description: String,
+    pub description: String,
     /// Language the snippet is written in
-    pub(crate) language: String,
+    pub language: String,
     /// Snippet code
-    pub(crate) code: String,
+    pub code: String,
     /// extension
     #[serde(default)]
-    pub(crate) extension: String,
+    pub extension: String,
     /// Tags attached to the snippet
     #[serde(default)]
-    pub(crate) tags: Vec<String>,
+    pub tags: Vec<String>,
     /// Time of recording the snippet
     #[serde(default = "Utc::now")]
-    date: DateTime<Utc>,
+    pub date: DateTime<Utc>,
     /// Time of last update
     #[serde(default = "Utc::now")]
-    pub(crate) updated: DateTime<Utc>,
+    pub updated: DateTime<Utc>,
 }
 
 impl Snippet {

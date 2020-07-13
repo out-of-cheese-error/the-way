@@ -26,7 +26,7 @@ struct LanguageYML {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct Language {
+pub struct Language {
     name: String,
     pub(crate) extension: String,
     pub(crate) color: Color,
@@ -87,7 +87,7 @@ fn read_languages_from_yml(yml_string: &str) -> color_eyre::Result<HashMap<Strin
 }
 
 /// Loads language extension and color information for each language and its aliases
-pub(crate) fn get_languages(yml_string: &str) -> color_eyre::Result<HashMap<String, Language>> {
+pub fn get_languages(yml_string: &str) -> color_eyre::Result<HashMap<String, Language>> {
     let languages = read_languages_from_yml(yml_string)?;
     let mut name_to_language = HashMap::new();
     for (name, language_yml) in languages {

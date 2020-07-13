@@ -10,7 +10,7 @@ use crate::errors::LostTheWay;
 use crate::utils::NAME;
 
 #[derive(StructOpt, Debug)]
-pub(crate) enum ConfigCommand {
+pub enum ConfigCommand {
     /// Prints / writes the default configuration options.
     /// Set the generated config file as default by setting the $THE_WAY_CONFIG environment variable
     Default {

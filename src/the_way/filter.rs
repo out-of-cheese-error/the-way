@@ -8,7 +8,7 @@ use crate::the_way::{snippet::Snippet, TheWay};
 use crate::utils;
 
 #[derive(StructOpt, Debug)]
-pub(crate) struct Filters {
+pub struct Filters {
     /// Snippets written in <language> (multiple with 'lang1 lang2')
     #[structopt(short, long)]
     pub(crate) languages: Option<Vec<String>>,

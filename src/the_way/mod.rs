@@ -18,12 +18,12 @@ use crate::the_way::{
 };
 use crate::utils;
 
-pub(crate) mod cli;
+pub mod cli;
 mod database;
 mod filter;
 mod gist;
 mod search;
-mod snippet;
+pub mod snippet;
 
 /// Stores
 /// - project directory information from `directories`
@@ -47,10 +47,7 @@ impl TheWay {
     /// Initialize program with command line input.
     /// Reads `sled` trees and metadata file from the locations specified in config.
     /// (makes new ones the first time).
-    pub(crate) fn start(
-        cli: TheWayCLI,
-        languages: HashMap<String, Language>,
-    ) -> color_eyre::Result<()> {
+    pub fn start(cli: TheWayCLI, languages: HashMap<String, Language>) -> color_eyre::Result<()> {
         if let TheWayCLI::Config { cmd } = &cli {
             if let ConfigCommand::Default { file } = cmd {
                 TheWayConfig::default_config(file.as_deref())?;
