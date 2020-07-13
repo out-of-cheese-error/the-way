@@ -2,14 +2,10 @@ use std::fs;
 use std::path::PathBuf;
 
 use assert_cmd::Command;
-#[cfg(target_os = "macos")]
-use clipboard::{ClipboardContext, ClipboardProvider};
 use predicates::prelude::*;
 use rexpect::session::PtyBashSession;
 use rexpect::spawn_bash;
 use tempfile::{tempdir, TempDir};
-
-use the_way::the_way::snippet::Snippet;
 
 fn make_config_file(temp_dir: &TempDir) -> color_eyre::Result<PathBuf> {
     let db_dir = temp_dir.path().join("db");
@@ -252,6 +248,8 @@ fn import_multiple_no_tags() -> color_eyre::Result<()> {
 
 #[test]
 fn export() -> color_eyre::Result<()> {
+    use the_way::the_way::snippet::Snippet;
+
     let contents_1 = r#"{"description":"test description 1","language":"rust","tags":["tag1","tag2"],"code":"some\ntest\ncode\n"}"#;
     let contents_2 =
         r#"{"description":"test description 2","language":"python","code":"some\ntest\ncode\n"}"#;
@@ -353,6 +351,8 @@ fn delete() -> color_eyre::Result<()> {
 #[cfg(target_os = "macos")]
 #[test]
 fn copy() -> color_eyre::Result<()> {
+    use clipboard::{ClipboardContext, ClipboardProvider};
+
     let contents = r#"{"description":"test description","language":"rust","tags":["tag1","tag2"],"code":"some\ntest\ncode\n"}"#;
     let temp_dir = tempdir()?;
     let config_file = make_config_file(&temp_dir)?;
