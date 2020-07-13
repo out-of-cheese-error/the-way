@@ -8,6 +8,11 @@ services: docker
 env:
   global:
     - CRATE_NAME=the-way
+addons:
+  apt:
+    packages:
+      - libssl-dev
+      - pkg-config
 
 matrix:
   allow_failures:
