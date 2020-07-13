@@ -246,13 +246,16 @@ impl TheWay {
                             }
                         }
                         std::cmp::Ordering::Greater => {
-                            files.insert(
-                                format!("snippet_{}{}", snippet.index, snippet.extension),
-                                Some(GistContent {
-                                    content: snippet.code.as_str(),
-                                }),
-                            );
-                            updated += 1;
+                            // Snippet updated locally => update Gist
+                            if gist_file.content != snippet.code {
+                                files.insert(
+                                    format!("snippet_{}{}", snippet.index, snippet.extension),
+                                    Some(GistContent {
+                                        content: snippet.code.as_str(),
+                                    }),
+                                );
+                                updated += 1;
+                            }
                         }
                         _ => {}
                     }
