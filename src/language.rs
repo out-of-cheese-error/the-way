@@ -26,9 +26,9 @@ struct LanguageYML {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct Language {
+pub struct Language {
     name: String,
-    pub(crate) extension: String,
+    extension: String,
     pub(crate) color: Color,
 }
 
@@ -87,7 +87,7 @@ fn read_languages_from_yml(yml_string: &str) -> color_eyre::Result<HashMap<Strin
 }
 
 /// Loads language extension and color information for each language and its aliases
-pub(crate) fn get_languages(yml_string: &str) -> color_eyre::Result<HashMap<String, Language>> {
+pub fn get_languages(yml_string: &str) -> color_eyre::Result<HashMap<String, Language>> {
     let languages = read_languages_from_yml(yml_string)?;
     let mut name_to_language = HashMap::new();
     for (name, language_yml) in languages {
@@ -108,12 +108,16 @@ pub(crate) fn get_languages(yml_string: &str) -> color_eyre::Result<HashMap<Stri
 #[derive(Debug)]
 pub(crate) struct CodeHighlight {
     syntax_set: SyntaxSet,
-    pub(crate) theme_set: ThemeSet,
-    pub(crate) theme_name: String,
+    theme_set: ThemeSet,
+    theme_name: String,
     theme_dir: PathBuf,
+    /// Style used to print description
     pub(crate) main_style: Style,
+    /// Style used to print language name
     pub(crate) accent_style: Style,
+    /// Style used to print tags
     pub(crate) tag_style: Style,
+    /// Style in `skim` when selecting during search
     pub(crate) highlight_style: Style,
 }
 
@@ -171,12 +175,12 @@ impl CodeHighlight {
         let tag_color = self.theme_set.themes[&self.theme_name]
             .settings
             .tags_foreground
-            .unwrap_or(
+            .unwrap_or_else(|| {
                 self.theme_set.themes[&self.theme_name]
                     .settings
                     .line_highlight
-                    .unwrap_or(self.main_style.foreground),
-            );
+                    .unwrap_or(self.main_style.foreground)
+            });
         self.tag_style = self.tag_style.apply(StyleModifier {
             foreground: Some(tag_color),
             background: self.theme_set.themes[&self.theme_name].settings.background,
@@ -280,6 +284,7 @@ impl CodeHighlight {
         as_24_bit_terminal_escaped(&[(style, line)], false)
     }
 
+    /// Syntax highlight code block
     pub(crate) fn highlight_code(
         &self,
         code: &str,

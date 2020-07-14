@@ -1,18 +1,10 @@
-#[macro_use]
-extern crate serde_derive;
-
 use structopt::StructOpt;
 
-use crate::language::get_languages;
-use crate::the_way::{cli::TheWayCLI, TheWay};
-
-mod configuration;
-mod errors;
-mod language;
-mod the_way;
-mod utils;
+use the_way::language::get_languages;
+use the_way::the_way::{cli::TheWayCLI, TheWay};
 
 fn main() -> color_eyre::Result<()> {
+    color_eyre::install()?;
     let languages_yml = include_str!("languages.yml");
     let languages = get_languages(languages_yml)?;
     let cli = TheWayCLI::from_args();

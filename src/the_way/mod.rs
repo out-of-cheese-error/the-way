@@ -18,11 +18,12 @@ use crate::the_way::{
 };
 use crate::utils;
 
-pub(crate) mod cli;
+pub mod cli;
 mod database;
 mod filter;
+mod gist;
 mod search;
-mod snippet;
+pub mod snippet;
 
 /// Stores
 /// - project directory information from `directories`
@@ -46,10 +47,7 @@ impl TheWay {
     /// Initialize program with command line input.
     /// Reads `sled` trees and metadata file from the locations specified in config.
     /// (makes new ones the first time).
-    pub(crate) fn start(
-        cli: TheWayCLI,
-        languages: HashMap<String, Language>,
-    ) -> color_eyre::Result<()> {
+    pub fn start(cli: TheWayCLI, languages: HashMap<String, Language>) -> color_eyre::Result<()> {
         if let TheWayCLI::Config { cmd } = &cli {
             if let ConfigCommand::Default { file } = cmd {
                 TheWayConfig::default_config(file.as_deref())?;
@@ -96,7 +94,7 @@ impl TheWay {
                 Ok(())
             }
             TheWayCLI::Export { filters, file } => self.export(filters, file.as_deref()),
-            TheWayCLI::Complete { shell } => self.complete(*shell),
+            TheWayCLI::Complete { shell } => Self::complete(*shell),
             TheWayCLI::Themes { cmd } => match cmd {
                 ThemeCommand::List => self.list_themes(),
                 ThemeCommand::Set { theme } => {
@@ -116,6 +114,7 @@ impl TheWay {
                 ConfigCommand::Default { file } => TheWayConfig::default_config(file.as_deref()), //Already handled
                 ConfigCommand::Get => TheWayConfig::print_config_location(),
             },
+            TheWayCLI::Sync => self.sync(),
         }
     }
 
@@ -172,7 +171,7 @@ impl TheWay {
     /// Copy a snippet to clipboard
     fn copy(&self, index: usize) -> color_eyre::Result<()> {
         let snippet = self.get_snippet(index)?;
-        utils::copy_to_clipboard(snippet.code)?;
+        utils::copy_to_clipboard(&snippet.code)?;
         println!("Snippet #{} copied to clipboard", index);
         Ok(())
     }
@@ -209,7 +208,7 @@ impl TheWay {
     /// Saves (optionally filtered) snippets to a JSON file
     fn export(&self, filters: &Filters, file: Option<&Path>) -> color_eyre::Result<()> {
         let writer: Box<dyn io::Write> = match file {
-            Some(file) => Box::new(fs::File::open(file)?),
+            Some(file) => Box::new(fs::File::create(file)?),
             None => Box::new(io::stdout()),
         };
         let mut buffered = io::BufWriter::new(writer);
@@ -245,7 +244,7 @@ impl TheWay {
     /// Displays all snippet descriptions in a skim fuzzy search window
     /// A preview window on the right shows the indices of snippets matching the query
     fn search(&self, filters: &Filters) -> color_eyre::Result<()> {
-        let snippets = self.filter_snippets(&filters)?;
+        let snippets = self.filter_snippets(filters)?;
         self.make_search(
             snippets,
             &format!(
@@ -261,7 +260,7 @@ impl TheWay {
     }
 
     /// Generates shell completions
-    fn complete(&self, shell: Shell) -> color_eyre::Result<()> {
+    fn complete(shell: Shell) -> color_eyre::Result<()> {
         TheWayCLI::clap().gen_completions_to(utils::NAME, shell, &mut io::stdout());
         Ok(())
     }
@@ -288,5 +287,30 @@ impl TheWay {
             let error: color_eyre::Result<()> = Err(LostTheWay::DoingNothing.into());
             error.suggestion("Press Y next time!")
         }
+    }
+
+    /// Syncs snippets to Gist
+    fn sync(&mut self) -> color_eyre::Result<()> {
+        // Check if environment variable has changed
+        self.config.github_access_token = std::env::var("THE_WAY_GITHUB_TOKEN")
+            .ok()
+            .or_else(|| self.config.github_access_token.clone());
+        // Get token from user if not set
+        if self.config.github_access_token.is_none() {
+            println!("Get a GitHub access token from https://github.com/settings/tokens/new (add the \"gist\" scope)\n");
+            self.config.github_access_token = Some(
+                dialoguer::Password::with_theme(&dialoguer::theme::ColorfulTheme::default())
+                    .with_prompt("GitHub access token")
+                    .interact()?,
+            );
+        }
+        if self.config.gist_id.is_some() {
+            self.sync_gist()?;
+        } else {
+            self.config.gist_id =
+                Some(self.make_gist(self.config.github_access_token.as_ref().unwrap())?);
+        }
+        self.config.store()?;
+        Ok(())
     }
 }

@@ -32,6 +32,9 @@ pub enum LostTheWay {
     /// Errors related to changing the configuration file
     #[error("ConfigError: {message:?}")]
     ConfigError { message: String },
+    /// Sync Error
+    #[error("SyncError: {message:?}")]
+    SyncError { message: String },
     /// Catch-all for stuff that should never happen
     #[error("OutOfCheeseError: {message:?}\nRedo from start.")]
     OutOfCheeseError { message: String },

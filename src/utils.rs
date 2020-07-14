@@ -22,8 +22,8 @@ pub const NAME: &str = "the-way";
 pub const SEMICOLON: u8 = 59;
 
 /// Set clipboard contents to text
-/// See https://github.com/aweinstock314/rust-clipboard/issues/28#issuecomment-534295371
-pub fn copy_to_clipboard(text: String) -> color_eyre::Result<()> {
+/// See [issue](https://github.com/aweinstock314/rust-clipboard/issues/28#issuecomment-534295371)
+pub fn copy_to_clipboard(text: &str) -> color_eyre::Result<()> {
     #[cfg(target_os = "macos")]
     let mut command = Command::new("pbcopy");
 
@@ -146,4 +146,16 @@ pub fn user_input(
                 .to_owned(),
         ),
     }
+}
+
+pub fn get_spinner(message: &str) -> indicatif::ProgressBar {
+    let spinner = indicatif::ProgressBar::new_spinner();
+    spinner.enable_steady_tick(200);
+    spinner.set_style(
+        indicatif::ProgressStyle::default_spinner()
+            .tick_chars("/|\\- ")
+            .template("{spinner:.dim.bold.blue} {wide_msg}"),
+    );
+    spinner.set_message(message);
+    spinner
 }

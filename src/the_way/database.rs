@@ -37,6 +37,7 @@ impl TheWay {
         Ok(self.db.open_tree("snippets")?)
     }
 
+    /// Gets latest snippet's index
     pub(crate) fn get_current_snippet_index(&self) -> color_eyre::Result<usize> {
         match self.db.get("snippet_index")? {
             Some(index) => Ok(std::str::from_utf8(&index)?.parse::<usize>()?),
@@ -44,7 +45,7 @@ impl TheWay {
         }
     }
 
-    /// resets snippet_index to 0
+    /// resets `snippet_index` to 0
     pub(crate) fn reset_index(&self) -> color_eyre::Result<()> {
         self.db.insert("snippet_index", 0.to_string().as_bytes())?;
         Ok(())
@@ -96,6 +97,15 @@ impl TheWay {
         to_date: DateTime<Utc>,
     ) -> color_eyre::Result<Vec<Snippet>> {
         Ok(self
+            .list_snippets()?
+            .into_iter()
+            .filter(|snippet| snippet.in_date_range(from_date, to_date))
+            .collect())
+    }
+
+    /// List all snippets
+    pub(crate) fn list_snippets(&self) -> color_eyre::Result<Vec<Snippet>> {
+        Ok(self
             .snippets_tree()?
             .iter()
             .map(|item| {
@@ -107,10 +117,7 @@ impl TheWay {
                 })
                 .and_then(|(_, snippet)| Snippet::from_bytes(&snippet))
             })
-            .collect::<color_eyre::Result<Vec<_>, _>>()?
-            .into_iter()
-            .filter(|snippet| snippet.in_date_range(from_date, to_date))
-            .collect())
+            .collect::<color_eyre::Result<Vec<_>>>()?)
     }
 
     // TODO: think about how deletions should affect snippet indices

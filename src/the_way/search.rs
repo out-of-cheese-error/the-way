@@ -38,7 +38,7 @@ impl<'a> SkimItem for SearchSnippet {
     }
 
     fn output(&self) -> Cow<str> {
-        copy_to_clipboard(self.code.to_owned()).expect("Clipboard Error");
+        copy_to_clipboard(&self.code).expect("Clipboard Error");
         let text = format!("Copied snippet #{} to clipboard", self.index);
         Cow::Owned(text)
     }

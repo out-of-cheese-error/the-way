@@ -2,10 +2,8 @@ use std::fs;
 use std::path::PathBuf;
 
 use assert_cmd::Command;
-#[cfg(target_os = "macos")]
-use clipboard::{ClipboardContext, ClipboardProvider};
 use predicates::prelude::*;
-use rexpect::session::PtyBashSession;
+use rexpect::session::PtyReplSession;
 use rexpect::spawn_bash;
 use tempfile::{tempdir, TempDir};
 
@@ -95,8 +93,8 @@ fn change_theme() -> color_eyre::Result<()> {
     Ok(())
 }
 
-fn add_snippet_rexpect(config_file: PathBuf) -> rexpect::errors::Result<PtyBashSession> {
-    let mut p = spawn_bash(Some(300_000))?;
+fn add_snippet_rexpect(config_file: PathBuf) -> rexpect::errors::Result<PtyReplSession> {
+    let mut p = spawn_bash(Some(3000))?;
     p.send_line(&format!(
         "export THE_WAY_CONFIG={}",
         config_file.to_string_lossy()
@@ -121,7 +119,7 @@ fn add_snippet_rexpect(config_file: PathBuf) -> rexpect::errors::Result<PtyBashS
 }
 
 fn add_two_snippets_rexpect(config_file: PathBuf) -> rexpect::errors::Result<()> {
-    let mut p = spawn_bash(Some(300_000))?;
+    let mut p = spawn_bash(Some(3000))?;
     p.send_line(&format!(
         "export THE_WAY_CONFIG={}",
         config_file.to_string_lossy()
@@ -249,6 +247,47 @@ fn import_multiple_no_tags() -> color_eyre::Result<()> {
 }
 
 #[test]
+fn export() -> color_eyre::Result<()> {
+    use the_way::the_way::snippet::Snippet;
+
+    let contents_1 = r#"{"description":"test description 1","language":"rust","tags":["tag1","tag2"],"code":"some\ntest\ncode\n"}"#;
+    let contents_2 =
+        r#"{"description":"test description 2","language":"python","code":"some\ntest\ncode\n"}"#;
+    let contents = format!("{}{}", contents_1, contents_2);
+    let temp_dir = tempdir()?;
+    let config_file = make_config_file(&temp_dir)?;
+
+    // import
+    let mut cmd = Command::cargo_bin("the-way")?;
+    cmd.env("THE_WAY_CONFIG", &config_file)
+        .arg("import")
+        .write_stdin(contents)
+        .assert()
+        .stdout(predicate::str::starts_with("Imported 2 snippets"));
+
+    // export
+    let mut cmd = Command::cargo_bin("the-way")?;
+    let file = temp_dir.path().join("snippets.json");
+    cmd.env("THE_WAY_CONFIG", &config_file)
+        .arg("export")
+        .arg(file.to_str().unwrap())
+        .assert()
+        .success();
+
+    let snippets = serde_json::Deserializer::from_reader(fs::File::open(&file)?)
+        .into_iter::<Snippet>()
+        .collect::<Result<Vec<_>, _>>()?;
+
+    assert_eq!(snippets.len(), 2);
+
+    for snippet in snippets {
+        assert_eq!(snippet.code, "some\ntest\ncode\n");
+    }
+    temp_dir.close()?;
+    Ok(())
+}
+
+#[test]
 fn delete() -> color_eyre::Result<()> {
     let contents_1 = r#"{"description":"test description 1","language":"rust","tags":["tag1","tag2"],"code":"some\ntest\ncode\n"}"#;
     let contents_2 =
@@ -312,6 +351,8 @@ fn delete() -> color_eyre::Result<()> {
 #[cfg(target_os = "macos")]
 #[test]
 fn copy() -> color_eyre::Result<()> {
+    use clipboard::{ClipboardContext, ClipboardProvider};
+
     let contents = r#"{"description":"test description","language":"rust","tags":["tag1","tag2"],"code":"some\ntest\ncode\n"}"#;
     let temp_dir = tempdir()?;
     let config_file = make_config_file(&temp_dir)?;
@@ -346,6 +387,128 @@ fn copy() -> color_eyre::Result<()> {
     assert!(contents.is_ok());
     let contents = contents.unwrap();
     assert!(contents.contains("some\ntest\ncode"));
+    temp_dir.close()?;
+    Ok(())
+}
+
+#[ignore]
+#[test]
+/// Tests Gist sync functionality. Needs to have the environment variable $THE_WAY_GITHUB_TOKEN set!
+/// Ignored by default since Travis doesn't allow secret/encrypted environment variables in PRs
+fn gist() -> color_eyre::Result<()> {
+    use the_way::configuration::TheWayConfig;
+    use the_way::gist::{GistClient, GistContent, UpdateGistPayload};
+
+    let temp_dir = tempdir()?;
+    let config_file = make_config_file(&temp_dir)?;
+
+    let contents_1 = r#"{"description":"test description 1","language":"rust","tags":["tag1","tag2"],"code":"some\ntest\ncode\n"}"#;
+    let contents_2 =
+        r#"{"description":"test description 2","language":"python","code":"some\ntest\ncode\n"}"#;
+    let contents = format!("{}{}", contents_1, contents_2);
+
+    // import
+    let mut cmd = Command::cargo_bin("the-way")?;
+    cmd.env("THE_WAY_CONFIG", &config_file)
+        .arg("import")
+        .write_stdin(contents)
+        .assert()
+        .stdout(predicate::str::starts_with("Imported 2 snippets"));
+
+    // sync
+    let mut cmd = Command::cargo_bin("the-way")?;
+    cmd.env("THE_WAY_CONFIG", &config_file)
+        .arg("sync")
+        .assert()
+        .success();
+
+    // get gist_id from config
+    std::env::set_var("THE_WAY_CONFIG", &config_file);
+    let config = TheWayConfig::load();
+    assert!(config.is_ok());
+    let config = config?;
+    assert!(config.gist_id.is_some());
+
+    // get Gist
+    let client = GistClient::new(&std::env::var("THE_WAY_GITHUB_TOKEN")?, "the-way")?;
+    let gist = client.get_gist(&config.gist_id.unwrap());
+    assert!(gist.is_ok());
+    let gist = gist?;
+
+    // check Gist contents
+    assert_eq!(gist.files.len(), 3);
+    for (filename, gistfile) in &gist.files {
+        if filename.starts_with("snippet_") {
+            assert_eq!(gistfile.content, "some\ntest\ncode\n");
+        }
+    }
+
+    // edit Gist
+    let update_payload = UpdateGistPayload {
+        description: &gist.description,
+        files: vec![(
+            "snippet_1.rs".to_owned(),
+            Some(GistContent {
+                content: "some\nmore\ntest\ncode\n",
+            }),
+        )]
+        .into_iter()
+        .collect(),
+    };
+    assert!(client.update_gist(&gist.id, &update_payload).is_ok());
+
+    // delete locally (easier than editing)
+    let mut cmd = Command::cargo_bin("the-way")?;
+    cmd.env("THE_WAY_CONFIG", &config_file)
+        .arg("del")
+        .arg("-f")
+        .arg("2")
+        .assert()
+        .stdout(predicate::str::starts_with("Snippet #2 deleted"));
+
+    // sync - download + deleted
+    let mut cmd = Command::cargo_bin("the-way")?;
+    cmd.env("THE_WAY_CONFIG", &config_file)
+        .arg("sync")
+        .assert()
+        .success();
+
+    // get Gist
+    let gist = client.get_gist(&gist.id);
+    assert!(gist.is_ok());
+    let gist = gist?;
+    let updated = &gist.updated_at;
+
+    // sync again - nothing changed
+    let mut cmd = Command::cargo_bin("the-way")?;
+    cmd.env("THE_WAY_CONFIG", &config_file)
+        .arg("sync")
+        .assert()
+        .success();
+    let gist = client.get_gist(&gist.id);
+    assert!(gist.is_ok());
+    let gist = gist?;
+    assert_eq!(updated, &gist.updated_at);
+
+    // check Gist contents
+    assert_eq!(gist.files.len(), 2);
+    for (filename, gistfile) in &gist.files {
+        if filename.starts_with("snippet_") {
+            assert_eq!(gistfile.content, "some\nmore\ntest\ncode\n");
+        }
+    }
+
+    // check downloaded
+    let mut cmd = Command::cargo_bin("the-way")?;
+    cmd.env("THE_WAY_CONFIG", &config_file)
+        .arg("view")
+        .arg("1")
+        .assert()
+        .stdout(predicates::str::contains("more"));
+
+    // delete Gist
+    assert!(client.delete_gist(&gist.id).is_ok());
+    assert!(client.get_gist(&gist.id).is_err());
     temp_dir.close()?;
     Ok(())
 }

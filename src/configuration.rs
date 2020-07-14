@@ -10,7 +10,7 @@ use crate::errors::LostTheWay;
 use crate::utils::NAME;
 
 #[derive(StructOpt, Debug)]
-pub(crate) enum ConfigCommand {
+pub enum ConfigCommand {
     /// Prints / writes the default configuration options.
     /// Set the generated config file as default by setting the $THE_WAY_CONFIG environment variable
     Default {
@@ -22,10 +22,12 @@ pub(crate) enum ConfigCommand {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub(crate) struct TheWayConfig {
+pub struct TheWayConfig {
     pub(crate) theme: String,
     pub(crate) db_dir: PathBuf,
     pub(crate) themes_dir: PathBuf,
+    pub(crate) github_access_token: Option<String>,
+    pub gist_id: Option<String>,
 }
 
 /// Main project directory, cross-platform
@@ -51,6 +53,8 @@ impl Default for TheWayConfig {
             theme,
             db_dir,
             themes_dir,
+            github_access_token: None,
+            gist_id: None,
         };
         config.make_dirs().unwrap();
         config
@@ -60,7 +64,7 @@ impl Default for TheWayConfig {
 impl TheWayConfig {
     pub(crate) fn default_config(file: Option<&Path>) -> color_eyre::Result<()> {
         let writer: Box<dyn io::Write> = match file {
-            Some(file) => Box::new(fs::File::open(file)?),
+            Some(file) => Box::new(fs::File::create(file)?),
             None => Box::new(io::stdout()),
         };
         let mut buffered = io::BufWriter::new(writer);
@@ -71,7 +75,7 @@ impl TheWayConfig {
     }
 
     pub(crate) fn print_config_location() -> color_eyre::Result<()> {
-        println!("{}", TheWayConfig::get()?.to_string_lossy());
+        println!("{}", Self::get()?.to_string_lossy());
         Ok(())
     }
 
@@ -119,14 +123,14 @@ impl TheWayConfig {
     }
 
     /// Read config from default location
-    pub(crate) fn load() -> color_eyre::Result<Self> {
+    pub fn load() -> color_eyre::Result<Self> {
         // Reads THE_WAY_CONFIG environment variable to get config file location
         let config_file = env::var("THE_WAY_CONFIG").ok();
         match config_file {
             Some(file) => {
                 let path = Path::new(&file).to_owned();
                 if path.exists() {
-                    let config: TheWayConfig = confy::load_path(Path::new(&file))?;
+                    let config: Self = confy::load_path(Path::new(&file))?;
                     config.make_dirs()?;
                     Ok(config)
                 } else {
