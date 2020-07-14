@@ -76,6 +76,7 @@ SUBCOMMANDS:
 ```
 
 ## Features
+
 ### Main features
 * Add and edit code snippets
 * Interactive fuzzy search
@@ -84,7 +85,7 @@ SUBCOMMANDS:
 * Import / export via JSON
 
 ### Sync to Gist (new from v0.5.0!)
-`the-way sync` syncs snippets to a Gist, each named `snippet_<index>.<extension`, with an `index.md` file linking each snippet's description. 
+`the-way sync` syncs snippets to a Gist, each named `snippet_<index>.<extension>`, with an `index.md` file linking each snippet's description. 
 Local updates and deletions are uploaded to the Gist and Gist updates are downloaded.
 
 ![gist](gist.png)
@@ -104,6 +105,7 @@ The Way maps languages to their extensions and uses this to
 2. Upload snippets to Gist with the correct extension,
 3. Add a small colored language indicator (GitHub-flavored)
 4. Syntax highlight code in the terminal
+
 The last point can be customized via `the-way themes`. 
 
 Use `the-way themes set <theme>` to enable a theme.
