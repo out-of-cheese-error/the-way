@@ -13,6 +13,7 @@ addons:
   apt:
     packages:
       - xvfb
+      - python3
 
 matrix:
   allow_failures:
