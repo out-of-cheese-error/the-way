@@ -13,6 +13,8 @@ addons:
   apt:
     packages:
     - libxcb-xfixes0-dev
+    - xorg-dev
+    - python3
 
 matrix:
   allow_failures:
