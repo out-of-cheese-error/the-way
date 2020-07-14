@@ -1,6 +1,6 @@
 [package]
 name = "the-way"
-version = "0.4.0"
+version = "0.5.0"
 edition = "2018"
 authors = ["Ninjani"]
 description = "A code snippets manager for your terminal"
@@ -12,7 +12,8 @@ categories = ["command-line-utilities"]
 exclude = [
     "tests/",
     "ci/",
-    ".travis.yml"
+    ".travis.yml",
+    "gist.png"
 ]
 
 [dependencies]
