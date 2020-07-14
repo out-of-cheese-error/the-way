@@ -1,10 +1,12 @@
-use std::io::Write;
-use std::process::{Command, Stdio};
+// use std::io::Write;
+// use std::process::{Command, Stdio};
 use std::str;
 
 use chrono::{Date, DateTime, Utc, MAX_DATE, MIN_DATE};
 use chrono_english::{parse_date_string, Dialect};
 use color_eyre::Help;
+use copypasta_ext::prelude::*;
+use copypasta_ext::x11_fork::ClipboardContext;
 use dialoguer::{theme, Editor, Input};
 
 use crate::errors::LostTheWay;
@@ -23,31 +25,37 @@ pub const SEMICOLON: u8 = 59;
 
 /// Set clipboard contents to text
 /// See [issue](https://github.com/aweinstock314/rust-clipboard/issues/28#issuecomment-534295371)
+// pub fn copy_to_clipboard(text: &str) -> color_eyre::Result<()> {
+//     #[cfg(target_os = "macos")]
+//     let mut command = Command::new("pbcopy");
+//
+//     #[cfg(target_os = "linux")]
+//     let mut command = {
+//         let mut c = Command::new("xclip");
+//         c.arg("-in");
+//         c.arg("-selection");
+//         c.arg("clipboard");
+//         c
+//     };
+//
+//     let mut child = command.stdin(Stdio::piped()).spawn()?;
+//
+//     // When stdin is dropped the fd is automatically closed. See
+//     // https://doc.rust-lang.org/std/process/struct.ChildStdin.html.
+//     {
+//         let stdin = child.stdin.as_mut().ok_or(LostTheWay::ClipboardError)?;
+//         stdin.write_all(text.as_bytes())?;
+//     }
+//
+//     // Wait on pbcopy/xclip to finish.
+//     child.wait()?;
+//
+//     Ok(())
+// }
 pub fn copy_to_clipboard(text: &str) -> color_eyre::Result<()> {
-    #[cfg(target_os = "macos")]
-    let mut command = Command::new("pbcopy");
-
-    #[cfg(target_os = "linux")]
-    let mut command = {
-        let mut c = Command::new("xclip");
-        c.arg("-in");
-        c.arg("-selection");
-        c.arg("clipboard");
-        c
-    };
-
-    let mut child = command.stdin(Stdio::piped()).spawn()?;
-
-    // When stdin is dropped the fd is automatically closed. See
-    // https://doc.rust-lang.org/std/process/struct.ChildStdin.html.
-    {
-        let stdin = child.stdin.as_mut().ok_or(LostTheWay::ClipboardError)?;
-        stdin.write_all(text.as_bytes())?;
-    }
-
-    // Wait on pbcopy/xclip to finish.
-    child.wait()?;
-
+    let mut ctx = ClipboardContext::new().map_err(|_| LostTheWay::ClipboardError)?;
+    ctx.set_contents(text.to_owned())
+        .map_err(|_| LostTheWay::ClipboardError)?;
     Ok(())
 }
 

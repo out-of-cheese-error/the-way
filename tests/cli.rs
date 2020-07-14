@@ -348,10 +348,11 @@ fn delete() -> color_eyre::Result<()> {
     Ok(())
 }
 
-#[cfg(target_os = "macos")]
+// #[cfg(target_os = "macos")]
 #[test]
 fn copy() -> color_eyre::Result<()> {
-    use clipboard::{ClipboardContext, ClipboardProvider};
+    use copypasta_ext::prelude::*;
+    use copypasta_ext::x11_fork::ClipboardContext;
 
     let contents = r#"{"description":"test description","language":"rust","tags":["tag1","tag2"],"code":"some\ntest\ncode\n"}"#;
     let temp_dir = tempdir()?;
@@ -380,7 +381,7 @@ fn copy() -> color_eyre::Result<()> {
         .stdout(predicate::str::starts_with(
             "Snippet #1 copied to clipboard",
         ));
-    let ctx: color_eyre::Result<ClipboardContext, _> = ClipboardProvider::new();
+    let ctx = ClipboardContext::new();
     assert!(ctx.is_ok());
     let mut ctx = ctx.unwrap();
     let contents = ctx.get_contents();
