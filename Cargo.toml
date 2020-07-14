@@ -13,7 +13,6 @@ exclude = [
     "tests/",
     "ci/",
     ".travis.yml",
-    "gist.png"
 ]
 
 [dependencies]
