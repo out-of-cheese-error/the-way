@@ -94,7 +94,7 @@ impl TheWay {
                 Ok(())
             }
             TheWayCLI::Export { filters, file } => self.export(filters, file.as_deref()),
-            TheWayCLI::Complete { shell } => self.complete(*shell),
+            TheWayCLI::Complete { shell } => Self::complete(*shell),
             TheWayCLI::Themes { cmd } => match cmd {
                 ThemeCommand::List => self.list_themes(),
                 ThemeCommand::Set { theme } => {
@@ -171,7 +171,7 @@ impl TheWay {
     /// Copy a snippet to clipboard
     fn copy(&self, index: usize) -> color_eyre::Result<()> {
         let snippet = self.get_snippet(index)?;
-        utils::copy_to_clipboard(snippet.code)?;
+        utils::copy_to_clipboard(&snippet.code)?;
         println!("Snippet #{} copied to clipboard", index);
         Ok(())
     }
@@ -244,7 +244,7 @@ impl TheWay {
     /// Displays all snippet descriptions in a skim fuzzy search window
     /// A preview window on the right shows the indices of snippets matching the query
     fn search(&self, filters: &Filters) -> color_eyre::Result<()> {
-        let snippets = self.filter_snippets(&filters)?;
+        let snippets = self.filter_snippets(filters)?;
         self.make_search(
             snippets,
             &format!(
@@ -260,7 +260,7 @@ impl TheWay {
     }
 
     /// Generates shell completions
-    fn complete(&self, shell: Shell) -> color_eyre::Result<()> {
+    fn complete(shell: Shell) -> color_eyre::Result<()> {
         TheWayCLI::clap().gen_completions_to(utils::NAME, shell, &mut io::stdout());
         Ok(())
     }

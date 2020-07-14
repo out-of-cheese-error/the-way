@@ -1,4 +1,4 @@
-//! StructOpt data
+//! `StructOpt` data
 use std::path::PathBuf;
 
 use structopt::clap::AppSettings;

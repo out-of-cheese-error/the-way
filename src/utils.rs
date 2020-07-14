@@ -22,8 +22,8 @@ pub const NAME: &str = "the-way";
 pub const SEMICOLON: u8 = 59;
 
 /// Set clipboard contents to text
-/// See https://github.com/aweinstock314/rust-clipboard/issues/28#issuecomment-534295371
-pub fn copy_to_clipboard(text: String) -> color_eyre::Result<()> {
+/// See [issue](https://github.com/aweinstock314/rust-clipboard/issues/28#issuecomment-534295371)
+pub fn copy_to_clipboard(text: &str) -> color_eyre::Result<()> {
     #[cfg(target_os = "macos")]
     let mut command = Command::new("pbcopy");
 

@@ -28,7 +28,7 @@ struct LanguageYML {
 #[derive(Debug, Clone)]
 pub struct Language {
     name: String,
-    pub(crate) extension: String,
+    extension: String,
     pub(crate) color: Color,
 }
 
@@ -108,12 +108,16 @@ pub fn get_languages(yml_string: &str) -> color_eyre::Result<HashMap<String, Lan
 #[derive(Debug)]
 pub(crate) struct CodeHighlight {
     syntax_set: SyntaxSet,
-    pub(crate) theme_set: ThemeSet,
-    pub(crate) theme_name: String,
+    theme_set: ThemeSet,
+    theme_name: String,
     theme_dir: PathBuf,
+    /// Style used to print description
     pub(crate) main_style: Style,
+    /// Style used to print language name
     pub(crate) accent_style: Style,
+    /// Style used to print tags
     pub(crate) tag_style: Style,
+    /// Style in `skim` when selecting during search
     pub(crate) highlight_style: Style,
 }
 
@@ -280,6 +284,7 @@ impl CodeHighlight {
         as_24_bit_terminal_escaped(&[(style, line)], false)
     }
 
+    /// Syntax highlight code block
     pub(crate) fn highlight_code(
         &self,
         code: &str,

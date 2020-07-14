@@ -1,3 +1,4 @@
+//! Code related to syncing snippets to Gist
 use std::collections::HashMap;
 
 use color_eyre::Help;
@@ -7,7 +8,9 @@ use crate::gist::{CreateGistPayload, GistClient, GistContent, UpdateGistPayload}
 use crate::the_way::TheWay;
 use crate::utils;
 
+/// Gist description
 const DESCRIPTION: &str = "The Way Code Snippets";
+/// Heading for the index.md file
 const INDEX: &str = "# Is it not written...\n";
 const USER_AGENT: &str = "the-way";
 
@@ -73,6 +76,7 @@ impl TheWay {
         Ok(result.id)
     }
 
+    /// Syncs local and Gist snippets
     pub(crate) fn sync_gist(&mut self) -> color_eyre::Result<()> {
         // Make client
         let client = GistClient::new(
@@ -133,7 +137,7 @@ impl TheWay {
                                 updated += 1;
                             }
                         }
-                        _ => {}
+                        std::cmp::Ordering::Equal => {}
                     }
                 }
                 // Not in Gist => add

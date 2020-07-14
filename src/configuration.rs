@@ -75,7 +75,7 @@ impl TheWayConfig {
     }
 
     pub(crate) fn print_config_location() -> color_eyre::Result<()> {
-        println!("{}", TheWayConfig::get()?.to_string_lossy());
+        println!("{}", Self::get()?.to_string_lossy());
         Ok(())
     }
 
@@ -130,7 +130,7 @@ impl TheWayConfig {
             Some(file) => {
                 let path = Path::new(&file).to_owned();
                 if path.exists() {
-                    let config: TheWayConfig = confy::load_path(Path::new(&file))?;
+                    let config: Self = confy::load_path(Path::new(&file))?;
                     config.make_dirs()?;
                     Ok(config)
                 } else {

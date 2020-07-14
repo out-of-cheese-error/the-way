@@ -1,3 +1,4 @@
+//! Simple Gist API wrapper
 use std::collections::HashMap;
 
 use chrono::{DateTime, Utc};
@@ -48,6 +49,7 @@ pub struct GistClient {
 }
 
 impl GistClient {
+    /// Create a new Gist client
     pub fn new(access_token: &str, user_agent: &str) -> color_eyre::Result<Self> {
         let mut headers = header::HeaderMap::new();
         headers.insert(
@@ -62,7 +64,7 @@ impl GistClient {
         let client = reqwest::blocking::Client::builder()
             .default_headers(headers)
             .build()?;
-        Ok(GistClient { client })
+        Ok(Self { client })
     }
 
     /// Create a new Gist with the given payload
@@ -121,6 +123,7 @@ impl GistClient {
         Ok(result)
     }
 
+    /// Delete Gist by ID
     pub fn delete_gist(&self, gist_id: &str) -> color_eyre::Result<()> {
         let url = format!("{}{}/gists", GITHUB_API_URL, GITHUB_BASE_PATH);
         let status = self
