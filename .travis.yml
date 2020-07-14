@@ -12,8 +12,7 @@ env:
 addons:
   apt:
     packages:
-      - xvfb
-      - python3
+    - libxcb-xfixes0-dev
 
 matrix:
   allow_failures:
