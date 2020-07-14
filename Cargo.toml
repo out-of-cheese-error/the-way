@@ -25,7 +25,7 @@ directories-next = "1.0.1"
 
 # Error management
 eyre = "0.6.0"
-color-eyre = { version = "0.5.0", default-features = false, features = ["color-spantrace"]}
+color-eyre = { version = "0.5.0", default-features = false}
 thiserror = "1.0.20"
 
 # Database related
