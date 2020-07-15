@@ -23,7 +23,7 @@ main() {
     # Update this to package the right artifacts
     cp target/$TARGET/release/the-way $stage/
     cp README.md $stage/
-    cp demo.gif $stage/
+    cp images/* $stage/
     cp LICENSE $stage/
 
     cd $stage
