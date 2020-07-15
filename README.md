@@ -1,6 +1,6 @@
 [![Crates.io](https://img.shields.io/crates/v/the-way.svg)](https://crates.io/crates/the-way)
 [![Build Status](https://travis-ci.org/out-of-cheese-error/the-way.svg?branch=master)](https://travis-ci.org/out-of-cheese-error/the-way)
-
+  
 # The Way
 A code snippets manager for your terminal.
 
@@ -17,16 +17,33 @@ See it in action (with some self-referential examples):
 
 > made with [Terminalizer](https://github.com/faressoft/terminalizer)
 
-## Install
+Table of Contents
+=================
 
-### Binaries
+* [Table of Contents](#table-of-contents)
+* [Install](#install)
+  * [Binaries](#binaries)
+  * [With cargo](#with-cargo)
+* [Usage](#usage)
+* [Features](#features)
+  * [Main features](#main-features)
+  * [Sync to Gist](#sync-to-gist)
+  * [Shell completions](#shell-completions)
+  * [Syntax highlighting](#syntax-highlighting)
+  * [Configuration](#configuration)
+* [Why "The Way"?](#why-the-way)
+
+
+# Install
+
+## Binaries
 See the [releases](https://github.com/out-of-cheese-error/the-way/releases/latest)
 
 * OSX - allow `the-way` via System Preferences (necessary in Catalina at least)
 * Linux - `chmod +x the-way` 
 * Currently doesn't work on Windows (waiting on [this issue](https://github.com/lotabout/skim/issues/293))
 
-### With cargo
+## With cargo
 ```bash
 cargo install the-way
 ```
@@ -42,7 +59,7 @@ the-way clear
 the-way import snippets.json
 ```
 
-## Usage
+# Usage
 ```
 Record, retrieve, search, and categorize code snippets
 
@@ -75,17 +92,17 @@ SUBCOMMANDS:
     help        Prints this message or the help of the given subcommand(s)
 ```
 
-## Features
+# Features
 
-### Main features
+## Main features
 * Add and edit code snippets
 * Interactive fuzzy search
 * Filter by tag, date, and/or language
 * Copies selected snippet to clipboard
 * Import / export via JSON
 
-### Sync to Gist (new from v0.5.0!)
-`the-way sync` syncs snippets to a Gist, each named `snippet_<index>.<extension>`, with an `index.md` file linking each snippet's description. 
+## Sync to Gist
+`the-way sync` (new from v0.5.0!) syncs snippets to a Gist, each named `snippet_<index>.<extension>`, with an `index.md` file linking each snippet's description. 
 Local updates and deletions are uploaded to the Gist and Gist updates are downloaded.
 
 ![gist](images/gist.png)
@@ -93,13 +110,13 @@ Local updates and deletions are uploaded to the Gist and Gist updates are downlo
 This functionality needs a [GitHub access token](https://github.com/settings/tokens/new) with the "gist" scope. 
 Either enter this token on running `sync` for the first time or set it to the environment variable `$THE_WAY_GITHUB_TOKEN`.
 
-### Shell completions
+## Shell completions
 ```bash
 the-way complete zsh > .oh-my-zsh/completions/_the-way
 exec zsh
 ```
 
-### Syntax highlighting
+## Syntax highlighting
 The Way maps languages to their extensions and uses this to
 1. Enable syntax highlighting in `$EDITOR` (if the editor supports it),
 2. Upload snippets to Gist with the correct extension,
@@ -142,7 +159,7 @@ Here's how it looks before and after adding `Kotlin.sublime-syntax`:
 
 ![kotlin_highlight](images/kotlin_highlight.png)
 
-### Configuration
+## Configuration
 The default config TOML file is located in
 * Linux: `/home/<username>/.config`
 * Mac: `/Users/<username>/Library/Preferences`
@@ -150,5 +167,5 @@ The default config TOML file is located in
 This file contains locations of data directories, which are automatically created and set according to XDG and Standard Directories guidelines.
 Change this by creating a config file with `the-way config default > config.toml` and then setting the environment variable `$THE_WAY_CONFIG` to point to this file.
 
-## Why "The Way"?
+# Why "The Way"?
 The name is a reference to [the Way of Mrs.Cosmopilite](https://wiki.lspace.org/mediawiki/The_Way_of_Mrs._Cosmopilite), kōans for every situation.
