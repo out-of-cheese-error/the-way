@@ -146,7 +146,8 @@ Searching GitHub for [.tmTheme](https://github.com/search?q=.tmTheme) pulls up s
 
 `the-way themes list` shows all available themes.
 
-Use `the-way themes language <language.sublime-syntax>` (from v0.6.0) to add highlight support for a new language. 
+Use `the-way themes language <language.sublime-syntax>` (from v0.6.0) to add highlight support for a new language 
+([many languages](https://github.com/sublimehq/Packages/) are supported by default). 
 Syntax files need to be in Sublime's sublime-syntax format.
 [Zola](https://github.com/getzola/zola/tree/master/sublime/syntaxes) has a nice collection of such files.
 
