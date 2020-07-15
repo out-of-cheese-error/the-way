@@ -136,8 +136,10 @@ Syntax files need to be in Sublime's sublime-syntax format.
 
 Here's how it looks before and after adding `Kotlin.sublime-syntax`:
 * Before:
+
 ![kotlin_plain](images/kotlin_plain.png)
 * After:
+
 ![kotlin_highlight](images/kotlin_highlight.png)
 
 ### Configuration

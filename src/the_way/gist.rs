@@ -210,21 +210,21 @@ impl TheWay {
         }
         spinner.finish_with_message("Done!");
         if added > 0 {
-            println!("Added {} snippet(s)\n", added);
+            println!("Added {} snippet(s)", added);
         }
         if updated > 0 {
-            println!("Updated {} snippet(s)\n", updated);
+            println!("Updated {} snippet(s)", updated);
         }
         if deleted > 0 {
-            println!("Deleted {} snippet(s)\n", deleted);
+            println!("Deleted {} snippet(s)", deleted);
         }
         if downloaded > 0 {
-            println!("Downloaded {} snippet(s)\n", downloaded);
+            println!("Downloaded {} snippet(s)", downloaded);
         }
         if added + updated + downloaded + deleted == 0 {
-            println!("Everything up to date\n");
+            println!("Everything up to date");
         }
-        println!("Gist: {}", gist.html_url);
+        println!("\nGist: {}", gist.html_url);
         Ok(())
     }
 }
