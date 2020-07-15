@@ -20,7 +20,6 @@ See it in action (with some self-referential examples):
 Table of Contents
 =================
 
-* [Table of Contents](#table-of-contents)
 * [Install](#install)
   * [Binaries](#binaries)
   * [With cargo](#with-cargo)
