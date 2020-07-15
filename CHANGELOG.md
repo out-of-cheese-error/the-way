@@ -16,10 +16,10 @@ the-way clear
 the-way import snippets.json
 ```
 ### Added
-`the-way themes language <language.sublime-syntax>` - Add support for syntax highlighting non-default languages
+`the-way themes language <language.sublime-syntax>` - Add support for syntax highlighting non-default languages ([Issue #63](https://github.com/out-of-cheese-error/the-way/issues/63))
 ### Changed
-* Removed color_spantrace dependency
-* Bumped sled to v0.33.0
+* Removed `color_spantrace` dependency
+* Bumped `sled` to v0.33.0
 
 ## [0.5.0] - 2020-07-14
 **BREAKING RELEASE - needs a database migration:**
