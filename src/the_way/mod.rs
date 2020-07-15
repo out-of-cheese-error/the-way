@@ -103,10 +103,8 @@ impl TheWay {
                     self.config.store()?;
                     Ok(())
                 }
-                ThemeCommand::Add { file } => {
-                    self.highlighter.add_theme(file)?;
-                    Ok(())
-                }
+                ThemeCommand::Add { file } => self.highlighter.add_theme(file),
+                ThemeCommand::Language { file } => self.highlighter.add_syntax(file),
                 ThemeCommand::Get => self.get_theme(),
             },
             TheWayCLI::Clear { force } => self.clear(*force),

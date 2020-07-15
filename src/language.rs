@@ -8,7 +8,7 @@ use hex::FromHex;
 use serde_yaml::Value;
 use syntect::easy::HighlightLines;
 use syntect::highlighting::{Color, FontStyle, Style, StyleModifier, ThemeSet};
-use syntect::parsing::SyntaxSet;
+use syntect::parsing::{SyntaxDefinition, SyntaxSet};
 use syntect::util::{as_24_bit_terminal_escaped, LinesWithEndings};
 
 use crate::errors::LostTheWay;
@@ -105,12 +105,11 @@ pub fn get_languages(yml_string: &str) -> color_eyre::Result<HashMap<String, Lan
     Ok(name_to_language)
 }
 
-#[derive(Debug)]
 pub(crate) struct CodeHighlight {
     syntax_set: SyntaxSet,
     theme_set: ThemeSet,
     theme_name: String,
-    theme_dir: PathBuf,
+    syntect_dir: PathBuf,
     /// Style used to print description
     pub(crate) main_style: Style,
     /// Style used to print language name
@@ -124,22 +123,33 @@ pub(crate) struct CodeHighlight {
 impl CodeHighlight {
     /// Loads themes from `theme_dir` and default syntax set.
     /// Sets highlighting styles
-    pub(crate) fn new(theme: &str, theme_dir: PathBuf) -> color_eyre::Result<Self> {
+    pub(crate) fn new(theme: &str, syntect_dir: PathBuf) -> color_eyre::Result<Self> {
         let mut theme_set = ThemeSet::load_defaults();
         theme_set
-            .add_from_folder(&theme_dir)
+            .add_from_folder(&syntect_dir)
             .map_err(|_| LostTheWay::ThemeError {
-                theme: String::from((&theme_dir).to_str().unwrap()),
+                theme: String::from((&syntect_dir).to_str().unwrap()),
             })
             .suggestion(format!(
                 "Make sure {:#?} is a valid directory that has .tmTheme files",
-                &theme_dir
+                &syntect_dir
             ))?;
+        let mut syntax_set = SyntaxSet::load_defaults_newlines().into_builder();
+        syntax_set
+            .add_from_folder(&syntect_dir, true)
+            .map_err(|_| LostTheWay::ThemeError {
+                theme: String::from((&syntect_dir).to_str().unwrap()),
+            })
+            .suggestion(format!(
+                "Make sure {:#?} is a valid directory that has .sublime-syntax files",
+                &syntect_dir
+            ))?;
+        let syntax_set = syntax_set.build();
         let mut highlighter = Self {
-            syntax_set: SyntaxSet::load_defaults_newlines(),
+            syntax_set,
             theme_name: theme.into(),
             theme_set,
-            theme_dir,
+            syntect_dir,
             main_style: Style::default(),
             accent_style: Style::default(),
             tag_style: Style::default(),
@@ -261,9 +271,37 @@ impl CodeHighlight {
             })
             .suggestion("Something's fishy with the filename, valid Unicode?")?;
         // Copy theme to theme file directory
-        let new_theme_file = self.theme_dir.join(format!("{}.tmTheme", basename));
+        let new_theme_file = self.syntect_dir.join(format!("{}.tmTheme", basename));
         fs::copy(theme_file, new_theme_file)?;
         self.theme_set.themes.insert(basename.to_owned(), theme);
+        Ok(())
+    }
+
+    /// Adds a new language syntax from a .sublime-syntax file.
+    /// The file is copied to the themes folder
+    pub(crate) fn add_syntax(&mut self, syntax_file: &Path) -> color_eyre::Result<()> {
+        SyntaxDefinition::load_from_str(
+            &fs::read_to_string(&syntax_file)?,
+            true,
+            None,
+        )
+            .map_err(|_| LostTheWay::SyntaxError {
+                syntax: syntax_file.to_str().unwrap().into(),
+            })
+            .suggestion(format!(
+                "Couldn't load a syntax from {}, are you sure this is a valid .sublime-syntax file with a \'name\' key?",
+                syntax_file.display()
+            ))?;
+        let filename = syntax_file
+            .file_name()
+            .and_then(|x| x.to_str())
+            .ok_or(LostTheWay::SyntaxError {
+                syntax: syntax_file.to_str().unwrap().into(),
+            })
+            .suggestion("Something's fishy with the filename, valid Unicode?")?;
+        // Copy syntax file to syntect dir
+        let new_syntax_file = self.syntect_dir.join(filename);
+        fs::copy(syntax_file, new_syntax_file)?;
         Ok(())
     }
 
@@ -293,7 +331,6 @@ impl CodeHighlight {
         let mut colorized = Vec::new();
         let extension = extension.split('.').nth(1).unwrap_or("txt");
         let syntax = self.syntax_set.find_syntax_by_extension(extension);
-        // TODO: replace github languages with sublime set to match them up? Or vice versa
         let syntax = match syntax {
             Some(syntax) => syntax,
             None => self.syntax_set.find_syntax_by_extension("txt").unwrap(),
