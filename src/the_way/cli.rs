@@ -112,6 +112,11 @@ pub enum ThemeCommand {
         #[structopt(parse(from_os_str))]
         file: PathBuf,
     },
+    /// Add highlight support for a language using a ".sublime-syntax" file.
+    Language {
+        #[structopt(parse(from_os_str))]
+        file: PathBuf,
+    },
     /// Prints the current theme name
     Get,
 }

@@ -25,6 +25,9 @@ pub enum LostTheWay {
     /// Thrown when trying to load a theme which hasn't been added / doesn't exist
     #[error("ThemeError: {theme:?}")]
     ThemeError { theme: String },
+    /// Thrown when trying to load a syntax which hasn't been added / doesn't exist
+    #[error("SyntaxError: {syntax:?}")]
+    SyntaxError { syntax: String },
     #[error("ClipboardError: Couldn't copy to clipboard")]
     ClipboardError,
     #[error("SearchError: Search failed")]
