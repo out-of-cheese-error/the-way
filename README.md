@@ -13,7 +13,7 @@ it into whatever editor or IDE you're working with.
 
 See it in action (with some self-referential examples):
 
-![demo](demo.gif)
+![demo](images/demo.gif)
 
 > made with [Terminalizer](https://github.com/faressoft/terminalizer)
 
@@ -88,7 +88,7 @@ SUBCOMMANDS:
 `the-way sync` syncs snippets to a Gist, each named `snippet_<index>.<extension>`, with an `index.md` file linking each snippet's description. 
 Local updates and deletions are uploaded to the Gist and Gist updates are downloaded.
 
-![gist](gist.png)
+![gist](images/gist.png)
 
 This functionality needs a [GitHub access token](https://github.com/settings/tokens/new) with the "gist" scope. 
 Either enter this token on running `sync` for the first time or set it to the environment variable `$THE_WAY_GITHUB_TOKEN`.
@@ -110,7 +110,7 @@ The last point can be customized via `the-way themes`.
 
 Use `the-way themes set <theme>` to enable a theme.
 
-**Default themes:**
+Default themes:
 ```
 Darcula
 InspiredGitHub
@@ -129,6 +129,16 @@ Theme files need to be in Sublime's [.tmTheme](https://www.sublimetext.com/docs/
 Searching GitHub for [.tmTheme](https://github.com/search?q=.tmTheme) pulls up some examples. 
 
 `the-way themes list` shows all available themes.
+
+Use `the-way themes language <language.sublime-syntax>` (from v0.6.0) to add highlight support for a new language. 
+Syntax files need to be in Sublime's sublime-syntax format.
+[Zola](https://github.com/getzola/zola/tree/master/sublime/syntaxes) has a nice collection of such files.
+
+Here's how it looks before and after adding `Kotlin.sublime-syntax`:
+* Before:
+![kotlin_plain](images/kotlin_plain.png)
+* After:
+![kotlin_highlight](images/kotlin_highlight.png)
 
 ### Configuration
 The default config TOML file is located in
