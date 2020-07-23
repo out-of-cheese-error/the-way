@@ -219,8 +219,8 @@ impl TheWay {
 
     /// Lists snippets (optionally filtered)
     fn list(&self, filters: &Filters) -> color_eyre::Result<()> {
-        let snippets = self.filter_snippets(filters)?;
-
+        let mut snippets = self.filter_snippets(filters)?;
+        snippets.sort_by(|a, b| a.index.cmp(&b.index));
         let mut colorized = Vec::new();
         let default_language = Language::default();
         for snippet in &snippets {
@@ -242,7 +242,8 @@ impl TheWay {
     /// Displays all snippet descriptions in a skim fuzzy search window
     /// A preview window on the right shows the indices of snippets matching the query
     fn search(&self, filters: &Filters) -> color_eyre::Result<()> {
-        let snippets = self.filter_snippets(filters)?;
+        let mut snippets = self.filter_snippets(filters)?;
+        snippets.sort_by(|a, b| a.index.cmp(&b.index));
         self.make_search(
             snippets,
             &format!(
