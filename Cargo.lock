@@ -1650,17 +1650,17 @@ dependencies = [
 
 [[package]]
 name = "the-way"
-version = "0.6.1"
+version = "0.7.0"
 dependencies = [
- "assert_cmd",
- "bincode",
- "chrono",
- "chrono-english",
- "clipboard",
- "color-eyre",
- "confy",
- "dialoguer",
- "directories-next",
+    "assert_cmd",
+    "bincode",
+    "chrono",
+    "chrono-english",
+    "clipboard",
+    "color-eyre",
+    "confy",
+    "dialoguer",
+    "directories-next",
  "eyre",
  "hex",
  "indicatif",
