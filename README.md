@@ -42,6 +42,11 @@ See the [releases](https://github.com/out-of-cheese-error/the-way/releases/lates
 * Linux - `chmod +x the-way` 
 * Currently doesn't work on Windows (waiting on [this issue](https://github.com/lotabout/skim/issues/293))
 
+## With brew (for Mac)
+```bash
+brew tap out-of-cheese-error/the-way && brew install the-way
+```
+
 ## With cargo
 ```bash
 cargo install the-way
