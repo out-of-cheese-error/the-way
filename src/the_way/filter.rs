@@ -72,7 +72,11 @@ impl TheWay {
                 snippets.map(|snippets| {
                     snippets
                         .into_iter()
-                        .filter(|snippet| regex.is_match(&snippet.description))
+                        .filter(|snippet| {
+                            regex.is_match(&snippet.description)
+                                || snippet.tags.iter().any(|tag| regex.is_match(tag))
+                                || regex.is_match(&snippet.code)
+                        })
                         .collect()
                 })
             }
