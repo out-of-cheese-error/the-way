@@ -22,6 +22,7 @@ Table of Contents
 
 * [Install](#install)
   * [Binaries](#binaries)
+  * [With brew](#with-brew)
   * [With cargo](#with-cargo)
 * [Usage](#usage)
 * [Features](#features)
@@ -42,7 +43,7 @@ See the [releases](https://github.com/out-of-cheese-error/the-way/releases/lates
 * Linux - `chmod +x the-way` 
 * Currently doesn't work on Windows (waiting on [this issue](https://github.com/lotabout/skim/issues/293))
 
-## With brew (for Mac)
+## With brew
 ```bash
 brew tap out-of-cheese-error/the-way && brew install the-way
 ```
