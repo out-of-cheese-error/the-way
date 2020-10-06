@@ -6,6 +6,8 @@ use structopt::StructOpt;
 
 use crate::the_way::{snippet::Snippet, TheWay};
 use crate::utils;
+use regex::Regex;
+use std::ffi::OsString;
 
 #[derive(StructOpt, Debug)]
 pub struct Filters {
@@ -21,6 +23,9 @@ pub struct Filters {
     /// Snippets before <date>
     #[structopt(long, parse(try_from_str = utils::parse_date))]
     pub(crate) to: Option<Date<Utc>>,
+    /// Snippets matching pattern
+    #[structopt(short, long)]
+    pub(crate) pattern: Option<OsString>,
 }
 
 impl TheWay {
@@ -41,7 +46,7 @@ impl TheWay {
             ),
             None => None,
         };
-        match (filters.tags.clone(), snippets) {
+        let snippets = match (filters.tags.clone(), snippets) {
             (Some(tags), Some(snippets)) => Ok(snippets
                 .into_iter()
                 .filter(|snippet| {
@@ -60,6 +65,23 @@ impl TheWay {
             }
             (None, Some(snippets)) => Snippet::filter_in_date_range(snippets, from_date, to_date),
             (None, None) => self.list_snippets_in_date_range(from_date, to_date),
-        }
+        };
+        let snippets = match &filters.pattern {
+            Some(pattern) => {
+                let regex = Regex::new(&pattern.to_string_lossy())?;
+                snippets.map(|snippets| {
+                    snippets
+                        .into_iter()
+                        .filter(|snippet| {
+                            regex.is_match(&snippet.description)
+                                || snippet.tags.iter().any(|tag| regex.is_match(tag))
+                                || regex.is_match(&snippet.code)
+                        })
+                        .collect()
+                })
+            }
+            None => snippets,
+        };
+        snippets
     }
 }

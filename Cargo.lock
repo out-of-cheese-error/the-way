@@ -1665,6 +1665,7 @@ dependencies = [
  "hex",
  "indicatif",
  "predicates",
+ "regex",
  "rexpect",
  "serde",
  "serde_derive",
