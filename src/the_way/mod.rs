@@ -1,10 +1,13 @@
 //! CLI code
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::path::Path;
 use std::{fs, io};
 
 use color_eyre::Help;
 use dialoguer::Confirm;
+use lazy_static::lazy_static;
+use regex::Regex;
 use structopt::clap::Shell;
 use structopt::StructOpt;
 
@@ -182,7 +185,12 @@ impl TheWay {
     /// Copy a snippet to clipboard
     fn copy(&self, index: usize) -> color_eyre::Result<()> {
         let snippet = self.get_snippet(index)?;
-        utils::copy_to_clipboard(&snippet.code)?;
+        let code = if snippet.language == "bash" || snippet.language == "shell" {
+            fill_shell_snippet(&snippet.code)?
+        } else {
+            Cow::Borrowed(snippet.code.as_str())
+        };
+        utils::copy_to_clipboard(&code)?;
         println!("Snippet #{} copied to clipboard", index);
         Ok(())
     }
@@ -325,4 +333,45 @@ impl TheWay {
         self.config.store()?;
         Ok(())
     }
+}
+
+/// Fill shell snippet with parameters
+fn fill_shell_snippet(code: &str) -> color_eyre::Result<Cow<str>> {
+    lazy_static! {
+        // Matches the param or param=value **inside** the angular brackets
+        static ref RE1: Regex = Regex::new("<(?P<parameter>[^<]+)>").unwrap();
+        // Matches <param> or <param=value>
+        static ref RE2: Regex = Regex::new("(?P<match><[^<]+>)").unwrap();
+    }
+
+    // Collects unique parameter names and default values
+    // Ignores multiple defaults for same parameter (use different parameter names if this behavior is required)
+    let mut parameters: HashMap<String, Option<String>> = HashMap::new();
+    for capture in RE1.captures_iter(code) {
+        let mut parts = capture["parameter"].split('=');
+        let parameter_name = parts.next().unwrap().to_owned();
+        let default = parts.next().map(|d| d.to_owned());
+        if !parameters.contains_key(&parameter_name)
+            || (parameters[&parameter_name].is_none() && default.is_some())
+        {
+            parameters.insert(parameter_name, default);
+        }
+    }
+
+    // Ask user to fill in parameters
+    let mut filled_parameters = HashMap::new();
+    println!("{}", code);
+    for (parameter_name, default) in parameters {
+        let filled = utils::user_input(&parameter_name, default.as_deref(), true, false)?;
+        filled_parameters.insert(parameter_name, filled);
+    }
+
+    // Replace parameters in code
+    Ok(RE2.replace_all(code, |caps: &regex::Captures| {
+        let parameter = caps["match"][1..caps["match"].len() - 1]
+            .split('=')
+            .next()
+            .unwrap();
+        &filled_parameters[parameter]
+    }))
 }

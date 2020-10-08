@@ -7,7 +7,7 @@ use skim::{AnsiString, ItemPreview, Skim, SkimItem, SkimItemReceiver, SkimItemSe
 
 use crate::errors::LostTheWay;
 use crate::language::Language;
-use crate::the_way::{snippet::Snippet, TheWay};
+use crate::the_way::{fill_shell_snippet, snippet::Snippet, TheWay};
 use crate::utils::copy_to_clipboard;
 
 /// searchable snippet information
@@ -22,6 +22,8 @@ struct SearchSnippet {
     code_highlight: String,
     /// Plain code for copying
     code: String,
+    /// Language
+    language: String,
 }
 
 impl<'a> SkimItem for SearchSnippet {
@@ -38,7 +40,12 @@ impl<'a> SkimItem for SearchSnippet {
     }
 
     fn output(&self) -> Cow<str> {
-        copy_to_clipboard(&self.code).expect("Clipboard Error");
+        let code = if self.language == "bash" || snippet.language == "shell" {
+            fill_shell_snippet(&self.code).unwrap()
+        } else {
+            Cow::Borrowed(self.code.as_str())
+        };
+        copy_to_clipboard(&code).expect("Clipboard Error");
         let text = format!("Copied snippet #{} to clipboard", self.index);
         Cow::Owned(text)
     }
@@ -71,6 +78,7 @@ impl TheWay {
                 text: snippet.get_header(),
                 code: snippet.code,
                 index: snippet.index,
+                language: snippet.language,
             })
             .collect();
         search(search_snippets, highlight_color)?;
@@ -101,7 +109,7 @@ fn search(input: Vec<SearchSnippet>, highlight_color: &str) -> color_eyre::Resul
     let selected_items =
         Skim::run_with(&options, Some(rx_item)).map_or_else(Vec::new, |out| out.selected_items);
     for item in &selected_items {
-        print!("{}{}", item.output(), "\n");
+        println!("{}", item.output());
     }
     Ok(())
 }
