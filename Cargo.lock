@@ -1719,7 +1719,6 @@ dependencies = [
  "eyre",
  "hex",
  "indicatif",
- "lazy_static",
  "predicates",
  "regex",
  "rexpect",

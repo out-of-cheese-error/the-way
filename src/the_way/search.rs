@@ -7,23 +7,16 @@ use skim::{AnsiString, ItemPreview, Skim, SkimItem, SkimItemReceiver, SkimItemSe
 
 use crate::errors::LostTheWay;
 use crate::language::Language;
-use crate::the_way::{fill_shell_snippet, snippet::Snippet, TheWay};
-use crate::utils::copy_to_clipboard;
+use crate::the_way::{snippet::Snippet, TheWay};
 
 /// searchable snippet information
 #[derive(Debug)]
 struct SearchSnippet {
-    index: usize,
+    snippet: Snippet,
     /// Highlighted title
     text_highlight: String,
-    /// Plain text title
-    text: String,
     /// Highlighted code
     code_highlight: String,
-    /// Plain code for copying
-    code: String,
-    /// Language
-    language: String,
 }
 
 impl<'a> SkimItem for SearchSnippet {
@@ -32,7 +25,7 @@ impl<'a> SkimItem for SearchSnippet {
     }
 
     fn text(&self) -> Cow<str> {
-        Cow::Owned(self.text.to_owned())
+        Cow::Owned(self.snippet.get_header())
     }
 
     fn preview(&self) -> ItemPreview {
@@ -40,14 +33,8 @@ impl<'a> SkimItem for SearchSnippet {
     }
 
     fn output(&self) -> Cow<str> {
-        let code = if self.language == "bash" || self.language == "shell" {
-            fill_shell_snippet(&self.code).unwrap()
-        } else {
-            Cow::Borrowed(self.code.as_str())
-        };
-        copy_to_clipboard(&code).expect("Clipboard Error");
-        let text = format!("Copied snippet #{} to clipboard", self.index);
-        Cow::Owned(text)
+        self.snippet.copy().expect("Clipboard Error");
+        Cow::Owned(String::new())
     }
 }
 
@@ -75,10 +62,7 @@ impl TheWay {
                     )
                     .unwrap_or_default()
                     .join(""),
-                text: snippet.get_header(),
-                code: snippet.code,
-                index: snippet.index,
-                language: snippet.language,
+                snippet,
             })
             .collect();
         search(search_snippets, highlight_color)?;
