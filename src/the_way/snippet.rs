@@ -99,6 +99,10 @@ impl Snippet {
             .and_hms(0, 0, 0),
             None => Utc::now(),
         };
+        // TODO: display editable code as default after dialoguer allows arrow key navigation
+        // let show_default = old_code
+        //     .map(|c| c.split('\n').nth(1).is_none())
+        //     .unwrap_or(false);
         let mut code = utils::user_input(
             "Code snippet (<RET> to edit in external editor)",
             None,
