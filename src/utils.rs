@@ -5,7 +5,7 @@ use std::str;
 use chrono::{Date, DateTime, Utc, MAX_DATE, MIN_DATE};
 use chrono_english::{parse_date_string, Dialect};
 use color_eyre::Help;
-use dialoguer::{theme, Editor, Input};
+use dialoguer::{Editor, Input};
 
 use crate::errors::LostTheWay;
 
@@ -128,23 +128,28 @@ pub fn user_input(
     show_default: bool,
     allow_empty: bool,
 ) -> color_eyre::Result<String> {
+    let theme = dialoguer::theme::ColorfulTheme::default();
     match default {
-        Some(default) => Ok(Input::with_theme(&theme::ColorfulTheme::default())
+        Some(default) => {
+            let mut input = Input::with_theme(&theme);
+            input
+                .with_prompt(message)
+                .allow_empty(allow_empty)
+                .default(default.to_owned())
+                .show_default(false);
+            if show_default {
+                input.with_initial_text(default);
+            }
+            // TODO: replace with `interact_text` on next dialoguer release
+            Ok(input.interact()?.trim().to_owned())
+        }
+        None => Ok(Input::<String>::with_theme(&theme)
             .with_prompt(message)
-            .default(default.to_owned())
-            .show_default(show_default)
             .allow_empty(allow_empty)
+            // TODO: replace with `interact_text` on next dialoguer release
             .interact()?
             .trim()
             .to_owned()),
-        None => Ok(
-            Input::<String>::with_theme(&theme::ColorfulTheme::default())
-                .with_prompt(message)
-                .allow_empty(allow_empty)
-                .interact()?
-                .trim()
-                .to_owned(),
-        ),
     }
 }
 
