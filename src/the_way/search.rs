@@ -40,7 +40,7 @@ impl<'a> SkimItem for SearchSnippet {
     }
 
     fn output(&self) -> Cow<str> {
-        let code = if self.language == "bash" || snippet.language == "shell" {
+        let code = if self.language == "bash" || self.language == "shell" {
             fill_shell_snippet(&self.code).unwrap()
         } else {
             Cow::Borrowed(self.code.as_str())
