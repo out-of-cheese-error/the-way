@@ -421,7 +421,7 @@ fn copy() -> color_eyre::Result<()> {
         .arg("1")
         .assert()
         .stdout(predicate::str::starts_with(
-            "Snippet #1 copied to clipboard",
+            "Copied snippet #1 to clipboard",
         ));
     let ctx: color_eyre::Result<ClipboardContext, _> = ClipboardProvider::new();
     assert!(ctx.is_ok());
@@ -431,6 +431,60 @@ fn copy() -> color_eyre::Result<()> {
     let contents = contents.unwrap();
     assert!(contents.contains("some\ntest\ncode"));
     temp_dir.close()?;
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
+#[test]
+fn copy_shell_script() -> color_eyre::Result<()> {
+    use clipboard::{ClipboardContext, ClipboardProvider};
+
+    let temp_dir = tempdir()?;
+    let config_file = make_config_file(&temp_dir)?;
+    assert!(copy_shell_script_rexpect(config_file).is_ok());
+    let ctx: color_eyre::Result<ClipboardContext, _> = ClipboardProvider::new();
+    assert!(ctx.is_ok());
+    let mut ctx = ctx.unwrap();
+    let contents = ctx.get_contents();
+    assert!(contents.is_ok());
+    let contents = contents.unwrap();
+    assert!(contents.contains("shell snippet value1 code value2 value1"));
+    temp_dir.close()?;
+    Ok(())
+}
+
+fn copy_shell_script_rexpect(config_file: PathBuf) -> rexpect::errors::Result<()> {
+    let mut p = spawn_bash(Some(3000))?;
+    p.send_line(&format!(
+        "export THE_WAY_CONFIG={}",
+        config_file.to_string_lossy()
+    ))?;
+
+    let executable = env!("CARGO_BIN_EXE_the-way");
+    p.wait_for_prompt()?;
+    p.send_line(&format!("{} config get", executable))?;
+    p.exp_regex(config_file.to_string_lossy().as_ref())?;
+    // add a shell snippet
+    p.execute(
+        &format!(
+            "{} cmd \"shell snippet <param1=value1> code <param2> <param1>\"",
+            executable
+        ),
+        "Command",
+    )?;
+    p.send_line("\n")?;
+    p.exp_string("Description")?;
+    p.send_line("test description 1")?;
+    p.exp_regex("Tags")?;
+    p.send_line("tag1 tag2")?;
+    p.exp_regex("Added snippet #1")?;
+    p.wait_for_prompt()?;
+    // Test interactive copy
+    p.execute(&format!("{} cp 1", executable), "param1")?;
+    p.send_line("\n")?;
+    p.exp_string("param2")?;
+    p.send_line("value2")?;
+    p.exp_regex("Copied snippet #1 to clipboard")?;
     Ok(())
 }
 
