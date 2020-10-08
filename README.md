@@ -29,6 +29,7 @@ Table of Contents
 * [Usage](#usage)
 * [Features](#features)
   * [Main features](#main-features)
+  * [Shell commands](#shell-commands)
   * [Sync to Gist](#sync-to-gist)
   * [Shell completions](#shell-completions)
   * [Syntax highlighting](#syntax-highlighting)
@@ -74,15 +75,12 @@ USAGE:
     the-way <SUBCOMMAND>
 
 FLAGS:
-    -h, --help
-            Prints help information
-
-    -V, --version
-            Prints version information
-
+    -h, --help       Prints help information
+    -V, --version    Prints version information
 
 SUBCOMMANDS:
-    new         Add a new snippet
+    new         Add a new code snippet
+    cmd         Add a new shell snippet
     search      Fuzzy search and copy selected to clipboard
     sync        Sync snippets to a Gist
     edit        Change snippet
@@ -104,7 +102,7 @@ SUBCOMMANDS:
 ## Main features
 * Add and edit code snippets
 * Interactive fuzzy search
-* Filter by tag, date, and/or language
+* Filter by tag, date, language and/or regex pattern
 * Copies selected snippet to clipboard
 * Import / export via JSON
 
@@ -145,7 +143,7 @@ every time you select it (with `search` or `cp`), you can interactively fill the
 just use the same name and write in the default the first time it's used.
 
 ## Sync to Gist
-`the-way sync` (new from v0.5.0!) syncs snippets to a Gist, each named `snippet_<index>.<extension>`, with an `index.md` file linking each snippet's description. 
+`the-way sync` syncs snippets to a Gist, each named `snippet_<index>.<extension>`, with an `index.md` file linking each snippet's description. 
 Local updates and deletions are uploaded to the Gist and Gist updates are downloaded.
 
 ![gist](images/gist.png)
@@ -190,7 +188,7 @@ Searching GitHub for [.tmTheme](https://github.com/search?q=.tmTheme) pulls up s
 
 `the-way themes list` shows all available themes.
 
-Use `the-way themes language <language.sublime-syntax>` (from v0.6.0) to add highlight support for a new language 
+Use `the-way themes language <language.sublime-syntax>` to add highlight support for a new language 
 ([many languages](https://github.com/sublimehq/Packages/) are supported by default). 
 Syntax files need to be in Sublime's sublime-syntax format.
 [Zola](https://github.com/getzola/zola/tree/master/sublime/syntaxes) has a nice collection of such files.
