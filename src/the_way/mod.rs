@@ -70,6 +70,10 @@ impl TheWay {
     fn run(&mut self) -> color_eyre::Result<()> {
         match &self.cli {
             TheWayCLI::New => self.the_way(),
+            TheWayCLI::Cmd { code } => {
+                let code = code.clone();
+                self.the_way_cmd(code)
+            }
             TheWayCLI::Search { filters } => self.search(filters),
             TheWayCLI::Cp { index } => self.copy(*index),
             TheWayCLI::Edit { index } => {
@@ -120,6 +124,15 @@ impl TheWay {
     fn the_way(&mut self) -> color_eyre::Result<()> {
         let snippet =
             Snippet::from_user(self.get_current_snippet_index()? + 1, &self.languages, None)?;
+        println!("Added snippet #{}", self.add_snippet(&snippet)?);
+        self.increment_snippet_index()?;
+        Ok(())
+    }
+
+    /// Adds a new shell snippet
+    fn the_way_cmd(&mut self, code: Option<String>) -> color_eyre::Result<()> {
+        let snippet =
+            Snippet::cmd_from_user(self.get_current_snippet_index()? + 1, code.as_deref())?;
         println!("Added snippet #{}", self.add_snippet(&snippet)?);
         self.increment_snippet_index()?;
         Ok(())

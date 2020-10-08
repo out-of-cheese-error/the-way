@@ -171,6 +171,40 @@ fn change_snippet_rexpect(config_file: PathBuf) -> rexpect::errors::Result<()> {
     Ok(())
 }
 
+fn add_two_cmd_snippets_rexpect(config_file: PathBuf) -> rexpect::errors::Result<()> {
+    let mut p = spawn_bash(Some(3000))?;
+    p.send_line(&format!(
+        "export THE_WAY_CONFIG={}",
+        config_file.to_string_lossy()
+    ))?;
+
+    let executable = env!("CARGO_BIN_EXE_the-way");
+    p.wait_for_prompt()?;
+    p.send_line(&format!("{} config get", executable))?;
+    p.exp_regex(config_file.to_string_lossy().as_ref())?;
+    // as argument
+    p.execute(
+        &format!("{} cmd \"shell snippet 1\"", executable),
+        "Command",
+    )?;
+    p.send_line("\n")?;
+    p.exp_string("Description")?;
+    p.send_line("test description 1")?;
+    p.exp_regex("Tags")?;
+    p.send_line("tag1 tag2")?;
+    p.exp_regex("Added snippet #1")?;
+    p.wait_for_prompt()?;
+    // interactively
+    p.execute(&format!("{} cmd", executable), "Command")?;
+    p.send_line("shell snippet 2")?;
+    p.exp_string("Description")?;
+    p.send_line("test description 2")?;
+    p.exp_regex("Tags")?;
+    p.send_line("tag1 tag2")?;
+    p.exp_regex("Added snippet #2")?;
+    Ok(())
+}
+
 #[ignore] // expensive, and change_snippet tests both
 #[test]
 fn add_snippet() -> color_eyre::Result<()> {
@@ -186,6 +220,15 @@ fn add_two_snippets() -> color_eyre::Result<()> {
     let temp_dir = tempdir()?;
     let config_file = make_config_file(&temp_dir)?;
     assert!(add_two_snippets_rexpect(config_file).is_ok());
+    temp_dir.close()?;
+    Ok(())
+}
+
+#[test]
+fn add_two_cmd_snippets() -> color_eyre::Result<()> {
+    let temp_dir = tempdir()?;
+    let config_file = make_config_file(&temp_dir)?;
+    assert!(add_two_cmd_snippets_rexpect(config_file).is_ok());
     temp_dir.close()?;
     Ok(())
 }

@@ -118,6 +118,23 @@ impl Snippet {
         ))
     }
 
+    /// Queries user for new shell snippet info
+    pub(crate) fn cmd_from_user(index: usize, code: Option<&str>) -> color_eyre::Result<Self> {
+        let code = utils::user_input("Command", code, true, false)?;
+        let description = utils::user_input("Description", None, true, false)?;
+        let tags = utils::user_input("Tags (space separated)", None, true, true)?;
+        Ok(Self::new(
+            index,
+            description,
+            "shell".into(),
+            "sh".into(),
+            &tags,
+            Utc::now(),
+            Utc::now(),
+            code,
+        ))
+    }
+
     /// write snippet to database
     pub(crate) fn to_bytes(&self) -> color_eyre::Result<Vec<u8>> {
         Ok(bincode::serialize(&self)?)
