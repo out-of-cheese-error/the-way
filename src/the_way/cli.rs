@@ -16,8 +16,13 @@ global_settings = & [AppSettings::DeriveDisplayOrder]
 )]
 /// Record, retrieve, search, and categorize code snippets
 pub enum TheWayCLI {
-    /// Add a new snippet
+    /// Add a new code snippet
     New,
+    /// Add a new shell snippet
+    Cmd {
+        /// shell snippet code
+        code: Option<String>,
+    },
     /// Fuzzy search and copy selected to clipboard
     Search {
         #[structopt(flatten)]

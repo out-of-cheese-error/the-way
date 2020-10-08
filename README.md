@@ -108,6 +108,42 @@ SUBCOMMANDS:
 * Copies selected snippet to clipboard
 * Import / export via JSON
 
+## Shell commands
+`the-way cmd` (new from v0.9.0, inspired by [pet](https://github.com/knqyf263/pet)) makes it easier to save single-line 
+bash/shell snippets with variables that can be filled in whenever the snippet is needed. 
+
+Add the following function according to your shell of choice. Every time you spend ages hand-crafting the perfect command: run it, 
+close all the stackoverflow tabs, and run `cmdsave` to save it to `the-way`.
+
+### bash
+```shell script
+function cmdsave() {
+  PREV=$(echo `history | tail -n2 | head -n1` | sed 's/[0-9]* //')
+  sh -c "the-way cmd `printf %q "$PREV"`"
+}
+```
+### zsh
+ 
+```shell script
+function cmdsave() {
+  PREV=$(fc -lrn | head -n 1)
+  sh -c "the-way cmd `printf %q "$PREV"`"
+}
+```
+
+### fish
+
+```shell script
+function cmdsave
+  set line (echo $history[1])
+  the-way cmd $line
+end
+```
+
+You'll usually want different parameters each time you need a shell command: save variables in a shell snippet as `<param>` or `<param=default_value>` and 
+every time you select it (with `search` or `cp`), you can interactively fill them in (or keep the defaults). Parameters can appear more than once, 
+just use the same name and write in the default the first time it's used.
+
 ## Sync to Gist
 `the-way sync` (new from v0.5.0!) syncs snippets to a Gist, each named `snippet_<index>.<extension>`, with an `index.md` file linking each snippet's description. 
 Local updates and deletions are uploaded to the Gist and Gist updates are downloaded.

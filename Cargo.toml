@@ -56,7 +56,7 @@ hex = "0.4.2"
 # Sync to Gist/GitLab
 ureq = { version = "1.5.1", features = ["json"] }
 
-# pattern filter
+# pattern filter and filling shell script variables
 regex = "1.3.9"
 
 [dev-dependencies]

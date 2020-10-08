@@ -1,8 +1,10 @@
 //! Snippet information and methods
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::io;
 
 use chrono::{DateTime, Utc};
+use regex::Regex;
 
 use crate::language::{CodeHighlight, Language};
 use crate::utils;
@@ -113,6 +115,23 @@ impl Snippet {
             extension,
             &tags,
             date,
+            Utc::now(),
+            code,
+        ))
+    }
+
+    /// Queries user for new shell snippet info
+    pub(crate) fn cmd_from_user(index: usize, code: Option<&str>) -> color_eyre::Result<Self> {
+        let code = utils::user_input("Command", code, true, false)?;
+        let description = utils::user_input("Description", None, true, false)?;
+        let tags = utils::user_input("Tags (space separated)", None, true, true)?;
+        Ok(Self::new(
+            index,
+            description,
+            "sh".into(),
+            "sh".into(),
+            &tags,
+            Utc::now(),
             Utc::now(),
             code,
         ))
@@ -231,5 +250,63 @@ impl Snippet {
         colorized.push(String::from("\n"));
         colorized.push(String::from("\n"));
         Ok(colorized)
+    }
+
+    pub(crate) fn copy(&self) -> color_eyre::Result<()> {
+        let code = self.fill_snippet()?;
+        utils::copy_to_clipboard(&code).expect("Clipboard Error");
+        println!("Copied snippet #{} to clipboard", self.index);
+        Ok(())
+    }
+
+    fn is_shell_snippet(&self) -> bool {
+        // sh, bash, csh, tcsh
+        match self.language.as_str() {
+            "sh" | "bash" | "csh" | "tcsh" => true,
+            _ => false,
+        }
+    }
+
+    /// If snippet is a shell snippet, interactively fill parameters
+    fn fill_snippet(&self) -> color_eyre::Result<Cow<str>> {
+        // other languages, return as is
+        if !self.is_shell_snippet() {
+            return Ok(Cow::Borrowed(self.code.as_str()));
+        }
+        // Matches the param or param=value **inside** the angular brackets
+        let re1 = Regex::new("<(?P<parameter>[^<]+)>")?;
+        // Matches <param> or <param=value>
+        let re2 = Regex::new("(?P<match><[^<]+>)")?;
+
+        // Ask user to fill in (unique) parameters
+        let mut filled_parameters = HashMap::new();
+        println!("{}", self.code);
+        for capture in re1.captures_iter(&self.code) {
+            let mut parts = capture["parameter"].split('=');
+            let parameter_name = parts.next().unwrap().to_owned();
+            let default = parts.next();
+            // TODO: Waiting on [issue #71024](https://github.com/rust-lang/rust/issues/71024)
+            // filled_parameters
+            //     .entry(parameter_name)
+            //     .or_insert_with_key(|parameter_name| utils::user_input(
+            //         &parameter_name,
+            //         default.as_deref(),
+            //         true,
+            //         false,
+            //     )?);
+            if !filled_parameters.contains_key(&parameter_name) {
+                let filled = utils::user_input(&parameter_name, default, true, false)?;
+                filled_parameters.insert(parameter_name, filled);
+            }
+        }
+
+        // Replace parameters in code
+        Ok(re2.replace_all(&self.code, |caps: &regex::Captures| {
+            let parameter = caps["match"][1..caps["match"].len() - 1]
+                .split('=')
+                .next()
+                .unwrap();
+            &filled_parameters[parameter]
+        }))
     }
 }

@@ -8,20 +8,15 @@ use skim::{AnsiString, ItemPreview, Skim, SkimItem, SkimItemReceiver, SkimItemSe
 use crate::errors::LostTheWay;
 use crate::language::Language;
 use crate::the_way::{snippet::Snippet, TheWay};
-use crate::utils::copy_to_clipboard;
 
 /// searchable snippet information
 #[derive(Debug)]
 struct SearchSnippet {
-    index: usize,
+    snippet: Snippet,
     /// Highlighted title
     text_highlight: String,
-    /// Plain text title
-    text: String,
     /// Highlighted code
     code_highlight: String,
-    /// Plain code for copying
-    code: String,
 }
 
 impl<'a> SkimItem for SearchSnippet {
@@ -30,7 +25,7 @@ impl<'a> SkimItem for SearchSnippet {
     }
 
     fn text(&self) -> Cow<str> {
-        Cow::Owned(self.text.to_owned())
+        Cow::Owned(self.snippet.get_header())
     }
 
     fn preview(&self) -> ItemPreview {
@@ -38,9 +33,8 @@ impl<'a> SkimItem for SearchSnippet {
     }
 
     fn output(&self) -> Cow<str> {
-        copy_to_clipboard(&self.code).expect("Clipboard Error");
-        let text = format!("Copied snippet #{} to clipboard", self.index);
-        Cow::Owned(text)
+        self.snippet.copy().expect("Clipboard Error");
+        Cow::Owned(String::new())
     }
 }
 
@@ -68,9 +62,7 @@ impl TheWay {
                     )
                     .unwrap_or_default()
                     .join(""),
-                text: snippet.get_header(),
-                code: snippet.code,
-                index: snippet.index,
+                snippet,
             })
             .collect();
         search(search_snippets, highlight_color)?;
@@ -101,7 +93,7 @@ fn search(input: Vec<SearchSnippet>, highlight_color: &str) -> color_eyre::Resul
     let selected_items =
         Skim::run_with(&options, Some(rx_item)).map_or_else(Vec::new, |out| out.selected_items);
     for item in &selected_items {
-        print!("{}{}", item.output(), "\n");
+        println!("{}", item.output());
     }
     Ok(())
 }
