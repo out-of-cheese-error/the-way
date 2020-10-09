@@ -201,6 +201,10 @@ Here's how it looks before and after adding `Kotlin.sublime-syntax`:
 
 ![kotlin_highlight](images/kotlin_highlight.png)
 
+To get syntax highlighting for code blocks in markdown files, download and add the patched `Markdown.sublime-syntax` file in this repository, 
+taken from [bat](https://github.com/sharkdp/bat/blob/master/assets/patches/Markdown.sublime-syntax.patch) 
+(the default syntax file [doesn't do this anymore](https://github.com/sharkdp/bat/issues/963))
+
 ## Configuration
 The default config TOML file is located in
 * Linux: `/home/<username>/.config`
