@@ -41,6 +41,7 @@ pub struct Gist {
 pub struct GistFile {
     filename: String,
     pub content: String,
+    pub language: String,
 }
 
 pub struct GistClient {
