@@ -290,6 +290,28 @@ fn import_multiple_no_tags() -> color_eyre::Result<()> {
 }
 
 #[test]
+fn import_gist() -> color_eyre::Result<()> {
+    let temp_dir = tempdir()?;
+    let config_file = make_config_file(&temp_dir)?;
+    let mut cmd = Command::cargo_bin("the-way")?;
+    cmd.env("THE_WAY_CONFIG", &config_file)
+        .arg("import")
+        .arg("-g https://gist.github.com/xiaochuanyu/e5deab8d78ce838f22f160c9b14daf17")
+        .assert()
+        .success();
+    let mut cmd = Command::cargo_bin("the-way")?;
+    cmd.env("THE_WAY_CONFIG", &config_file)
+        .arg("view")
+        .arg("1")
+        .assert()
+        .stdout(predicate::str::contains(
+            "the-way Test - e5deab8d78ce838f22f160c9b14daf17 - TestTheWay.java",
+        ));
+    temp_dir.close()?;
+    Ok(())
+}
+
+#[test]
 fn export() -> color_eyre::Result<()> {
     use the_way::the_way::snippet::Snippet;
 
@@ -492,7 +514,7 @@ fn copy_shell_script_rexpect(config_file: PathBuf) -> rexpect::errors::Result<()
 #[test]
 /// Tests Gist sync functionality. Needs to have the environment variable $THE_WAY_GITHUB_TOKEN set!
 /// Ignored by default since Travis doesn't allow secret/encrypted environment variables in PRs
-fn gist() -> color_eyre::Result<()> {
+fn gist_sync() -> color_eyre::Result<()> {
     use the_way::configuration::TheWayConfig;
     use the_way::gist::{GistClient, GistContent, UpdateGistPayload};
 
