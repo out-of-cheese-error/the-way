@@ -86,6 +86,13 @@ impl TheWay {
             }
             TheWayCLI::View { index } => self.view(*index),
             TheWayCLI::List { filters } => self.list(filters),
+            TheWayCLI::ImportGist { gist_url } => {
+                let gist_url = gist_url.clone();
+                let snippets = self.import_gist(&gist_url)?;
+                println!("Imported {} snippets from {}", snippets.len(), gist_url);
+                self.show_snippets(&snippets)?;
+                Ok(())
+            }
             TheWayCLI::Import { file } => {
                 let mut num = 0;
                 for mut snippet in self.import(file.as_deref())? {
@@ -229,13 +236,11 @@ impl TheWay {
         Ok(())
     }
 
-    /// Lists snippets (optionally filtered)
-    fn list(&self, filters: &Filters) -> color_eyre::Result<()> {
-        let mut snippets = self.filter_snippets(filters)?;
-        snippets.sort_by(|a, b| a.index.cmp(&b.index));
+    /// Prints given snippets
+    fn show_snippets(&self, snippets: &Vec<Snippet>) -> color_eyre::Result<()> {
         let mut colorized = Vec::new();
         let default_language = Language::default();
-        for snippet in &snippets {
+        for snippet in snippets {
             colorized.extend_from_slice(
                 &snippet.pretty_print(
                     &self.highlighter,
@@ -248,6 +253,14 @@ impl TheWay {
         for line in colorized {
             print!("{}", line);
         }
+        Ok(())
+    }
+
+    /// Lists snippets (optionally filtered)
+    fn list(&self, filters: &Filters) -> color_eyre::Result<()> {
+        let mut snippets = self.filter_snippets(filters)?;
+        snippets.sort_by(|a, b| a.index.cmp(&b.index));
+        self.show_snippets(&snippets)?;
         Ok(())
     }
 

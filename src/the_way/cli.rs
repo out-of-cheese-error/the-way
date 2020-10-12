@@ -71,6 +71,17 @@ pub enum TheWayCLI {
         #[structopt(parse(from_os_str))]
         file: Option<PathBuf>,
     },
+    /// Imports code snippets from a Gist given the URL.
+    ///
+    /// Multiple files will be converted to separate snippets.
+    /// Snippet description is created based on Gist description and file name with the format 
+    /// "<gist_description> - <file_name>".
+    /// Each snippet will be tagged with "gist" and its Gist ID.
+    /// Works for both secret and public gists.
+    ImportGist {
+        /// Gist URL
+        gist_url: String,
+    },
     /// Saves (optionally filtered) snippets to JSON.
     Export {
         /// filename, writes to stdout if not given
