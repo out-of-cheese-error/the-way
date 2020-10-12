@@ -26,7 +26,7 @@ impl TheWay {
             return Err(err);
         }
         let gist = gist.unwrap();
-        let start_index = self.get_current_snippet_index()?;
+        let start_index = self.get_current_snippet_index()? + 1;
         let snippets = Snippet::from_gist(start_index, &self.languages, &gist)?;
         for snippet in &snippets {
             self.add_snippet(&snippet)?;

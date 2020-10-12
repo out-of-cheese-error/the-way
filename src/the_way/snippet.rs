@@ -175,7 +175,7 @@ impl Snippet {
         let mut snippets = Vec::new();
         for (file_name, gist_file) in &gist.files {
             let code = &gist_file.content;
-            let description = format!("{} - {}", gist.description, file_name);
+            let description = format!("{} - {} - {}", gist.description, gist.id, file_name);
             let language = &gist_file.language;
             let tags = format!("gist {}", gist.id);
             let extension = Language::get_extension(&language, languages);
