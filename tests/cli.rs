@@ -289,6 +289,9 @@ fn import_multiple_no_tags() -> color_eyre::Result<()> {
     Ok(())
 }
 
+// This test triggers Github rate limit when ran by CI.
+// Making it target a single platform as a hacky workaround.
+#[cfg(target_os = "macos")]
 #[test]
 fn import_gist() -> color_eyre::Result<()> {
     let temp_dir = tempdir()?;
