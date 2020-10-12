@@ -527,7 +527,8 @@ fn gist() -> color_eyre::Result<()> {
     assert!(config.gist_id.is_some());
 
     // get Gist
-    let client = GistClient::new(&std::env::var("THE_WAY_GITHUB_TOKEN")?, "the-way")?;
+    let token = &std::env::var("THE_WAY_GITHUB_TOKEN")?;
+    let client = GistClient::new(Some(token))?;
     let gist = client.get_gist(&config.gist_id.unwrap());
     assert!(gist.is_ok());
     let gist = gist?;
