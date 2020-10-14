@@ -289,6 +289,9 @@ fn import_multiple_no_tags() -> color_eyre::Result<()> {
     Ok(())
 }
 
+// This test is ignored because it tries to fetch a real Gist and runs into
+// Github rate limits when ran by CI (not sure why this happens though).
+#[ignore]
 #[test]
 fn import_gist() -> color_eyre::Result<()> {
     let temp_dir = tempdir()?;
