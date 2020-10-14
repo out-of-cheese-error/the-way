@@ -105,6 +105,7 @@ SUBCOMMANDS:
 * Filter by tag, date, language and/or regex pattern
 * Copies selected snippet to clipboard
 * Import / export via JSON
+* Import from Gist
 
 ## Shell commands
 `the-way cmd` (new from v0.9.0, inspired by [pet](https://github.com/knqyf263/pet)) makes it easier to save single-line 
