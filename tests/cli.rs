@@ -517,7 +517,7 @@ fn copy_shell_script_rexpect(config_file: PathBuf) -> rexpect::errors::Result<()
 #[test]
 /// Tests Gist sync functionality. Needs to have the environment variable $THE_WAY_GITHUB_TOKEN set!
 /// Ignored by default since Travis doesn't allow secret/encrypted environment variables in PRs
-fn gist_sync() -> color_eyre::Result<()> {
+fn sync_gist() -> color_eyre::Result<()> {
     use the_way::configuration::TheWayConfig;
     use the_way::gist::{GistClient, GistContent, UpdateGistPayload};
 

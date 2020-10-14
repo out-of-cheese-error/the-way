@@ -60,57 +60,36 @@ impl TheWay {
             config,
         };
         the_way.set_merge()?;
-        the_way.run(&cli)?;
+        the_way.run(cli)?;
         Ok(())
     }
 
-    fn run(&mut self, cli: &TheWayCLI) -> color_eyre::Result<()> {
+    fn run(&mut self, cli: TheWayCLI) -> color_eyre::Result<()> {
         match cli {
             TheWayCLI::New => self.the_way(),
-            TheWayCLI::Cmd { code } => {
-                self.the_way_cmd(code)
-            }
-            TheWayCLI::Search { filters } => self.search(filters),
-            TheWayCLI::Cp { index } => self.copy(*index),
-            TheWayCLI::Edit { index } => {
-                self.edit(*index)
-            }
-            TheWayCLI::Del { index, force } => {
-                self.delete(*index, *force)
-            }
-            TheWayCLI::View { index } => self.view(*index),
-            TheWayCLI::List { filters } => self.list(filters),
-            TheWayCLI::Import { file, gist_url } => {
-                let mut num = 0;
-                if let Some(gist_url) = gist_url {
-                    let snippets = self.import_gist(gist_url)?;
-                    num = snippets.len();
-                } else {
-                    for mut snippet in self.import(file.as_deref())? {
-                        snippet.index = self.get_current_snippet_index()? + 1;
-                        self.add_snippet(&snippet)?;
-                        self.increment_snippet_index()?;
-                        num += 1;
-                    }
-                }
-                println!("Imported {} snippets", num);
-                Ok(())
-            }
-            TheWayCLI::Export { filters, file } => self.export(filters, file.as_deref()),
-            TheWayCLI::Complete { shell } => Self::complete(*shell),
+            TheWayCLI::Cmd { code } => self.the_way_cmd(code),
+            TheWayCLI::Search { filters } => self.search(&filters),
+            TheWayCLI::Cp { index } => self.copy(index),
+            TheWayCLI::Edit { index } => self.edit(index),
+            TheWayCLI::Del { index, force } => self.delete(index, force),
+            TheWayCLI::View { index } => self.view(index),
+            TheWayCLI::List { filters } => self.list(&filters),
+            TheWayCLI::Import { file, gist_url } => self.import(file.as_deref(), gist_url),
+            TheWayCLI::Export { filters, file } => self.export(&filters, file.as_deref()),
+            TheWayCLI::Complete { shell } => Self::complete(shell),
             TheWayCLI::Themes { cmd } => match cmd {
                 ThemeCommand::List => self.list_themes(),
                 ThemeCommand::Set { theme } => {
                     self.highlighter.set_theme(theme.to_owned())?;
-                    self.config.theme = theme.to_owned();
+                    self.config.theme = theme;
                     self.config.store()?;
                     Ok(())
                 }
-                ThemeCommand::Add { file } => self.highlighter.add_theme(file),
-                ThemeCommand::Language { file } => self.highlighter.add_syntax(file),
+                ThemeCommand::Add { file } => self.highlighter.add_theme(&file),
+                ThemeCommand::Language { file } => self.highlighter.add_syntax(&file),
                 ThemeCommand::Get => self.get_theme(),
             },
-            TheWayCLI::Clear { force } => self.clear(*force),
+            TheWayCLI::Clear { force } => self.clear(force),
             TheWayCLI::Config { cmd } => match cmd {
                 ConfigCommand::Default { file } => TheWayConfig::default_config(file.as_deref()), //Already handled
                 ConfigCommand::Get => TheWayConfig::print_config_location(),
@@ -129,7 +108,7 @@ impl TheWay {
     }
 
     /// Adds a new shell snippet
-    fn the_way_cmd(&mut self, code: &Option<String>) -> color_eyre::Result<()> {
+    fn the_way_cmd(&mut self, code: Option<String>) -> color_eyre::Result<()> {
         let snippet =
             Snippet::cmd_from_user(self.get_current_snippet_index()? + 1, code.as_deref())?;
         println!("Added snippet #{}", self.add_snippet(&snippet)?);
@@ -199,9 +178,27 @@ impl TheWay {
         Ok(())
     }
 
+    /// Import from file or gist
+    fn import(&mut self, file: Option<&Path>, gist_url: Option<String>) -> color_eyre::Result<()> {
+        let mut num = 0;
+        if let Some(gist_url) = gist_url {
+            let snippets = self.import_gist(&gist_url)?;
+            num = snippets.len();
+        } else {
+            for mut snippet in self.import_file(file)? {
+                snippet.index = self.get_current_snippet_index()? + 1;
+                self.add_snippet(&snippet)?;
+                self.increment_snippet_index()?;
+                num += 1;
+            }
+        }
+        println!("Imported {} snippets", num);
+        Ok(())
+    }
+
     /// Imports snippets from a JSON file (ignores indices and appends to existing snippets)
     /// TODO: It may be nice to check for duplicates somehow, too expensive?
-    fn import(&self, file: Option<&Path>) -> color_eyre::Result<Vec<Snippet>> {
+    fn import_file(&self, file: Option<&Path>) -> color_eyre::Result<Vec<Snippet>> {
         let reader: Box<dyn io::Read> = match file {
             Some(file) => Box::new(fs::File::open(file)?),
             None => Box::new(io::stdin()),
