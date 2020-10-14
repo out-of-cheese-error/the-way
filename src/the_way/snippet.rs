@@ -6,6 +6,7 @@ use std::io;
 use chrono::{DateTime, Utc};
 use regex::Regex;
 
+use crate::gist::Gist;
 use crate::language::{CodeHighlight, Language};
 use crate::utils;
 
@@ -162,6 +163,36 @@ impl Snippet {
     pub(crate) fn to_json(&self, json_writer: &mut dyn io::Write) -> color_eyre::Result<()> {
         serde_json::to_writer(json_writer, self)?;
         Ok(())
+    }
+
+    /// Read potentially multiple snippets from a regular Gist (not a sync/backup Gist)
+    pub(crate) fn from_gist(
+        start_index: usize,
+        languages: &HashMap<String, Language>,
+        gist: &Gist,
+    ) -> color_eyre::Result<Vec<Self>> {
+        let mut index = start_index;
+        let mut snippets = Vec::new();
+        for (file_name, gist_file) in &gist.files {
+            let code = &gist_file.content;
+            let description = format!("{} - {} - {}", gist.description, gist.id, file_name);
+            let language = &gist_file.language;
+            let tags = "gist";
+            let extension = Language::get_extension(&language, languages);
+            let snippet = Self::new(
+                index,
+                description,
+                language.to_string(),
+                extension.to_string(),
+                &tags,
+                Utc::now(),
+                Utc::now(),
+                code.to_string(),
+            );
+            snippets.push(snippet);
+            index += 1;
+        }
+        Ok(snippets)
     }
 
     /// Filters snippets in date range

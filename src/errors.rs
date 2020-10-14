@@ -38,6 +38,9 @@ pub enum LostTheWay {
     /// Sync Error
     #[error("SyncError: {message:?}")]
     SyncError { message: String },
+    /// Error due to invalid Gist URL
+    #[error("GistUrlError: {message:?}")]
+    GistUrlError { message: String },
     /// Catch-all for stuff that should never happen
     #[error("OutOfCheeseError: {message:?}\nRedo from start.")]
     OutOfCheeseError { message: String },

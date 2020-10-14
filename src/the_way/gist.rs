@@ -1,25 +1,45 @@
-//! Code related to syncing snippets to Gist
+//! Code related to dealing with Gists
 use std::collections::HashMap;
 
 use color_eyre::Help;
 
 use crate::errors::LostTheWay;
 use crate::gist::{CreateGistPayload, GistClient, GistContent, UpdateGistPayload};
-use crate::the_way::TheWay;
+use crate::the_way::{snippet::Snippet, TheWay};
 use crate::utils;
 
 /// Gist description
 const DESCRIPTION: &str = "The Way Code Snippets";
 /// Heading for the index.md file
 const INDEX: &str = "# Is it not written...\n";
-const USER_AGENT: &str = "the-way";
 
 impl TheWay {
+    /// Import Snippets from a regular Gist
+    pub(crate) fn import_gist(&mut self, gist_url: &str) -> color_eyre::Result<Vec<Snippet>> {
+        // it's assumed that access token is not required when reading Gists
+        let client = GistClient::new(None)?;
+
+        let spinner = utils::get_spinner("Fetching gist...");
+        let gist = client.get_gist_by_url(gist_url);
+        if let Err(err) = gist {
+            spinner.finish_with_message("Error fetching gist.");
+            return Err(err);
+        }
+        let gist = gist.unwrap();
+        let start_index = self.get_current_snippet_index()? + 1;
+        let snippets = Snippet::from_gist(start_index, &self.languages, &gist)?;
+        for snippet in &snippets {
+            self.add_snippet(&snippet)?;
+            self.increment_snippet_index()?;
+        }
+        Ok(snippets)
+    }
+
     /// Creates a Gist with each code snippet as a separate file (named snippet_<index>.<ext>)
     /// and an index file (index.md) listing each snippet's description
     pub(crate) fn make_gist(&self, access_token: &str) -> color_eyre::Result<String> {
         // Make client
-        let client = GistClient::new(access_token, USER_AGENT)?;
+        let client = GistClient::new(Some(access_token))?;
         // Start creating
         let spinner = utils::get_spinner("Creating Gist...");
 
@@ -79,10 +99,7 @@ impl TheWay {
     /// Syncs local and Gist snippets
     pub(crate) fn sync_gist(&mut self) -> color_eyre::Result<()> {
         // Make client
-        let client = GistClient::new(
-            self.config.github_access_token.as_ref().unwrap(),
-            USER_AGENT,
-        )?;
+        let client = GistClient::new(self.config.github_access_token.as_deref())?;
 
         // Start sync
         let spinner = utils::get_spinner("Syncing...");

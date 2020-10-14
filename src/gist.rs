@@ -3,12 +3,14 @@ use std::collections::HashMap;
 
 use chrono::{DateTime, Utc};
 use color_eyre::Help;
+use regex::Regex;
 
 use crate::errors::LostTheWay;
 
 const GITHUB_API_URL: &str = "https://api.github.com";
 const GITHUB_BASE_PATH: &str = "";
 const ACCEPT: &str = "application/vnd.github.v3+json";
+const USER_AGENT: &str = "the-way";
 
 #[derive(Serialize, Debug)]
 pub struct GistContent<'a> {
@@ -50,12 +52,15 @@ pub struct GistClient {
 
 impl GistClient {
     /// Create a new Gist client
-    pub fn new(access_token: &str, user_agent: &str) -> color_eyre::Result<Self> {
+    pub fn new(access_token: Option<&str>) -> color_eyre::Result<Self> {
         let mut client = ureq::agent();
         client
-            .set("Authorization", &format!("token {}", access_token))
-            .set("user-agent", user_agent)
+            .set("user-agent", USER_AGENT)
             .set("content-type", ACCEPT);
+
+        if let Some(access_token) = access_token {
+            client.set("Authorization", &format!("token {}", access_token));
+        }
         Ok(Self { client })
     }
 
@@ -107,6 +112,28 @@ impl GistClient {
         let url = format!("{}{}/gists", GITHUB_API_URL, GITHUB_BASE_PATH);
         let response = self.client.get(&format!("{}/{}", url, gist_id)).call();
         Self::get_response(response)
+    }
+
+    fn gist_id_from_url<'a>(&self, gist_url: &'a str) -> Option<&'a str> {
+        let re = Regex::new(
+            // Expect URL like https://gist.github.com/<user>/<gist_id>
+            r"https://gist\.github\.com/.+/(?P<gist_id>[0-9a-f]+)$",
+        )
+        .unwrap();
+        re.captures(gist_url)
+            .and_then(|cap| cap.name("gist_id").map(|gist_id| gist_id.as_str()))
+    }
+
+    /// Retrieve a Gist by URL
+    pub fn get_gist_by_url(&self, gist_url: &str) -> color_eyre::Result<Gist> {
+        let gist_id = self.gist_id_from_url(gist_url);
+        match gist_id {
+            Some(gist_id) => self.get_gist(gist_id),
+            None => Err(LostTheWay::GistUrlError {
+                message: format!("Problem extracting gist ID from {}", gist_url),
+            })
+            .suggestion("The URL should look like https://gist.github.com/<user>/<gist_id>."),
+        }
     }
 
     /// Delete Gist by ID

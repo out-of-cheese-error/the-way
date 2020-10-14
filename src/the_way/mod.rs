@@ -32,8 +32,6 @@ pub mod snippet;
 pub struct TheWay {
     /// stores the main project directory, the themes directory, and the currently set theme
     config: TheWayConfig,
-    /// StructOpt struct
-    cli: TheWayCLI,
     /// database storing snippets and links to languages and tags
     db: sled::Db,
     /// Maps a language name to its color and extension
@@ -57,42 +55,43 @@ impl TheWay {
         let config = TheWayConfig::load()?;
         let mut the_way = Self {
             db: Self::get_db(&config.db_dir)?,
-            cli,
             languages,
             highlighter: CodeHighlight::new(&config.theme, config.themes_dir.clone())?,
             config,
         };
         the_way.set_merge()?;
-        the_way.run()?;
+        the_way.run(&cli)?;
         Ok(())
     }
 
-    fn run(&mut self) -> color_eyre::Result<()> {
-        match &self.cli {
+    fn run(&mut self, cli: &TheWayCLI) -> color_eyre::Result<()> {
+        match cli {
             TheWayCLI::New => self.the_way(),
             TheWayCLI::Cmd { code } => {
-                let code = code.clone();
                 self.the_way_cmd(code)
             }
             TheWayCLI::Search { filters } => self.search(filters),
             TheWayCLI::Cp { index } => self.copy(*index),
             TheWayCLI::Edit { index } => {
-                let index = *index;
-                self.edit(index)
+                self.edit(*index)
             }
             TheWayCLI::Del { index, force } => {
-                let (index, force) = (*index, *force);
-                self.delete(index, force)
+                self.delete(*index, *force)
             }
             TheWayCLI::View { index } => self.view(*index),
             TheWayCLI::List { filters } => self.list(filters),
-            TheWayCLI::Import { file } => {
+            TheWayCLI::Import { file, gist_url } => {
                 let mut num = 0;
-                for mut snippet in self.import(file.as_deref())? {
-                    snippet.index = self.get_current_snippet_index()? + 1;
-                    self.add_snippet(&snippet)?;
-                    self.increment_snippet_index()?;
-                    num += 1;
+                if let Some(gist_url) = gist_url {
+                    let snippets = self.import_gist(gist_url)?;
+                    num = snippets.len();
+                } else {
+                    for mut snippet in self.import(file.as_deref())? {
+                        snippet.index = self.get_current_snippet_index()? + 1;
+                        self.add_snippet(&snippet)?;
+                        self.increment_snippet_index()?;
+                        num += 1;
+                    }
                 }
                 println!("Imported {} snippets", num);
                 Ok(())
@@ -130,7 +129,7 @@ impl TheWay {
     }
 
     /// Adds a new shell snippet
-    fn the_way_cmd(&mut self, code: Option<String>) -> color_eyre::Result<()> {
+    fn the_way_cmd(&mut self, code: &Option<String>) -> color_eyre::Result<()> {
         let snippet =
             Snippet::cmd_from_user(self.get_current_snippet_index()? + 1, code.as_deref())?;
         println!("Added snippet #{}", self.add_snippet(&snippet)?);
@@ -229,13 +228,11 @@ impl TheWay {
         Ok(())
     }
 
-    /// Lists snippets (optionally filtered)
-    fn list(&self, filters: &Filters) -> color_eyre::Result<()> {
-        let mut snippets = self.filter_snippets(filters)?;
-        snippets.sort_by(|a, b| a.index.cmp(&b.index));
+    /// Prints given snippets in full
+    fn show_snippets(&self, snippets: &[Snippet]) -> color_eyre::Result<()> {
         let mut colorized = Vec::new();
         let default_language = Language::default();
-        for snippet in &snippets {
+        for snippet in snippets {
             colorized.extend_from_slice(
                 &snippet.pretty_print(
                     &self.highlighter,
@@ -248,6 +245,14 @@ impl TheWay {
         for line in colorized {
             print!("{}", line);
         }
+        Ok(())
+    }
+
+    /// Lists snippets (optionally filtered)
+    fn list(&self, filters: &Filters) -> color_eyre::Result<()> {
+        let mut snippets = self.filter_snippets(filters)?;
+        snippets.sort_by(|a, b| a.index.cmp(&b.index));
+        self.show_snippets(&snippets)?;
         Ok(())
     }
 
