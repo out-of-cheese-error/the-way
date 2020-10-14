@@ -177,7 +177,7 @@ impl Snippet {
             let code = &gist_file.content;
             let description = format!("{} - {} - {}", gist.description, gist.id, file_name);
             let language = &gist_file.language;
-            let tags = format!("gist {}", gist.id);
+            let tags = "gist";
             let extension = Language::get_extension(&language, languages);
             let snippet = Self::new(
                 index,
