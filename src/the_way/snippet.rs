@@ -105,7 +105,7 @@ impl Snippet {
             .unwrap_or(false);
         let mut code = utils::user_input(
             "Code snippet (<RET> to edit in external editor)",
-            old_code,
+            if show_default { old_code } else { None },
             show_default,
             true,
         )?;
