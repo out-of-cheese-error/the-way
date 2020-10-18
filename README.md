@@ -59,7 +59,7 @@ cargo install the-way
 
 ## With yay
 ```bash
-yay -S the-way
+yay -S the-way-git
 ```
 
 **!!!NOTE: upgrading from <v0.5 needs a database migration, instructions below:**
