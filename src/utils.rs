@@ -140,14 +140,12 @@ pub fn user_input(
             if show_default {
                 input.with_initial_text(default);
             }
-            // TODO: replace with `interact_text` on next dialoguer release
-            Ok(input.interact()?.trim().to_owned())
+            Ok(input.interact_text()?.trim().to_owned())
         }
         None => Ok(Input::<String>::with_theme(&theme)
             .with_prompt(message)
             .allow_empty(allow_empty)
-            // TODO: replace with `interact_text` on next dialoguer release
-            .interact()?
+            .interact_text()?
             .trim()
             .to_owned()),
     }
