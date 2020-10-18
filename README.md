@@ -26,6 +26,7 @@ Table of Contents
   * [Binaries](#binaries)
   * [With brew](#with-brew)
   * [With cargo](#with-cargo)
+  * [With yay](#with-yay)
 * [Usage](#usage)
 * [Features](#features)
   * [Main features](#main-features)
@@ -54,6 +55,11 @@ brew tap out-of-cheese-error/the-way && brew install the-way
 ## With cargo
 ```bash
 cargo install the-way
+```
+
+## With yay
+```bash
+yay -S the-way
 ```
 
 **!!!NOTE: upgrading from <v0.5 needs a database migration, instructions below:**
