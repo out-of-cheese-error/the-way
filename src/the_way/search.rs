@@ -2,8 +2,11 @@
 use std::borrow::Cow;
 use std::sync::Arc;
 
-use skim::prelude::{unbounded, SkimOptionsBuilder};
-use skim::{AnsiString, ItemPreview, Skim, SkimItem, SkimItemReceiver, SkimItemSender};
+use skim::prelude::{unbounded, Key, SkimOptionsBuilder};
+use skim::{
+    AnsiString, DisplayContext, ItemPreview, PreviewContext, Skim, SkimItem, SkimItemReceiver,
+    SkimItemSender,
+};
 
 use crate::errors::LostTheWay;
 use crate::language::Language;
@@ -20,21 +23,16 @@ struct SearchSnippet {
 }
 
 impl<'a> SkimItem for SearchSnippet {
-    fn display(&self) -> Cow<AnsiString> {
-        Cow::Owned(AnsiString::parse(&self.text_highlight))
-    }
-
     fn text(&self) -> Cow<str> {
         Cow::Owned(self.snippet.get_header())
     }
 
-    fn preview(&self) -> ItemPreview {
-        ItemPreview::AnsiText(self.code_highlight.to_owned())
+    fn display(&self, _content: DisplayContext) -> AnsiString {
+        AnsiString::parse(&self.text_highlight)
     }
 
-    fn output(&self) -> Cow<str> {
-        self.snippet.copy().expect("Clipboard Error");
-        Cow::Owned(String::new())
+    fn preview(&self, _context: PreviewContext) -> ItemPreview {
+        ItemPreview::AnsiText(self.code_highlight.to_owned())
     }
 }
 
@@ -90,10 +88,16 @@ fn search(input: Vec<SearchSnippet>, highlight_color: &str) -> color_eyre::Resul
     }
     drop(tx_item); // so that skim could know when to stop waiting for more items.
 
-    let selected_items =
-        Skim::run_with(&options, Some(rx_item)).map_or_else(Vec::new, |out| out.selected_items);
+    let selected_items = Skim::run_with(&options, Some(rx_item)).map_or_else(Vec::new, |out| {
+        if out.final_key == Key::Enter {
+            out.selected_items
+        } else {
+            Vec::new()
+        }
+    });
     for item in &selected_items {
-        println!("{}", item.output());
+        let snippet: &SearchSnippet = (*item).as_any().downcast_ref::<SearchSnippet>().unwrap();
+        snippet.snippet.copy()?;
     }
     Ok(())
 }

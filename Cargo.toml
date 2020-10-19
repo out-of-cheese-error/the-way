@@ -47,7 +47,7 @@ dialoguer = "0.7.0"
 indicatif = "0.15.0"
 
 # Fuzzy search
-skim = "0.8.2"
+skim = "0.9.0"
 
 # Terminal syntax highlighting
 syntect = { version = "4.4.0", default-features = false, features = ["default-fancy"] }
