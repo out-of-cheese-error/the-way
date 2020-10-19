@@ -23,7 +23,7 @@ pub enum TheWayCLI {
         /// shell snippet code
         code: Option<String>,
     },
-    /// Fuzzy search and copy selected to clipboard
+    /// Fuzzy search to find a snippet and copy, edit or delete it
     Search {
         #[structopt(flatten)]
         filters: Filters,
@@ -33,31 +33,6 @@ pub enum TheWayCLI {
     /// Controlled by $THE_WAY_GITHUB_TOKEN env variable.
     /// Set this to an access token with the "gist" scope obtained from https://github.com/settings/tokens/new
     Sync,
-    /// Change snippet
-    Edit {
-        /// Index of snippet to change
-        index: usize,
-    },
-    /// Delete snippet
-    #[structopt(alias = "delete")]
-    Del {
-        /// Index of snippet to delete
-        index: usize,
-        /// Don't ask for confirmation
-        #[structopt(long, short)]
-        force: bool,
-    },
-    /// Copy snippet to clipboard
-    #[structopt(alias = "copy")]
-    Cp {
-        /// Index of snippet to copy
-        index: usize,
-    },
-    /// View snippet
-    View {
-        /// Index of snippet to show
-        index: usize,
-    },
     /// Lists (optionally filtered) snippets
     List {
         #[structopt(flatten)]
@@ -114,6 +89,31 @@ pub enum TheWayCLI {
     Config {
         #[structopt(subcommand)]
         cmd: ConfigCommand,
+    },
+    /// Change snippet
+    Edit {
+        /// Index of snippet to change
+        index: usize,
+    },
+    /// Delete snippet
+    #[structopt(alias = "delete")]
+    Del {
+        /// Index of snippet to delete
+        index: usize,
+        /// Don't ask for confirmation
+        #[structopt(long, short)]
+        force: bool,
+    },
+    /// Copy snippet to clipboard
+    #[structopt(alias = "copy")]
+    Cp {
+        /// Index of snippet to copy
+        index: usize,
+    },
+    /// View snippet
+    View {
+        /// Index of snippet to show
+        index: usize,
     },
 }
 
