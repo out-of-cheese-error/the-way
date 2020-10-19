@@ -255,7 +255,7 @@ impl TheWay {
 
     /// Displays all snippet descriptions in a skim fuzzy search window
     /// A preview window on the right shows the indices of snippets matching the query
-    fn search(&self, filters: &Filters) -> color_eyre::Result<()> {
+    fn search(&mut self, filters: &Filters) -> color_eyre::Result<()> {
         let mut snippets = self.filter_snippets(filters)?;
         snippets.sort_by(|a, b| a.index.cmp(&b.index));
         self.make_search(
