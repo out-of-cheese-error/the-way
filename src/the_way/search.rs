@@ -4,8 +4,8 @@ use std::sync::Arc;
 
 use skim::prelude::{unbounded, Key, SkimOptionsBuilder};
 use skim::{
-    AnsiString, DisplayContext, ItemPreview, PreviewContext, Skim, SkimItem, SkimItemReceiver,
-    SkimItemSender,
+    AnsiString, DisplayContext, ItemPreview, Matches, PreviewContext, Skim, SkimItem,
+    SkimItemReceiver, SkimItemSender,
 };
 
 use crate::errors::LostTheWay;
@@ -24,11 +24,32 @@ struct SearchSnippet {
 
 impl<'a> SkimItem for SearchSnippet {
     fn text(&self) -> Cow<str> {
-        Cow::Owned(self.snippet.get_header())
+        AnsiString::parse(&self.text_highlight).into_inner()
     }
 
-    fn display(&self, _content: DisplayContext) -> AnsiString {
-        AnsiString::parse(&self.text_highlight)
+    fn display<'b>(&'b self, context: DisplayContext<'b>) -> AnsiString<'b> {
+        let mut text = AnsiString::parse(&self.text_highlight);
+        match context.matches {
+            Matches::CharIndices(indices) => {
+                text.override_attrs(
+                    indices
+                        .iter()
+                        // TODO: Why is this i+2 to i+3?
+                        .map(|i| (context.highlight_attr, ((*i + 2) as u32, (*i + 3) as u32)))
+                        .collect(),
+                );
+            }
+            Matches::CharRange(start, end) => {
+                text.override_attrs(vec![(context.highlight_attr, (start as u32, end as u32))]);
+            }
+            Matches::ByteRange(start, end) => {
+                let start = text.stripped()[..start].chars().count();
+                let end = start + text.stripped()[start..end].chars().count();
+                text.override_attrs(vec![(context.highlight_attr, (start as u32, end as u32))]);
+            }
+            Matches::None => (),
+        }
+        text
     }
 
     fn preview(&self, _context: PreviewContext) -> ItemPreview {

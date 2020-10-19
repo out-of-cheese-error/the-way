@@ -216,18 +216,6 @@ impl Snippet {
         self.tags.contains(&tag.into())
     }
 
-    /// Gets the title as plain text for searching
-    pub(crate) fn get_header(&self) -> String {
-        format!(
-            "{} #{}. {} | {} :{}:\n",
-            utils::BOX,
-            self.index,
-            self.description,
-            self.language,
-            self.tags.join(":")
-        )
-    }
-
     /// Highlights the title: "■ #index. description | language :tag1:tag2:\n"
     /// the block is colored according to the language
     /// language uses `accent_style`
