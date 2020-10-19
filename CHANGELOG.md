@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+### Added
+* Keyboard shortcuts in `search` mode for deleting and editing snippets interactively. ([PR 85](https://github.com/out-of-cheese-error/the-way/pull/85))
+
+### Changed
+* Single line code can be edited without external editor. ([PR 83](https://github.com/out-of-cheese-error/the-way/pull/83))
+* Nicer errors: Backtrace information / warning no longer displayed.
+
 ## [0.10.1] - 2020-10-18
 ### Added
 Installation via `yay` ([PR 81](https://github.com/out-of-cheese-error/the-way/pull/81) and [82](https://github.com/out-of-cheese-error/the-way/pull/82) by [spikecodes](https://github.com/spikecodes))
