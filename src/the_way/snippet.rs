@@ -133,7 +133,7 @@ impl Snippet {
             index,
             description,
             "sh".into(),
-            "sh".into(),
+            ".sh".into(),
             &tags,
             Utc::now(),
             Utc::now(),
