@@ -10,7 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 * Single line code can be edited without external editor. ([PR 83](https://github.com/out-of-cheese-error/the-way/pull/83))
-* Nicer errors: Backtrace information / warning no longer displayed.
+* Nicer errors: Backtrace information / warning no longer displayed. ([f1fbb68](https://github.com/out-of-cheese-error/the-way/commit/f1fbb68a0241840d8f952057e5aaaf7114b52e73))
+* Print statements use chosen theme color ([da2cf91](https://github.com/out-of-cheese-error/the-way/commit/da2cf91abcbe30375d88c3e003e0b2a0b7634b93))
+
+### Fixed
+* Shell snippets saved with .sh extension instead of sh ([3d8d0c3](https://github.com/out-of-cheese-error/the-way/commit/3d8d0c39b0c998c5cd042c4820404dd1fccee6ca)). This needs an export + import.
 
 ## [0.10.1] - 2020-10-18
 ### Added
