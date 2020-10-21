@@ -254,7 +254,7 @@ impl CodeHighlight {
     /// Adds a new theme from a .tmTheme file.
     /// The file is copied to the themes folder
     // TODO: should it automatically be set?
-    pub(crate) fn add_theme(&mut self, theme_file: &Path) -> color_eyre::Result<()> {
+    pub(crate) fn add_theme(&mut self, theme_file: &Path) -> color_eyre::Result<String> {
         let theme = ThemeSet::get_theme(&theme_file)
             .map_err(|_| LostTheWay::ThemeError {
                 theme: theme_file.to_str().unwrap().into(),
@@ -274,13 +274,13 @@ impl CodeHighlight {
         let new_theme_file = self.syntect_dir.join(format!("{}.tmTheme", basename));
         fs::copy(theme_file, new_theme_file)?;
         self.theme_set.themes.insert(basename.to_owned(), theme);
-        Ok(())
+        Ok(basename.to_owned())
     }
 
     /// Adds a new language syntax from a .sublime-syntax file.
     /// The file is copied to the themes folder
-    pub(crate) fn add_syntax(&mut self, syntax_file: &Path) -> color_eyre::Result<()> {
-        SyntaxDefinition::load_from_str(
+    pub(crate) fn add_syntax(&mut self, syntax_file: &Path) -> color_eyre::Result<String> {
+        let syntax = SyntaxDefinition::load_from_str(
             &fs::read_to_string(&syntax_file)?,
             true,
             None,
@@ -302,12 +302,12 @@ impl CodeHighlight {
         // Copy syntax file to syntect dir
         let new_syntax_file = self.syntect_dir.join(filename);
         fs::copy(syntax_file, new_syntax_file)?;
-        Ok(())
+        Ok(syntax.name)
     }
 
     /// Makes a box colored according to GitHub language colors
     pub(crate) fn highlight_block(language_color: Color) -> color_eyre::Result<String> {
-        Ok(Self::highlight_string(
+        Ok(utils::highlight_string(
             &format!("{} ", utils::BOX),
             Style::default().apply(StyleModifier {
                 foreground: Some(language_color),
@@ -315,11 +315,6 @@ impl CodeHighlight {
                 font_style: None,
             }),
         ))
-    }
-
-    /// Applies a style to a single line
-    pub(crate) fn highlight_string(line: &str, style: Style) -> String {
-        as_24_bit_terminal_escaped(&[(style, line)], false)
     }
 
     /// Syntax highlight code block
@@ -341,6 +336,7 @@ impl CodeHighlight {
             let escaped = as_24_bit_terminal_escaped(&ranges[..], false);
             colorized.push(escaped);
         }
+        colorized.push(String::from(utils::END_ANSI));
         Ok(colorized)
     }
 }

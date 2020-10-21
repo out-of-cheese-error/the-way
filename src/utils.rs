@@ -6,6 +6,8 @@ use chrono::{Date, DateTime, Utc, MAX_DATE, MIN_DATE};
 use chrono_english::{parse_date_string, Dialect};
 use color_eyre::Help;
 use dialoguer::{Editor, Input};
+use syntect::highlighting::Style;
+use syntect::util::as_24_bit_terminal_escaped;
 
 use crate::errors::LostTheWay;
 
@@ -151,14 +153,16 @@ pub fn user_input(
     }
 }
 
+/// Make an indicatif spinner with given message
 pub fn get_spinner(message: &str) -> indicatif::ProgressBar {
     let spinner = indicatif::ProgressBar::new_spinner();
-    spinner.enable_steady_tick(200);
-    spinner.set_style(
-        indicatif::ProgressStyle::default_spinner()
-            .tick_chars("/|\\- ")
-            .template("{spinner:.dim.bold.blue} {wide_msg}"),
-    );
     spinner.set_message(message);
     spinner
+}
+
+/// Color a string for the terminal
+pub fn highlight_string(line: &str, style: Style) -> String {
+    let mut s = as_24_bit_terminal_escaped(&[(style, line)], false);
+    s.push_str(END_ANSI);
+    s
 }

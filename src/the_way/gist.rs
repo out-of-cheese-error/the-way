@@ -86,11 +86,11 @@ impl TheWay {
         };
         // Upload index file to Gist
         let result = client.update_gist(&result.id, &update_payload)?;
-        spinner.finish_with_message(&format!(
+        spinner.finish_with_message(&self.highlight_string(&format!(
             "Created gist at {} with {} snippets",
             result.html_url,
             result.files.len()
-        ));
+        )));
 
         // Return created Gist ID
         Ok(result.id)
@@ -114,7 +114,7 @@ impl TheWay {
 
         let gist = client.get_gist(self.config.gist_id.as_ref().unwrap());
         if gist.is_err() {
-            spinner.finish_with_message("Gist not found.");
+            spinner.finish_with_message(&self.highlight_string("Gist not found."));
             self.config.gist_id =
                 Some(self.make_gist(self.config.github_access_token.as_ref().unwrap())?);
             return Ok(());
@@ -227,21 +227,36 @@ impl TheWay {
         }
         spinner.finish_with_message("Done!");
         if added > 0 {
-            println!("Added {} snippet(s)", added);
+            println!(
+                "{}",
+                self.highlight_string(&format!("Added {} snippet(s)", added))
+            );
         }
         if updated > 0 {
-            println!("Updated {} snippet(s)", updated);
+            println!(
+                "{}",
+                self.highlight_string(&format!("Updated {} snippet(s)", updated))
+            );
         }
         if deleted > 0 {
-            println!("Deleted {} snippet(s)", deleted);
+            println!(
+                "{}",
+                self.highlight_string(&format!("Deleted {} snippet(s)", deleted))
+            );
         }
         if downloaded > 0 {
-            println!("Downloaded {} snippet(s)", downloaded);
+            println!(
+                "{}",
+                self.highlight_string(&format!("Downloaded {} snippet(s)", downloaded))
+            );
         }
         if added + updated + downloaded + deleted == 0 {
-            println!("Everything up to date");
+            println!("{}", self.highlight_string("Everything up to date"));
         }
-        println!("\nGist: {}", gist.html_url);
+        println!(
+            "{}",
+            self.highlight_string(&format!("\nGist: {}", gist.html_url))
+        );
         Ok(())
     }
 }

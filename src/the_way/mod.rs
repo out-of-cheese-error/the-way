@@ -4,6 +4,7 @@ use std::path::Path;
 use std::{fs, io};
 
 use color_eyre::Help;
+use dialoguer::theme::ColorfulTheme;
 use dialoguer::Confirm;
 use structopt::clap::Shell;
 use structopt::StructOpt;
@@ -77,18 +78,7 @@ impl TheWay {
             TheWayCLI::Import { file, gist_url } => self.import(file.as_deref(), gist_url),
             TheWayCLI::Export { filters, file } => self.export(&filters, file.as_deref()),
             TheWayCLI::Complete { shell } => Self::complete(shell),
-            TheWayCLI::Themes { cmd } => match cmd {
-                ThemeCommand::List => self.list_themes(),
-                ThemeCommand::Set { theme } => {
-                    self.highlighter.set_theme(theme.to_owned())?;
-                    self.config.theme = theme;
-                    self.config.store()?;
-                    Ok(())
-                }
-                ThemeCommand::Add { file } => self.highlighter.add_theme(&file),
-                ThemeCommand::Language { file } => self.highlighter.add_syntax(&file),
-                ThemeCommand::Get => self.get_theme(),
-            },
+            TheWayCLI::Themes { cmd } => self.themes(cmd),
             TheWayCLI::Clear { force } => self.clear(force),
             TheWayCLI::Config { cmd } => match cmd {
                 ConfigCommand::Default { file } => TheWayConfig::default_config(file.as_deref()), //Already handled
@@ -102,7 +92,11 @@ impl TheWay {
     fn the_way(&mut self) -> color_eyre::Result<()> {
         let snippet =
             Snippet::from_user(self.get_current_snippet_index()? + 1, &self.languages, None)?;
-        println!("Added snippet #{}", self.add_snippet(&snippet)?);
+        let index = self.add_snippet(&snippet)?;
+        println!(
+            "{}",
+            self.highlight_string(&format!("Snippet #{} added", index))
+        );
         self.increment_snippet_index()?;
         Ok(())
     }
@@ -111,7 +105,11 @@ impl TheWay {
     fn the_way_cmd(&mut self, code: Option<String>) -> color_eyre::Result<()> {
         let snippet =
             Snippet::cmd_from_user(self.get_current_snippet_index()? + 1, code.as_deref())?;
-        println!("Added snippet #{}", self.add_snippet(&snippet)?);
+        let index = self.add_snippet(&snippet)?;
+        println!(
+            "{}",
+            self.highlight_string(&format!("Snippet #{} added", index))
+        );
         self.increment_snippet_index()?;
         Ok(())
     }
@@ -119,13 +117,16 @@ impl TheWay {
     /// Delete a snippet (and all associated data) from the trees and metadata
     fn delete(&mut self, index: usize, force: bool) -> color_eyre::Result<()> {
         if force
-            || Confirm::new()
+            || Confirm::with_theme(&ColorfulTheme::default())
                 .with_prompt(&format!("Delete snippet #{}?", index))
                 .default(false)
                 .interact()?
         {
             self.delete_snippet(index)?;
-            println!("Snippet #{} deleted", index);
+            println!(
+                "{}",
+                self.highlight_string(&format!("Snippet #{} deleted", index))
+            );
             Ok(())
         } else {
             let error: color_eyre::Result<()> = Err(LostTheWay::DoingNothing.into());
@@ -139,7 +140,10 @@ impl TheWay {
         let new_snippet = Snippet::from_user(index, &self.languages, Some(&old_snippet))?;
         self.delete_snippet(index)?;
         self.add_snippet(&new_snippet)?;
-        println!("Snippet #{} changed", index);
+        println!(
+            "{}",
+            self.highlight_string(&format!("Snippet #{} changed", index))
+        );
         Ok(())
     }
 
@@ -160,21 +164,20 @@ impl TheWay {
     /// Copy a snippet to clipboard
     fn copy(&self, index: usize) -> color_eyre::Result<()> {
         let snippet = self.get_snippet(index)?;
-        snippet.copy()?;
+        let index = snippet.copy()?;
+        println!(
+            "{}",
+            self.highlight_string(&format!("Snippet #{} copied to clipboard", index))
+        );
         Ok(())
     }
 
     /// List syntax highlighting themes
     fn list_themes(&self) -> color_eyre::Result<()> {
+        println!("{}", self.highlight_string("Available themes:\n"));
         for theme in self.highlighter.get_themes() {
             println!("{}", theme);
         }
-        Ok(())
-    }
-
-    /// Print current syntax highlighting theme
-    fn get_theme(&self) -> color_eyre::Result<()> {
-        println!("{}", self.highlighter.get_theme_name());
         Ok(())
     }
 
@@ -192,7 +195,10 @@ impl TheWay {
                 num += 1;
             }
         }
-        println!("Imported {} snippets", num);
+        println!(
+            "{}",
+            self.highlight_string(&format!("Imported {} snippets", num))
+        );
         Ok(())
     }
 
@@ -281,7 +287,7 @@ impl TheWay {
     /// Removes all `sled` trees
     fn clear(&self, force: bool) -> color_eyre::Result<()> {
         if force
-            || Confirm::new()
+            || Confirm::with_theme(&ColorfulTheme::default())
                 .with_prompt("Clear all data?")
                 .default(false)
                 .interact()?
@@ -295,6 +301,7 @@ impl TheWay {
                 }
             }
             self.reset_index()?;
+            println!("{}", self.highlight_string("Data cleared."));
             Ok(())
         } else {
             let error: color_eyre::Result<()> = Err(LostTheWay::DoingNothing.into());
@@ -310,9 +317,13 @@ impl TheWay {
             .or_else(|| self.config.github_access_token.clone());
         // Get token from user if not set
         if self.config.github_access_token.is_none() {
-            println!("Get a GitHub access token from https://github.com/settings/tokens/new (add the \"gist\" scope)\n");
+            println!(
+                "{}",
+                self.highlight_string("Get a GitHub access token from https://github.com/settings/tokens/new (add the \"gist\" scope)\n",
+                )
+            );
             self.config.github_access_token = Some(
-                dialoguer::Password::with_theme(&dialoguer::theme::ColorfulTheme::default())
+                dialoguer::Password::with_theme(&ColorfulTheme::default())
                     .with_prompt("GitHub access token")
                     .interact()?,
             );
@@ -325,5 +336,52 @@ impl TheWay {
         }
         self.config.store()?;
         Ok(())
+    }
+
+    fn themes(&mut self, cmd: ThemeCommand) -> color_eyre::Result<()> {
+        match cmd {
+            ThemeCommand::List => self.list_themes(),
+            ThemeCommand::Set { theme } => {
+                self.highlighter.set_theme(theme.to_owned())?;
+                println!(
+                    "{}",
+                    self.highlight_string(&format!("Theme changed to {}", theme))
+                );
+                self.config.theme = theme;
+                self.config.store()?;
+
+                Ok(())
+            }
+            ThemeCommand::Add { file } => {
+                let theme = self.highlighter.add_theme(&file)?;
+                println!(
+                    "{}",
+                    self.highlight_string(&format!("Added theme {}", theme))
+                );
+                Ok(())
+            }
+            ThemeCommand::Language { file } => {
+                let language = self.highlighter.add_syntax(&file)?;
+                println!(
+                    "{}",
+                    self.highlight_string(&format!("Added {} syntax", language))
+                );
+                Ok(())
+            }
+            ThemeCommand::Get => {
+                println!(
+                    "{}",
+                    self.highlight_string(&format!(
+                        "Current theme: {}",
+                        self.highlighter.get_theme_name()
+                    ))
+                );
+                Ok(())
+            }
+        }
+    }
+
+    pub(crate) fn highlight_string(&self, input: &str) -> String {
+        utils::highlight_string(input, self.highlighter.main_style)
     }
 }

@@ -230,33 +230,13 @@ impl Snippet {
         let block = CodeHighlight::highlight_block(language.color)?;
         colorized.push(block);
         let text = format!("#{}. {} ", self.index, self.description);
-        colorized.push(CodeHighlight::highlight_string(
-            &text,
-            highlighter.main_style,
-        ));
+        colorized.push(utils::highlight_string(&text, highlighter.main_style));
 
         let text = format!("| {} ", self.language);
-        colorized.push(CodeHighlight::highlight_string(
-            &text,
-            highlighter.accent_style,
-        ));
+        colorized.push(utils::highlight_string(&text, highlighter.accent_style));
 
         let text = format!(":{}:\n", self.tags.join(":"));
-        colorized.push(CodeHighlight::highlight_string(
-            &text,
-            highlighter.tag_style,
-        ));
-        colorized.push(utils::END_ANSI.to_owned());
-        Ok(colorized)
-    }
-
-    /// Highlights code
-    pub(crate) fn pretty_print_code(
-        &self,
-        highlighter: &CodeHighlight,
-    ) -> color_eyre::Result<Vec<String>> {
-        let mut colorized = highlighter.highlight_code(&self.code, &self.extension)?;
-        colorized.push(String::from(utils::END_ANSI));
+        colorized.push(utils::highlight_string(&text, highlighter.tag_style));
         Ok(colorized)
     }
 
@@ -268,17 +248,16 @@ impl Snippet {
         let mut colorized = vec![String::from("\n")];
         colorized.extend_from_slice(&self.pretty_print_header(highlighter, language)?);
         colorized.push(String::from("\n"));
-        colorized.extend_from_slice(&self.pretty_print_code(highlighter)?);
+        colorized.extend_from_slice(&highlighter.highlight_code(&self.code, &self.extension)?);
         colorized.push(String::from("\n"));
         colorized.push(String::from("\n"));
         Ok(colorized)
     }
 
-    pub(crate) fn copy(&self) -> color_eyre::Result<()> {
+    pub(crate) fn copy(&self) -> color_eyre::Result<usize> {
         let code = self.fill_snippet()?;
         utils::copy_to_clipboard(&code).expect("Clipboard Error");
-        println!("Copied snippet #{} to clipboard", self.index);
-        Ok(())
+        Ok(self.index)
     }
 
     fn is_shell_snippet(&self) -> bool {

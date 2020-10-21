@@ -55,7 +55,7 @@ fn change_config_file() -> color_eyre::Result<()> {
         .arg("config")
         .arg("get")
         .assert()
-        .stdout(predicate::str::starts_with(config_file.to_string_lossy()));
+        .stdout(predicate::str::contains(config_file.to_string_lossy()));
     temp_dir.close()?;
     Ok(())
 }
@@ -113,7 +113,7 @@ fn add_snippet_rexpect(config_file: PathBuf) -> rexpect::errors::Result<PtyReplS
     p.send_line("tag1 tag2")?;
     p.exp_regex("Code snippet")?;
     p.send_line("code")?;
-    p.exp_regex("Added snippet #1")?;
+    p.exp_regex("Snippet #1 added")?;
     p.wait_for_prompt()?;
     Ok(p)
 }
@@ -137,7 +137,7 @@ fn add_two_snippets_rexpect(config_file: PathBuf) -> rexpect::errors::Result<()>
     p.send_line("tag1 tag2")?;
     p.exp_regex("Code snippet")?;
     p.send_line("code")?;
-    p.exp_regex("Added snippet #1")?;
+    p.exp_regex("Snippet #1 added")?;
     p.wait_for_prompt()?;
     p.execute(&format!("{} new", executable), "Description")?;
     p.send_line("test description 2")?;
@@ -147,7 +147,7 @@ fn add_two_snippets_rexpect(config_file: PathBuf) -> rexpect::errors::Result<()>
     p.send_line("tag1 tag2")?;
     p.exp_regex("Code snippet")?;
     p.send_line("code")?;
-    p.exp_regex("Added snippet #2")?;
+    p.exp_regex("Snippet #2 added")?;
     Ok(())
 }
 
@@ -192,7 +192,7 @@ fn add_two_cmd_snippets_rexpect(config_file: PathBuf) -> rexpect::errors::Result
     p.send_line("test description 1")?;
     p.exp_regex("Tags")?;
     p.send_line("tag1 tag2")?;
-    p.exp_regex("Added snippet #1")?;
+    p.exp_regex("Snippet #1 added")?;
     p.wait_for_prompt()?;
     // interactively
     p.execute(&format!("{} cmd", executable), "Command")?;
@@ -201,7 +201,7 @@ fn add_two_cmd_snippets_rexpect(config_file: PathBuf) -> rexpect::errors::Result
     p.send_line("test description 2")?;
     p.exp_regex("Tags")?;
     p.send_line("tag1 tag2")?;
-    p.exp_regex("Added snippet #2")?;
+    p.exp_regex("Snippet #2 added")?;
     Ok(())
 }
 
@@ -276,7 +276,7 @@ fn import_multiple_no_tags() -> color_eyre::Result<()> {
         .arg("import")
         .write_stdin(contents)
         .assert()
-        .stdout(predicate::str::starts_with("Imported 2 snippets"));
+        .stdout(predicate::str::contains("Imported 2 snippets"));
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
         .arg("list")
@@ -331,7 +331,7 @@ fn export() -> color_eyre::Result<()> {
         .arg("import")
         .write_stdin(contents)
         .assert()
-        .stdout(predicate::str::starts_with("Imported 2 snippets"));
+        .stdout(predicate::str::contains("Imported 2 snippets"));
 
     // export
     let mut cmd = Command::cargo_bin("the-way")?;
@@ -368,7 +368,7 @@ fn delete() -> color_eyre::Result<()> {
         .arg("import")
         .write_stdin(contents)
         .assert()
-        .stdout(predicate::str::starts_with("Imported 2 snippets"));
+        .stdout(predicate::str::contains("Imported 2 snippets"));
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
         .arg("list")
@@ -394,7 +394,7 @@ fn delete() -> color_eyre::Result<()> {
         .arg("-f")
         .arg("2")
         .assert()
-        .stdout(predicate::str::starts_with("Snippet #2 deleted"));
+        .stdout(predicate::str::contains("Snippet #2 deleted"));
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
         .arg("list")
@@ -445,9 +445,7 @@ fn copy() -> color_eyre::Result<()> {
         .arg("cp")
         .arg("1")
         .assert()
-        .stdout(predicate::str::starts_with(
-            "Copied snippet #1 to clipboard",
-        ));
+        .stdout(predicate::str::contains("Snippet #1 copied to clipboard"));
     let ctx: color_eyre::Result<ClipboardContext, _> = ClipboardProvider::new();
     assert!(ctx.is_ok());
     let mut ctx = ctx.unwrap();
@@ -502,14 +500,14 @@ fn copy_shell_script_rexpect(config_file: PathBuf) -> rexpect::errors::Result<()
     p.send_line("test description 1")?;
     p.exp_regex("Tags")?;
     p.send_line("tag1 tag2")?;
-    p.exp_regex("Added snippet #1")?;
+    p.exp_regex("Snippet #1 added")?;
     p.wait_for_prompt()?;
     // Test interactive copy
     p.execute(&format!("{} cp 1", executable), "param1")?;
     p.send_line("\n")?;
     p.exp_string("param2")?;
     p.send_line("value2")?;
-    p.exp_regex("Copied snippet #1 to clipboard")?;
+    p.exp_regex("Snippet #1 copied to clipboard")?;
     Ok(())
 }
 
@@ -535,7 +533,7 @@ fn sync_gist() -> color_eyre::Result<()> {
         .arg("import")
         .write_stdin(contents)
         .assert()
-        .stdout(predicate::str::starts_with("Imported 2 snippets"));
+        .stdout(predicate::str::contains("Imported 2 snippets"));
 
     // sync
     let mut cmd = Command::cargo_bin("the-way")?;
@@ -587,7 +585,7 @@ fn sync_gist() -> color_eyre::Result<()> {
         .arg("-f")
         .arg("2")
         .assert()
-        .stdout(predicate::str::starts_with("Snippet #2 deleted"));
+        .stdout(predicate::str::contains("Snippet #2 deleted"));
 
     // sync - download + deleted
     let mut cmd = Command::cargo_bin("the-way")?;

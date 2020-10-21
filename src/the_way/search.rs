@@ -15,7 +15,7 @@ use crate::the_way::{snippet::Snippet, TheWay};
 /// searchable snippet information
 #[derive(Debug)]
 struct SearchSnippet {
-    snippet: Snippet,
+    index: usize,
     /// Highlighted title
     text_highlight: String,
     /// Highlighted code
@@ -70,8 +70,9 @@ impl TheWay {
         let search_snippets: Vec<_> = snippets
             .into_iter()
             .map(|snippet| SearchSnippet {
-                code_highlight: snippet
-                    .pretty_print_code(&self.highlighter)
+                code_highlight: self
+                    .highlighter
+                    .highlight_code(&snippet.code, &snippet.extension)
                     .unwrap_or_default()
                     .join(""),
                 text_highlight: snippet
@@ -83,7 +84,7 @@ impl TheWay {
                     )
                     .unwrap_or_default()
                     .join(""),
-                snippet,
+                index: snippet.index,
             })
             .collect();
         let color = format!("bg+:{}", highlight_color);
@@ -118,13 +119,13 @@ impl TheWay {
                     (*item).as_any().downcast_ref::<SearchSnippet>().unwrap();
                 match key {
                     Key::Enter => {
-                        snippet.snippet.copy()?;
+                        self.copy(snippet.index)?;
                     }
                     Key::ShiftLeft => {
-                        self.delete(snippet.snippet.index, false)?;
+                        self.delete(snippet.index, false)?;
                     }
                     Key::ShiftRight => {
-                        self.edit(snippet.snippet.index)?;
+                        self.edit(snippet.index)?;
                     }
                     _ => (),
                 }
