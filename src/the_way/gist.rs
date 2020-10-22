@@ -98,6 +98,10 @@ impl TheWay {
 
     /// Syncs local and Gist snippets
     pub(crate) fn sync_gist(&mut self) -> color_eyre::Result<()> {
+        if self.list_snippets()?.is_empty() {
+            println!("{}", self.highlight_string("No snippets to sync."));
+            return Ok(());
+        }
         // Make client
         let client = GistClient::new(self.config.github_access_token.as_deref())?;
 
