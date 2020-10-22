@@ -8,16 +8,19 @@ A code snippets manager for your terminal.
 
 Record and retrieve snippets you use every day, or once in a blue moon,
 without having to spin up a browser. Just call `the-way new` to add a snippet with a 
-description, a language, and some tags attached. `the-way search` fuzzy 
-searches your snippets library (with optional filters on language and tags) and 
-lets you copy a particular snippet to your clipboard, so you can paste 
-it into whatever editor or IDE you're working with.
+description, a language, and some tags attached. 
+
+`the-way search` fuzzy searches your snippets library (with optional filters on language and tags) and 
+lets you 
+* edit a snippet with Shift-Left
+* delete a snippet with Shift-Right
+* copy a particular snippet to your clipboard (with Enter), so you can paste it into whatever editor or IDE you're working with.
 
 See it in action (with some self-referential examples):
 
-![demo](images/demo.gif)
+![demo](images/the-way-general-embedded.svg)
 
-> made with [Terminalizer](https://github.com/faressoft/terminalizer)
+> made with [asciinema](https://github.com/asciinema/asciinema), [svg-term-cli](https://github.com/marionebl/svg-term-cli), and [svgembed](https://github.com/miraclx/svgembed)
 
 Table of Contents
 =================
@@ -62,7 +65,8 @@ cargo install the-way
 yay -S the-way-git
 ```
 
-**!!!NOTE: upgrading from <v0.5 needs a database migration, instructions below:**
+**Some upgrades need a database migration** (mentioned in the release notes):
+
 * Before upgrade 
 ```bash
 the-way export > snippets.json
@@ -87,12 +91,8 @@ FLAGS:
 SUBCOMMANDS:
     new         Add a new code snippet
     cmd         Add a new shell snippet
-    search      Fuzzy search and copy selected to clipboard
+    search      Fuzzy search to find a snippet and copy, edit or delete it
     sync        Sync snippets to a Gist
-    edit        Change snippet
-    del         Delete snippet
-    cp          Copy snippet to clipboard
-    view        View snippet
     list        Lists (optionally filtered) snippets
     import      Imports code snippets from JSON
     export      Saves (optionally filtered) snippets to JSON
@@ -100,21 +100,24 @@ SUBCOMMANDS:
     complete    Generate shell completions
     themes      Manage syntax highlighting themes
     config      Manage the-way data locations
+    edit        Change snippet
+    del         Delete snippet
+    cp          Copy snippet to clipboard
+    view        View snippet
     help        Prints this message or the help of the given subcommand(s)
 ```
 
 # Features
 
 ## Main features
-* Add and edit code snippets
-* Interactive fuzzy search
+* Add code and shell snippets
+* Interactive fuzzy search with edit, delete and copy to clipboard functionality
 * Filter by tag, date, language and/or regex pattern
-* Copies selected snippet to clipboard
 * Import / export via JSON
-* Import from Gist
+* Import from Gist (with `the-way import -g <gist_url>`)
 
 ## Shell commands
-`the-way cmd` (new from v0.9.0, inspired by [pet](https://github.com/knqyf263/pet)) makes it easier to save single-line 
+`the-way cmd` (inspired by [pet](https://github.com/knqyf263/pet)) makes it easier to save single-line 
 bash/shell snippets with variables that can be filled in whenever the snippet is needed. 
 
 Add the following function according to your shell of choice. Every time you spend ages hand-crafting the perfect command: run it, 
@@ -148,6 +151,12 @@ end
 You'll usually want different parameters each time you need a shell command: save variables in a shell snippet as `<param>` or `<param=default_value>` and 
 every time you select it (with `search` or `cp`), you can interactively fill them in (or keep the defaults). Parameters can appear more than once, 
 just use the same name and write in the default the first time it's used.
+
+Here's another self-referential example that saves a shell command to add new language syntaxes:
+
+![cmd_demo](images/the-way-cmd-embedded.svg)
+
+> made with [asciinema](https://github.com/asciinema/asciinema), [svg-term-cli](https://github.com/marionebl/svg-term-cli), and [svgembed](https://github.com/miraclx/svgembed)
 
 ## Sync to Gist
 `the-way sync` syncs snippets to a Gist, each named `snippet_<index>.<extension>`, with an `index.md` file linking each snippet's description. 
