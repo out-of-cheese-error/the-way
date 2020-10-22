@@ -4,9 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [0.11.0] - 2020-10-22
+**Needs an export-import to fix shell snippet extensions!**
+
+```bash
+the-way export snippets.json
+the-way clear
+the-way import snippets.json
+```
+
 ### Added
 * Keyboard shortcuts in `search` mode for deleting and editing snippets interactively. ([PR 85](https://github.com/out-of-cheese-error/the-way/pull/85))
+* Demo for `the-way cmd`
 
 ### Changed
 * Single line code can be edited without external editor. ([PR 83](https://github.com/out-of-cheese-error/the-way/pull/83))
@@ -15,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 * Shell snippets saved with .sh extension instead of sh ([3d8d0c3](https://github.com/out-of-cheese-error/the-way/commit/3d8d0c39b0c998c5cd042c4820404dd1fccee6ca)). This needs an export + import.
+* Better output when `the-way sync` is called with no snippets stored ([7e0991d](https://github.com/out-of-cheese-error/the-way/commit/7e0991d7ff1eec62434746cd772479b09e44cd41))
 
 ## [0.10.1] - 2020-10-18
 ### Added
@@ -197,6 +207,7 @@ I'll make sure to add changes to it from now, the previous two releases weren't 
 - cargo install option
     
     
+[0.11.0]: https://github.com/out-of-cheese-error/the-way/compare/v0.10.1...v0.11.0
 [0.10.1]: https://github.com/out-of-cheese-error/the-way/compare/v0.10.0...v0.10.1
 [0.10.0]: https://github.com/out-of-cheese-error/the-way/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/out-of-cheese-error/the-way/compare/v0.8.0...v0.9.0
