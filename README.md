@@ -12,8 +12,8 @@ description, a language, and some tags attached.
 
 `the-way search` fuzzy searches your snippets library (with optional filters on language and tags) and 
 lets you 
-* edit a snippet with Shift-Left
-* delete a snippet with Shift-Right
+* edit a snippet with Shift-Right
+* delete a snippet with Shift-Left
 * copy a particular snippet to your clipboard (with Enter), so you can paste it into whatever editor or IDE you're working with.
 
 See it in action (with some self-referential examples):
