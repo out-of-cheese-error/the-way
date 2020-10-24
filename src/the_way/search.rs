@@ -98,7 +98,7 @@ impl TheWay {
                 "Enter:accept",
             ])
             .header(Some(
-                "Press Enter to copy, Shift-right to delete, Shift-left to edit",
+                "Press Enter to copy, Shift-left to delete, Shift-right to edit",
             ))
             .multi(true)
             .reverse(true)
