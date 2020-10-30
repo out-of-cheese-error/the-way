@@ -1,6 +1,7 @@
 [![Crates.io](https://img.shields.io/crates/v/the-way.svg)](https://crates.io/crates/the-way)
 [![Build Status](https://travis-ci.org/out-of-cheese-error/the-way.svg?branch=master)](https://travis-ci.org/out-of-cheese-error/the-way)
 [![GitHub release](https://img.shields.io/github/release/out-of-cheese-error/the-way.svg)](https://GitHub.com/out-of-cheese-error/the-way/releases/)
+[![dependency status](https://deps.rs/repo/github/out-of-cheese-error/the-way/status.svg)](https://deps.rs/repo/github/out-of-cheese-error/the-way)
 [![GitHub license](https://img.shields.io/github/license/out-of-cheese-error/the-way.svg)](https://github.com/out-of-cheese-error/the-way/blob/master/LICENSE)
    
 # The Way
@@ -115,6 +116,8 @@ SUBCOMMANDS:
 * Filter by tag, date, language and/or regex pattern
 * Import / export via JSON
 * Import from Gist (with `the-way import -g <gist_url>`)
+* Sync to gist
+* Syntax highlighting
 
 ## Shell commands
 `the-way cmd` (inspired by [pet](https://github.com/knqyf263/pet)) makes it easier to save single-line 
