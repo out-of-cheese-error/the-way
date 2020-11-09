@@ -119,10 +119,8 @@ pub enum TheWayCLI {
 
 #[derive(StructOpt, Debug)]
 pub enum ThemeCommand {
-    /// List all theme choices (default + user-added)
-    List,
     /// Set your preferred syntax highlighting theme
-    Set { theme: String },
+    Set { theme: Option<String> },
     /// Add a theme from a Sublime Text ".tmTheme" file.
     Add {
         #[structopt(parse(from_os_str))]

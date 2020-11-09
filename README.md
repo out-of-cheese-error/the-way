@@ -185,7 +185,7 @@ The Way maps languages to their extensions and uses this to
 
 The last point can be customized via `the-way themes`. 
 
-Use `the-way themes set <theme>` to enable a theme.
+Use `the-way themes set` to see available themes and enable a theme.
 
 Default themes:
 ```
@@ -204,8 +204,6 @@ base16-twilight.dark
 Use `the-way themes add <theme.tmTheme>` to add a new theme to your themes folder.
 Theme files need to be in Sublime's [.tmTheme](https://www.sublimetext.com/docs/3/color_schemes_tmtheme.html) format. 
 Searching GitHub for [.tmTheme](https://github.com/search?q=.tmTheme) pulls up some examples. 
-
-`the-way themes list` shows all available themes.
 
 Use `the-way themes language <language.sublime-syntax>` to add highlight support for a new language 
 ([many languages](https://github.com/sublimehq/Packages/) are supported by default). 

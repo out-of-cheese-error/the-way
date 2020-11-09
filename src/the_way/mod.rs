@@ -5,7 +5,7 @@ use std::{fs, io};
 
 use color_eyre::Help;
 use dialoguer::theme::ColorfulTheme;
-use dialoguer::Confirm;
+use dialoguer::{Confirm, Select};
 use structopt::clap::Shell;
 use structopt::StructOpt;
 
@@ -340,8 +340,19 @@ impl TheWay {
 
     fn themes(&mut self, cmd: ThemeCommand) -> color_eyre::Result<()> {
         match cmd {
-            ThemeCommand::List => self.list_themes(),
             ThemeCommand::Set { theme } => {
+                let theme = match theme {
+                    Some(theme) => theme,
+                    None => {
+                        let themes = self.highlighter.get_themes();
+                        let theme_index =
+                            Select::with_theme(&dialoguer::theme::ColorfulTheme::default())
+                                .with_prompt("Choose a syntax highlighting theme:")
+                                .items(&themes[..])
+                                .interact()?;
+                        themes[theme_index].to_owned()
+                    }
+                };
                 self.highlighter.set_theme(theme.to_owned())?;
                 println!(
                     "{}",
@@ -349,7 +360,6 @@ impl TheWay {
                 );
                 self.config.theme = theme;
                 self.config.store()?;
-
                 Ok(())
             }
             ThemeCommand::Add { file } => {
