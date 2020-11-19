@@ -256,7 +256,7 @@ impl Snippet {
 
     pub(crate) fn copy(&self) -> color_eyre::Result<usize> {
         let code = self.fill_snippet()?;
-        utils::copy_to_clipboard(&code).expect("Clipboard Error");
+        utils::copy_to_clipboard(&code)?;
         Ok(self.index)
     }
 
