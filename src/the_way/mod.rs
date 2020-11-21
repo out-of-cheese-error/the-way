@@ -172,15 +172,6 @@ impl TheWay {
         Ok(())
     }
 
-    /// List syntax highlighting themes
-    fn list_themes(&self) -> color_eyre::Result<()> {
-        println!("{}", self.highlight_string("Available themes:\n"));
-        for theme in self.highlighter.get_themes() {
-            println!("{}", theme);
-        }
-        Ok(())
-    }
-
     /// Import from file or gist
     fn import(&mut self, file: Option<&Path>, gist_url: Option<String>) -> color_eyre::Result<()> {
         let mut num = 0;
