@@ -23,27 +23,32 @@ pub const NAME: &str = "the-way";
 /// ASCII code of semicolon
 pub const SEMICOLON: u8 = 59;
 
+#[cfg(target_os = "linux")]
+mod copy {
+    pub const COMMAND : &str = "xclip";
+    pub const ARGS : [&str; 3] = ["-in", "-selection", "clipboard"];
+}
+
+#[cfg(target_os = "macos")]
+mod copy {
+    pub const COMMAND : &str = "pbcopy";
+    pub const ARGS : [&str; 0] = [];
+}
+
 /// Set clipboard contents to text
 /// See [issue](https://github.com/aweinstock314/rust-clipboard/issues/28#issuecomment-534295371)
 pub fn copy_to_clipboard(text: &str) -> color_eyre::Result<()> {
-    #[cfg(target_os = "macos")]
-    let mut command = Command::new("pbcopy");
-
-    #[cfg(target_os = "linux")]
-    let mut command = {
-        let mut c = Command::new("xclip");
-        c.arg("-in");
-        c.arg("-selection");
-        c.arg("clipboard");
-        c
-    };
-
-    let mut child = command.stdin(Stdio::piped()).spawn()?;
+    let mut child = Command::new(copy::COMMAND)
+        .args(&copy::ARGS)
+        .stdin(Stdio::piped())
+        .spawn()
+        .map_err(|_| LostTheWay::ClipboardError{ message: format!("is {} available?", copy::COMMAND)})?;
 
     // When stdin is dropped the fd is automatically closed. See
     // https://doc.rust-lang.org/std/process/struct.ChildStdin.html.
     {
-        let stdin = child.stdin.as_mut().ok_or(LostTheWay::ClipboardError)?;
+        let stdin = child.stdin.as_mut()
+            .ok_or(LostTheWay::ClipboardError{ message: "Could not access stdin".to_string() })?;
         stdin.write_all(text.as_bytes())?;
     }
 

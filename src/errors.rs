@@ -28,8 +28,8 @@ pub enum LostTheWay {
     /// Thrown when trying to load a syntax which hasn't been added / doesn't exist
     #[error("SyntaxError: {syntax:?}")]
     SyntaxError { syntax: String },
-    #[error("ClipboardError: Couldn't copy to clipboard")]
-    ClipboardError,
+    #[error("ClipboardError: Couldn't copy to clipboard - {message}")]
+    ClipboardError { message: String },
     #[error("SearchError: Search failed")]
     SearchError,
     /// Errors related to changing the configuration file
