@@ -275,9 +275,9 @@ impl Snippet {
             return Ok(Cow::Borrowed(self.code.as_str()));
         }
         // Matches the param or param=value **inside** the angular brackets
-        let re1 = Regex::new("<(?P<parameter>[^<]+)>")?;
+        let re1 = Regex::new("<(?P<parameter>[^<>]+)>")?;
         // Matches <param> or <param=value>
-        let re2 = Regex::new("(?P<match><[^<]+>)")?;
+        let re2 = Regex::new("(?P<match><[^<>]+>)")?;
 
         // Ask user to fill in (unique) parameters
         let mut filled_parameters = HashMap::new();
