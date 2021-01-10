@@ -445,7 +445,7 @@ fn copy() -> color_eyre::Result<()> {
         .arg("cp")
         .arg("1")
         .assert()
-        .stdout(predicate::str::contains("Snippet #1 copied to clipboard"));
+        .stderr(predicate::str::contains("Snippet #1 copied to clipboard"));
     let ctx: color_eyre::Result<ClipboardContext, _> = ClipboardProvider::new();
     assert!(ctx.is_ok());
     let mut ctx = ctx.unwrap();
