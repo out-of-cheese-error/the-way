@@ -1,7 +1,8 @@
 //! CLI code
 use std::collections::HashMap;
+use std::io::{ErrorKind, Write};
 use std::path::Path;
-use std::{fs, io};
+use std::{fs, io, process};
 
 use color_eyre::Help;
 use dialoguer::theme::ColorfulTheme;
@@ -162,11 +163,18 @@ impl TheWay {
     }
 
     /// Copy a snippet to clipboard
-    fn copy(&self, index: usize, stdout: bool) -> color_eyre::Result<()> {
+    fn copy(&self, index: usize, to_stdout: bool) -> color_eyre::Result<()> {
         let snippet = self.get_snippet(index)?;
         let code = snippet.copy()?;
-        if stdout {
-            println!("{}", code);
+        if to_stdout {
+            // See https://github.com/rust-lang/rust/issues/46016
+            let mut stdout = std::io::stdout();
+            if let Err(e) = writeln!(stdout, "{}", code) {
+                if e.kind() != ErrorKind::BrokenPipe {
+                    eprintln!("{}", e);
+                    process::exit(1);
+                }
+            }
         }
         eprintln!(
             "{}",

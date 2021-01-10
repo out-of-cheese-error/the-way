@@ -281,7 +281,7 @@ impl Snippet {
 
         // Ask user to fill in (unique) parameters
         let mut filled_parameters = HashMap::new();
-        println!("{}", self.code);
+        eprintln!("{}", self.code);
         for capture in re1.captures_iter(&self.code) {
             let mut parts = capture["parameter"].split('=');
             let parameter_name = parts.next().unwrap().to_owned();
