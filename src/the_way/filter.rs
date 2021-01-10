@@ -1,13 +1,13 @@
 //! Code related to filtering search, list, and export results
 use std::collections::HashSet;
+use std::ffi::OsString;
 
 use chrono::{Date, Utc};
+use regex::Regex;
 use structopt::StructOpt;
 
 use crate::the_way::{snippet::Snippet, TheWay};
 use crate::utils;
-use regex::Regex;
-use std::ffi::OsString;
 
 #[derive(StructOpt, Debug)]
 pub struct Filters {
@@ -61,9 +61,15 @@ impl TheWay {
                     .collect::<HashSet<_>>()
                     .into_iter()
                     .collect::<Vec<_>>();
-                Snippet::filter_in_date_range(self.get_snippets(&indices)?, from_date, to_date)
+                Ok(Snippet::filter_in_date_range(
+                    self.get_snippets(&indices)?,
+                    from_date,
+                    to_date,
+                ))
             }
-            (None, Some(snippets)) => Snippet::filter_in_date_range(snippets, from_date, to_date),
+            (None, Some(snippets)) => {
+                Ok(Snippet::filter_in_date_range(snippets, from_date, to_date))
+            }
             (None, None) => self.list_snippets_in_date_range(from_date, to_date),
         };
         let snippets = match &filters.pattern {

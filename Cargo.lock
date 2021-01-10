@@ -1419,11 +1419,11 @@ version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1ac8dcb2f57eba70ce16c6844af6caa63dc642d404630aae5dc3b4cb48353962"
 dependencies = [
- "beef",
- "bitflags",
- "chrono",
- "clap",
- "crossbeam",
+    "beef",
+    "bitflags",
+    "chrono",
+    "clap",
+    "crossbeam",
     "defer-drop",
     "derive_builder",
     "env_logger",
@@ -1531,11 +1531,11 @@ dependencies = [
     "lazycell",
     "plist",
     "regex-syntax",
- "serde",
- "serde_derive",
- "serde_json",
- "walkdir",
- "yaml-rust",
+    "serde",
+    "serde_derive",
+    "serde_json",
+    "walkdir",
+    "yaml-rust",
 ]
 
 [[package]]
@@ -1763,7 +1763,7 @@ dependencies = [
     "serde_json",
     "url",
     "webpki",
- "webpki-roots",
+    "webpki-roots",
 ]
 
 [[package]]
