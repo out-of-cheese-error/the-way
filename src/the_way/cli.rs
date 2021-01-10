@@ -27,6 +27,9 @@ pub enum TheWayCLI {
     Search {
         #[structopt(flatten)]
         filters: Filters,
+        // Also print to stdout when copying (with Enter)
+        #[structopt(long)]
+        stdout: bool,
     },
     /// Sync snippets to a Gist
     ///
@@ -109,6 +112,9 @@ pub enum TheWayCLI {
     Cp {
         /// Index of snippet to copy
         index: usize,
+        /// Also print to stdout
+        #[structopt(long)]
+        stdout: bool,
     },
     /// View snippet
     View {

@@ -65,6 +65,7 @@ impl TheWay {
         &mut self,
         snippets: Vec<Snippet>,
         highlight_color: &str,
+        stdout: bool,
     ) -> color_eyre::Result<()> {
         let default_language = Language::default();
         let search_snippets: Vec<_> = snippets
@@ -119,7 +120,7 @@ impl TheWay {
                     (*item).as_any().downcast_ref::<SearchSnippet>().unwrap();
                 match key {
                     Key::Enter => {
-                        self.copy(snippet.index)?;
+                        self.copy(snippet.index, stdout)?;
                     }
                     Key::ShiftLeft => {
                         self.delete(snippet.index, false)?;
