@@ -169,7 +169,7 @@ impl Snippet {
         start_index: usize,
         languages: &HashMap<String, Language>,
         gist: &Gist,
-    ) -> color_eyre::Result<Vec<Self>> {
+    ) -> Vec<Self> {
         let mut index = start_index;
         let mut snippets = Vec::new();
         for (file_name, gist_file) in &gist.files {
@@ -191,7 +191,7 @@ impl Snippet {
             snippets.push(snippet);
             index += 1;
         }
-        Ok(snippets)
+        snippets
     }
 
     /// Filters snippets in date range
@@ -199,11 +199,11 @@ impl Snippet {
         snippets: Vec<Self>,
         from_date: DateTime<Utc>,
         to_date: DateTime<Utc>,
-    ) -> color_eyre::Result<Vec<Self>> {
-        Ok(snippets
+    ) -> Vec<Self> {
+        snippets
             .into_iter()
             .filter(|snippet| snippet.in_date_range(from_date, to_date))
-            .collect())
+            .collect()
     }
 
     /// Checks if a snippet was recorded within a date range
@@ -225,9 +225,9 @@ impl Snippet {
         &self,
         highlighter: &CodeHighlight,
         language: &Language,
-    ) -> color_eyre::Result<Vec<String>> {
+    ) -> Vec<String> {
         let mut colorized = Vec::new();
-        let block = CodeHighlight::highlight_block(language.color)?;
+        let block = CodeHighlight::highlight_block(language.color);
         colorized.push(block);
         let text = format!("#{}. {} ", self.index, self.description);
         colorized.push(utils::highlight_string(&text, highlighter.main_style));
@@ -237,21 +237,21 @@ impl Snippet {
 
         let text = format!(":{}:\n", self.tags.join(":"));
         colorized.push(utils::highlight_string(&text, highlighter.tag_style));
-        Ok(colorized)
+        colorized
     }
 
     pub(crate) fn pretty_print(
         &self,
         highlighter: &CodeHighlight,
         language: &Language,
-    ) -> color_eyre::Result<Vec<String>> {
+    ) -> Vec<String> {
         let mut colorized = vec![String::from("\n")];
-        colorized.extend_from_slice(&self.pretty_print_header(highlighter, language)?);
+        colorized.extend_from_slice(&self.pretty_print_header(highlighter, language));
         colorized.push(String::from("\n"));
-        colorized.extend_from_slice(&highlighter.highlight_code(&self.code, &self.extension)?);
+        colorized.extend_from_slice(&highlighter.highlight_code(&self.code, &self.extension));
         colorized.push(String::from("\n"));
         colorized.push(String::from("\n"));
-        Ok(colorized)
+        colorized
     }
 
     pub(crate) fn copy(&self) -> color_eyre::Result<Cow<str>> {
@@ -262,10 +262,7 @@ impl Snippet {
 
     fn is_shell_snippet(&self) -> bool {
         // sh, bash, csh, tcsh
-        match self.language.as_str() {
-            "sh" | "bash" | "csh" | "tcsh" => true,
-            _ => false,
-        }
+        matches!(self.language.as_str(), "sh" | "bash" | "csh" | "tcsh")
     }
 
     /// If snippet is a shell snippet, interactively fill parameters
@@ -286,15 +283,6 @@ impl Snippet {
             let mut parts = capture["parameter"].split('=');
             let parameter_name = parts.next().unwrap().to_owned();
             let default = parts.next();
-            // TODO: Waiting on [issue #71024](https://github.com/rust-lang/rust/issues/71024)
-            // filled_parameters
-            //     .entry(parameter_name)
-            //     .or_insert_with_key(|parameter_name| utils::user_input(
-            //         &parameter_name,
-            //         default.as_deref(),
-            //         true,
-            //         false,
-            //     )?);
             if !filled_parameters.contains_key(&parameter_name) {
                 let filled = utils::user_input(&parameter_name, default, true, false)?;
                 filled_parameters.insert(parameter_name, filled);

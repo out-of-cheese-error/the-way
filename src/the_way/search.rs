@@ -74,7 +74,6 @@ impl TheWay {
                 code_highlight: self
                     .highlighter
                     .highlight_code(&snippet.code, &snippet.extension)
-                    .unwrap_or_default()
                     .join(""),
                 text_highlight: snippet
                     .pretty_print_header(
@@ -83,7 +82,6 @@ impl TheWay {
                             .get(&snippet.language)
                             .unwrap_or(&default_language),
                     )
-                    .unwrap_or_default()
                     .join(""),
                 index: snippet.index,
             })

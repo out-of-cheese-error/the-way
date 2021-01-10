@@ -46,40 +46,55 @@ pub struct GistFile {
     pub language: String,
 }
 
-pub struct GistClient {
+pub struct GistClient<'a> {
     client: ureq::Agent,
+    access_token: Option<&'a str>,
 }
 
-impl GistClient {
+impl<'a> GistClient<'a> {
     /// Create a new Gist client
-    pub fn new(access_token: Option<&str>) -> color_eyre::Result<Self> {
-        let mut client = ureq::agent();
-        client
-            .set("user-agent", USER_AGENT)
-            .set("content-type", ACCEPT);
-
-        if let Some(access_token) = access_token {
-            client.set("Authorization", &format!("token {}", access_token));
-        }
-        Ok(Self { client })
+    pub fn new(access_token: Option<&'a str>) -> color_eyre::Result<Self> {
+        Ok(Self {
+            client: ureq::agent(),
+            access_token,
+        })
     }
 
-    fn get_response(response: ureq::Response) -> color_eyre::Result<Gist> {
-        if response.ok() {
-            Ok(response
-                .into_json_deserialize::<Gist>()
-                .map_err(|e| LostTheWay::SyncError {
-                    message: format!("{}", e),
-                })?)
-        } else {
-            Err(LostTheWay::SyncError {
-                message: format!("{} {}", response.status(), response.into_string()?),
+    fn add_headers(&self, request: ureq::Request) -> ureq::Request {
+        let mut request = request
+            .set("user-agent", USER_AGENT)
+            .set("content-type", ACCEPT);
+        if let Some(access_token) = &self.access_token {
+            request = request.set("Authorization", &format!("token {}", access_token));
+        }
+        request
+    }
+
+    fn get_response(response: Result<ureq::Response, ureq::Error>) -> color_eyre::Result<Gist> {
+        match response {
+            Ok(response) => {
+                Ok(response
+                    .into_json::<Gist>()
+                    .map_err(|e| LostTheWay::SyncError {
+                        message: format!("{}", e),
+                    })?)
+            }
+            Err(ureq::Error::Status(code, response)) => Err(LostTheWay::SyncError {
+                message: format!("{} {}", code, response.into_string()?),
             })
             .suggestion(
                 "Make sure your GitHub access token is valid.\n\
         Get one from https://github.com/settings/tokens/new (add the \"gist\" scope).\n\
         Set it to the environment variable $THE_WAY_GITHUB_TOKEN",
-            )
+            ),
+            Err(_) => Err(LostTheWay::SyncError {
+                message: "io/transport error".into(),
+            })
+            .suggestion(
+                "Make sure your GitHub access token is valid.\n\
+        Get one from https://github.com/settings/tokens/new (add the \"gist\" scope).\n\
+        Set it to the environment variable $THE_WAY_GITHUB_TOKEN",
+            ),
         }
     }
 
@@ -87,8 +102,7 @@ impl GistClient {
     pub fn create_gist(&self, payload: &CreateGistPayload<'_>) -> color_eyre::Result<Gist> {
         let url = format!("{}{}/gists", GITHUB_API_URL, GITHUB_BASE_PATH);
         let response = self
-            .client
-            .post(&url)
+            .add_headers(self.client.post(&url))
             .send_json(ureq::serde_to_value(payload)?);
         Self::get_response(response)
     }
@@ -101,8 +115,10 @@ impl GistClient {
     ) -> color_eyre::Result<Gist> {
         let url = format!("{}{}/gists", GITHUB_API_URL, GITHUB_BASE_PATH);
         let response = self
-            .client
-            .patch(&format!("{}/{}", url, gist_id))
+            .add_headers(
+                self.client
+                    .request("PATCH", &format!("{}/{}", url, gist_id)),
+            )
             .send_json(ureq::serde_to_value(payload)?);
         Self::get_response(response)
     }
@@ -110,11 +126,11 @@ impl GistClient {
     /// Retrieve a Gist by ID
     pub fn get_gist(&self, gist_id: &str) -> color_eyre::Result<Gist> {
         let url = format!("{}{}/gists", GITHUB_API_URL, GITHUB_BASE_PATH);
-        let response = self.client.get(&format!("{}/{}", url, gist_id)).call();
-        Self::get_response(response)
+        let response = self.add_headers(self.client.get(&format!("{}/{}", url, gist_id)));
+        Self::get_response(response.call())
     }
 
-    fn gist_id_from_url<'a>(&self, gist_url: &'a str) -> Option<&'a str> {
+    fn gist_id_from_url<'b>(&self, gist_url: &'b str) -> Option<&'b str> {
         let re = Regex::new(
             // Expect URL like https://gist.github.com/<user>/<gist_id>
             r"https://gist\.github\.com/.+/(?P<gist_id>[0-9a-f]+)$",
@@ -139,8 +155,8 @@ impl GistClient {
     /// Delete Gist by ID
     pub fn delete_gist(&self, gist_id: &str) -> color_eyre::Result<()> {
         let url = format!("{}{}/gists", GITHUB_API_URL, GITHUB_BASE_PATH);
-        let status = self.client.delete(&format!("{}/{}", url, gist_id)).call();
-        assert!(status.ok());
+        let status = self.add_headers(self.client.delete(&format!("{}/{}", url, gist_id)));
+        assert!(status.call().is_ok());
         Ok(())
     }
 }

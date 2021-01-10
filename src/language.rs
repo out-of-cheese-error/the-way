@@ -306,23 +306,19 @@ impl CodeHighlight {
     }
 
     /// Makes a box colored according to GitHub language colors
-    pub(crate) fn highlight_block(language_color: Color) -> color_eyre::Result<String> {
-        Ok(utils::highlight_string(
+    pub(crate) fn highlight_block(language_color: Color) -> String {
+        utils::highlight_string(
             &format!("{} ", utils::BOX),
             Style::default().apply(StyleModifier {
                 foreground: Some(language_color),
                 background: None,
                 font_style: None,
             }),
-        ))
+        )
     }
 
     /// Syntax highlight code block
-    pub(crate) fn highlight_code(
-        &self,
-        code: &str,
-        extension: &str,
-    ) -> color_eyre::Result<Vec<String>> {
+    pub(crate) fn highlight_code(&self, code: &str, extension: &str) -> Vec<String> {
         let mut colorized = Vec::new();
         let extension = extension.split('.').nth(1).unwrap_or("txt");
         let syntax = self.syntax_set.find_syntax_by_extension(extension);
@@ -337,6 +333,6 @@ impl CodeHighlight {
             colorized.push(escaped);
         }
         colorized.push(String::from(utils::END_ANSI));
-        Ok(colorized)
+        colorized
     }
 }

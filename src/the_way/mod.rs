@@ -78,7 +78,10 @@ impl TheWay {
             TheWayCLI::List { filters } => self.list(&filters),
             TheWayCLI::Import { file, gist_url } => self.import(file.as_deref(), gist_url),
             TheWayCLI::Export { filters, file } => self.export(&filters, file.as_deref()),
-            TheWayCLI::Complete { shell } => Self::complete(shell),
+            TheWayCLI::Complete { shell } => {
+                Self::complete(shell);
+                Ok(())
+            }
             TheWayCLI::Themes { cmd } => self.themes(cmd),
             TheWayCLI::Clear { force } => self.clear(force),
             TheWayCLI::Config { cmd } => match cmd {
@@ -156,7 +159,7 @@ impl TheWay {
             self.languages
                 .get(&snippet.language)
                 .unwrap_or(&Language::default()),
-        )? {
+        ) {
             print!("{}", line)
         }
         Ok(())
@@ -234,7 +237,7 @@ impl TheWay {
     }
 
     /// Prints given snippets in full
-    fn show_snippets(&self, snippets: &[Snippet]) -> color_eyre::Result<()> {
+    fn show_snippets(&self, snippets: &[Snippet]) {
         let mut colorized = Vec::new();
         let default_language = Language::default();
         for snippet in snippets {
@@ -244,20 +247,19 @@ impl TheWay {
                     self.languages
                         .get(&snippet.language)
                         .unwrap_or(&default_language),
-                )?,
+                ),
             );
         }
         for line in colorized {
             print!("{}", line);
         }
-        Ok(())
     }
 
     /// Lists snippets (optionally filtered)
     fn list(&self, filters: &Filters) -> color_eyre::Result<()> {
         let mut snippets = self.filter_snippets(filters)?;
         snippets.sort_by(|a, b| a.index.cmp(&b.index));
-        self.show_snippets(&snippets)?;
+        self.show_snippets(&snippets);
         Ok(())
     }
 
@@ -282,9 +284,8 @@ impl TheWay {
     }
 
     /// Generates shell completions
-    fn complete(shell: Shell) -> color_eyre::Result<()> {
+    fn complete(shell: Shell) {
         TheWayCLI::clap().gen_completions_to(utils::NAME, shell, &mut io::stdout());
-        Ok(())
     }
 
     /// Removes all `sled` trees
