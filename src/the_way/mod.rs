@@ -69,8 +69,8 @@ impl TheWay {
         match cli {
             TheWayCLI::New => self.the_way(),
             TheWayCLI::Cmd { code } => self.the_way_cmd(code),
-            TheWayCLI::Search { filters } => self.search(&filters),
-            TheWayCLI::Cp { index } => self.copy(index),
+            TheWayCLI::Search { filters, stdout } => self.search(&filters, stdout),
+            TheWayCLI::Cp { index, stdout } => self.copy(index, stdout),
             TheWayCLI::Edit { index } => self.edit(index),
             TheWayCLI::Del { index, force } => self.delete(index, force),
             TheWayCLI::View { index } => self.view(index),
@@ -162,10 +162,13 @@ impl TheWay {
     }
 
     /// Copy a snippet to clipboard
-    fn copy(&self, index: usize) -> color_eyre::Result<()> {
+    fn copy(&self, index: usize, stdout: bool) -> color_eyre::Result<()> {
         let snippet = self.get_snippet(index)?;
-        let index = snippet.copy()?;
-        println!(
+        let code = snippet.copy()?;
+        if stdout {
+            println!("{}", code);
+        }
+        eprintln!(
             "{}",
             self.highlight_string(&format!("Snippet #{} copied to clipboard", index))
         );
@@ -252,7 +255,7 @@ impl TheWay {
 
     /// Displays all snippet descriptions in a skim fuzzy search window
     /// A preview window on the right shows the indices of snippets matching the query
-    fn search(&mut self, filters: &Filters) -> color_eyre::Result<()> {
+    fn search(&mut self, filters: &Filters, stdout: bool) -> color_eyre::Result<()> {
         let mut snippets = self.filter_snippets(filters)?;
         snippets.sort_by(|a, b| a.index.cmp(&b.index));
         self.make_search(
@@ -265,6 +268,7 @@ impl TheWay {
                     self.highlighter.highlight_style.foreground.b,
                 ])
             ),
+            stdout,
         )?;
         Ok(())
     }

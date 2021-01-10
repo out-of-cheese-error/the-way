@@ -254,10 +254,10 @@ impl Snippet {
         Ok(colorized)
     }
 
-    pub(crate) fn copy(&self) -> color_eyre::Result<usize> {
+    pub(crate) fn copy(&self) -> color_eyre::Result<Cow<str>> {
         let code = self.fill_snippet()?;
         utils::copy_to_clipboard(&code)?;
-        Ok(self.index)
+        Ok(code)
     }
 
     fn is_shell_snippet(&self) -> bool {
