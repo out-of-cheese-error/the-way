@@ -54,7 +54,7 @@ syntect = { version = "4.5.0", default-features = false, features = ["default-fa
 hex = "0.4.2"
 
 # Sync to Gist/GitLab
-ureq = { version = "2.0.0", features = ["json"] }
+ureq = { version = "2.0.1", features = ["json"] }
 
 # pattern filter and filling shell script variables
 regex = "1.4.3"

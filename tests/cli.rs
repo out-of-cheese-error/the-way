@@ -268,7 +268,7 @@ fn import_multiple_no_tags() -> color_eyre::Result<()> {
     let contents_1 = r#"{"description":"test description 1","language":"rust","tags":["tag1","tag2"],"code":"some\ntest\ncode\n"}"#;
     let contents_2 =
         r#"{"description":"test description 2","language":"python","code":"some\ntest\ncode\n"}"#;
-    let contents = format!("{}{}", contents_1, contents_2);
+    let contents = format!("{}\n{}", contents_1, contents_2);
     let temp_dir = tempdir()?;
     let config_file = make_config_file(&temp_dir)?;
     let mut cmd = Command::cargo_bin("the-way")?;
@@ -321,7 +321,7 @@ fn export() -> color_eyre::Result<()> {
     let contents_1 = r#"{"description":"test description 1","language":"rust","tags":["tag1","tag2"],"code":"some\ntest\ncode\n"}"#;
     let contents_2 =
         r#"{"description":"test description 2","language":"python","code":"some\ntest\ncode\n"}"#;
-    let contents = format!("{}{}", contents_1, contents_2);
+    let contents = format!("{}\n{}", contents_1, contents_2);
     let temp_dir = tempdir()?;
     let config_file = make_config_file(&temp_dir)?;
 
@@ -360,7 +360,7 @@ fn delete() -> color_eyre::Result<()> {
     let contents_1 = r#"{"description":"test description 1","language":"rust","tags":["tag1","tag2"],"code":"some\ntest\ncode\n"}"#;
     let contents_2 =
         r#"{"description":"test description 2","language":"python","code":"some\ntest\ncode\n"}"#;
-    let contents = format!("{}{}", contents_1, contents_2);
+    let contents = format!("{}\n{}", contents_1, contents_2);
     let temp_dir = tempdir()?;
     let config_file = make_config_file(&temp_dir)?;
     let mut cmd = Command::cargo_bin("the-way")?;
@@ -525,7 +525,7 @@ fn sync_gist() -> color_eyre::Result<()> {
     let contents_1 = r#"{"description":"test description 1","language":"rust","tags":["tag1","tag2"],"code":"some\ntest\ncode\n"}"#;
     let contents_2 =
         r#"{"description":"test description 2","language":"python","code":"some\ntest\ncode\n"}"#;
-    let contents = format!("{}{}", contents_1, contents_2);
+    let contents = format!("{}\n{}", contents_1, contents_2);
 
     // import
     let mut cmd = Command::cargo_bin("the-way")?;

@@ -229,10 +229,10 @@ impl TheWay {
             None => Box::new(io::stdout()),
         };
         let mut buffered = io::BufWriter::new(writer);
-        self.filter_snippets(filters)?
-            .into_iter()
-            .map(|snippet| snippet.to_json(&mut buffered))
-            .collect::<Result<Vec<_>, _>>()?;
+        for snippet in self.filter_snippets(filters)? {
+            snippet.to_json(&mut buffered)?;
+            buffered.write_all(b"\n")?;
+        }
         Ok(())
     }
 
