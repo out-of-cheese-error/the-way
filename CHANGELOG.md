@@ -7,8 +7,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
 
-* newline-delimited JSON as export format
-* Updated ureq
+* Newline-delimited JSON as export format
+* Updated dependencies
+* Added `termux-clipboard-set` as copy command for Android (Issue [#93](https://github.com/out-of-cheese-error/the-way/issues/93))
 
 ## [0.13.0] - 2021-01-10
 
@@ -249,7 +250,6 @@ I'll make sure to add changes to it from now, the previous two releases weren't 
 - cargo install option
 
 [0.13.1]: https://github.com/out-of-cheese-error/the-way/compare/v0.13.0...v0.13.1
-
 [0.13.0]: https://github.com/out-of-cheese-error/the-way/compare/v0.12.1...v0.13.0
 [0.12.1]: https://github.com/out-of-cheese-error/the-way/compare/v0.12.0...v0.12.1
 [0.12.0]: https://github.com/out-of-cheese-error/the-way/compare/v0.11.1...v0.12.0    
