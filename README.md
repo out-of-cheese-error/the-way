@@ -31,6 +31,8 @@ Table of Contents
   * [With brew](#with-brew)
   * [With cargo](#with-cargo)
   * [With yay](#with-yay)
+  * [On Android](#on-android)
+  * [Upgrading](#upgrading)
 * [Usage](#usage)
 * [Features](#features)
   * [Main features](#main-features)
@@ -60,23 +62,36 @@ brew tap out-of-cheese-error/the-way && brew install the-way
 ```
 
 ## With cargo
+
 ```bash
 cargo install the-way
 ```
 
 ## With yay
+
 ```bash
 yay -S the-way-git
 ```
 
+## On Android
+
+Needs Termux, Termux:API and `pkg install termux-api`
+
+Clone the repository, run `cargo build --release`, and use `target/release/the-way`
+
+## Upgrading
+
 **Some upgrades need a database migration** (mentioned in the release notes):
 
-* Before upgrade 
+* Before upgrade
+
 ```bash
 the-way export > snippets.json
 the-way clear
 ```
+
 * After upgrade
+
 ```bash
 the-way import snippets.json
 ```

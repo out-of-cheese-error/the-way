@@ -1763,7 +1763,7 @@ dependencies = [
     "serde_json",
     "url",
     "webpki",
- "webpki-roots",
+    "webpki-roots",
 ]
 
 [[package]]

@@ -35,6 +35,12 @@ mod copy {
     pub const ARGS: [&str; 0] = [];
 }
 
+#[cfg(target_os = "android")]
+mod copy {
+    pub const COMMAND: &str = "termux-clipboard-set";
+    pub const ARGS: [&str; 0] = [];
+}
+
 /// Set clipboard contents to text
 /// See [issue](https://github.com/aweinstock314/rust-clipboard/issues/28#issuecomment-534295371)
 pub fn copy_to_clipboard(text: &str) -> color_eyre::Result<()> {
