@@ -254,19 +254,13 @@ impl Snippet {
         colorized
     }
 
-    pub(crate) fn copy(&self) -> color_eyre::Result<Cow<str>> {
-        let code = self.fill_snippet()?;
-        utils::copy_to_clipboard(&code)?;
-        Ok(code)
-    }
-
     fn is_shell_snippet(&self) -> bool {
         // sh, bash, csh, tcsh
         matches!(self.language.as_str(), "sh" | "bash" | "csh" | "tcsh")
     }
 
     /// If snippet is a shell snippet, interactively fill parameters
-    fn fill_snippet(&self) -> color_eyre::Result<Cow<str>> {
+    pub(crate) fn fill_snippet(&self) -> color_eyre::Result<Cow<str>> {
         // other languages, return as is
         if !self.is_shell_snippet() {
             return Ok(Cow::Borrowed(self.code.as_str()));

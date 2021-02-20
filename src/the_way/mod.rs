@@ -168,7 +168,7 @@ impl TheWay {
     /// Copy a snippet to clipboard
     fn copy(&self, index: usize, to_stdout: bool) -> color_eyre::Result<()> {
         let snippet = self.get_snippet(index)?;
-        let code = snippet.copy()?;
+        let code = snippet.fill_snippet()?;
         if to_stdout {
             // See https://github.com/rust-lang/rust/issues/46016
             let mut stdout = std::io::stdout();
@@ -178,11 +178,13 @@ impl TheWay {
                     process::exit(1);
                 }
             }
+        } else {
+            utils::copy_to_clipboard(&code)?;
+            eprintln!(
+                "{}",
+                self.highlight_string(&format!("Snippet #{} copied to clipboard", index))
+            );
         }
-        eprintln!(
-            "{}",
-            self.highlight_string(&format!("Snippet #{} copied to clipboard", index))
-        );
         Ok(())
     }
 
