@@ -10,6 +10,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 * Newline-delimited JSON as export format
 * Updated dependencies
 * Added `termux-clipboard-set` as copy command for Android (Issue [#93](https://github.com/out-of-cheese-error/the-way/issues/93))
+* `--stdout` prints to stdout *without* copying
 
 ## [0.13.0] - 2021-01-10
 
