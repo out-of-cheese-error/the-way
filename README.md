@@ -142,13 +142,18 @@ SUBCOMMANDS:
 bash/shell snippets with variables that can be filled in whenever the snippet is needed. 
 
 Add the following function according to your shell of choice. Every time you spend ages hand-crafting the perfect command: run it, 
-close all the stackoverflow tabs, and run `cmdsave` to save it to `the-way`.
+close all the stackoverflow tabs, and run `cmdsave` to save it to `the-way`. You can then use `cmdsearch` to search these shell snippets and have the selected one already pasted into the terminal, ready to run.
 
 ### bash
 ```shell script
 function cmdsave() {
   PREV=$(echo `history | tail -n2 | head -n1` | sed 's/[0-9]* //')
   sh -c "the-way cmd `printf %q "$PREV"`"
+}
+
+function cmdsearch() {
+  BUFFER=$(the-way search --stdout --languages="sh")
+  bind '"\e[0n": "'"$BUFFER"'"'; printf '\e[5n'
 }
 ```
 ### zsh
@@ -157,6 +162,11 @@ function cmdsave() {
 function cmdsave() {
   PREV=$(fc -lrn | head -n 1)
   sh -c "the-way cmd `printf %q "$PREV"`"
+}
+
+function cmdsearch() {
+  BUFFER=$(the-way search --stdout --languages="sh")
+  print -z $BUFFER
 }
 ```
 
@@ -168,9 +178,9 @@ function cmdsave
   the-way cmd $line
 end
 ```
+(todo: add fish cmdsearch)
 
-You'll usually want different parameters each time you need a shell command: save variables in a shell snippet as `<param>` or `<param=default_value>` and 
-every time you select it (with `search` or `cp`), you can interactively fill them in (or keep the defaults). Parameters can appear more than once, 
+You'll usually want different parameters each time you need a shell command: save variables in a shell snippet as `<param>` or `<param=default_value>` and every time you select it you can interactively fill them in (or keep the defaults). Parameters can appear more than once, 
 just use the same name and write in the default the first time it's used.
 
 Here's another self-referential example that saves a shell command to add new language syntaxes:
@@ -178,6 +188,8 @@ Here's another self-referential example that saves a shell command to add new la
 ![cmd_demo](images/the-way-cmd-embedded.svg)
 
 > made with [asciinema](https://github.com/asciinema/asciinema), [svg-term-cli](https://github.com/marionebl/svg-term-cli), and [svgembed](https://github.com/miraclx/svgembed)
+
+(todo: change GIF to use cmdsearch instead of search)
 
 ## Sync to Gist
 `the-way sync` syncs snippets to a Gist, each named `snippet_<index>.<extension>`, with an `index.md` file linking each snippet's description. 
