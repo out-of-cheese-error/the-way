@@ -177,8 +177,11 @@ function cmdsave
   set line (echo $history[1])
   the-way cmd $line
 end
+
+function cmdsearch
+  commandline (the-way search --languages=sh --stdout)
+end
 ```
-(todo: add fish cmdsearch)
 
 You'll usually want different parameters each time you need a shell command: save variables in a shell snippet as `<param>` or `<param=default_value>` and every time you select it you can interactively fill them in (or keep the defaults). Parameters can appear more than once, 
 just use the same name and write in the default the first time it's used.
