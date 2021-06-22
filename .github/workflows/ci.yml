@@ -17,7 +17,8 @@ jobs:
           override: true
       - uses: actions-rs/cargo@v1
         with:
-          command: test -- --test-threads=1
+          command: test
+          args: -- --test-threads=1
 
   rustfmt:
     name: Rustfmt
