@@ -76,13 +76,13 @@ impl TheWay {
     pub(crate) fn get_snippet(&self, index: usize) -> color_eyre::Result<Snippet> {
         let index_key = index.to_string();
         let index_key = index_key.as_bytes();
-        Ok(Snippet::from_bytes(
+        Snippet::from_bytes(
             &self
                 .snippets_tree()?
                 .get(index_key)?
                 .ok_or(LostTheWay::SnippetNotFound { index })
                 .suggestion("The index of a snippet is in its title after a #")?,
-        )?)
+        )
     }
 
     /// Retrieve snippets at indices
@@ -105,8 +105,7 @@ impl TheWay {
 
     /// List all snippets
     pub(crate) fn list_snippets(&self) -> color_eyre::Result<Vec<Snippet>> {
-        Ok(self
-            .snippets_tree()?
+        self.snippets_tree()?
             .iter()
             .map(|item| {
                 item.map_err(|_| {
@@ -117,7 +116,7 @@ impl TheWay {
                 })
                 .and_then(|(_, snippet)| Snippet::from_bytes(&snippet))
             })
-            .collect::<color_eyre::Result<Vec<_>>>()?)
+            .collect::<color_eyre::Result<Vec<_>>>()
     }
 
     // TODO: think about how deletions should affect snippet indices
@@ -247,12 +246,12 @@ impl TheWay {
     fn delete_from_snippets_tree(&mut self, index: usize) -> color_eyre::Result<Snippet> {
         let index_key = index.to_string();
         let index_key = index_key.as_bytes();
-        Ok(Snippet::from_bytes(
+        Snippet::from_bytes(
             &self
                 .snippets_tree()?
                 .remove(index_key)?
                 .ok_or(LostTheWay::SnippetNotFound { index })?,
-        )?)
+        )
     }
 
     /// Retrieve snippets written in a given language

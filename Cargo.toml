@@ -1,6 +1,6 @@
 [package]
 name = "the-way"
-version = "0.14.0"
+version = "0.14.1"
 edition = "2018"
 authors = ["Ninjani"]
 description = "A code snippets manager for your terminal"
@@ -44,7 +44,7 @@ chrono-english = "0.1.6"
 
 # Taking user input and showing progress
 dialoguer = "0.8.0"
-indicatif = "0.15.0"
+indicatif = "0.16.2"
 
 # Fuzzy search
 skim = "0.9.4"

@@ -129,12 +129,12 @@ pub fn date_end(to_date: Option<Date<Utc>>) -> DateTime<Utc> {
 
 /// Gets input from external editor, optionally displays default text in editor
 pub fn external_editor_input(default: Option<&str>, extension: &str) -> color_eyre::Result<String> {
-    Ok(Editor::new()
+    Editor::new()
         .extension(extension)
         .edit(default.unwrap_or(""))
         .suggestion("Set your default editor using the $EDITOR or $VISUAL environment variables")?
         .ok_or(LostTheWay::EditorError)
-        .suggestion("Make sure to save next time if you want to record a snippet!")?)
+        .suggestion("Make sure to save next time if you want to record a snippet!")
 }
 
 /// Takes user input from terminal, optionally has a default and optionally displays it.
@@ -170,7 +170,7 @@ pub fn user_input(
 /// Make an indicatif spinner with given message
 pub fn get_spinner(message: &str) -> indicatif::ProgressBar {
     let spinner = indicatif::ProgressBar::new_spinner();
-    spinner.set_message(message);
+    spinner.set_message(message.to_owned());
     spinner
 }
 
