@@ -1,5 +1,5 @@
 [![Crates.io](https://img.shields.io/crates/v/the-way.svg)](https://crates.io/crates/the-way)
-[![Build Status](https://travis-ci.com/out-of-cheese-error/the-way.svg?branch=master)](https://travis-ci.com/out-of-cheese-error/the-way)
+[![Build Status](https://github.com/out-of-cheese-error/the-way/workflows/Continuous%20Integration/badge.svg)](https://github.com/out-of-cheese-error/the-way/actions)
 [![GitHub release](https://img.shields.io/github/release/out-of-cheese-error/the-way.svg)](https://GitHub.com/out-of-cheese-error/the-way/releases/)
 [![dependency status](https://deps.rs/repo/github/out-of-cheese-error/the-way/status.svg)](https://deps.rs/repo/github/out-of-cheese-error/the-way)
 [![GitHub license](https://img.shields.io/github/license/out-of-cheese-error/the-way.svg)](https://github.com/out-of-cheese-error/the-way/blob/master/LICENSE)
