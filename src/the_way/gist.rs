@@ -86,7 +86,7 @@ impl TheWay {
         };
         // Upload index file to Gist
         let result = client.update_gist(&result.id, &update_payload)?;
-        spinner.finish_with_message(&self.highlight_string(&format!(
+        spinner.finish_with_message(self.highlight_string(&format!(
             "Created gist at {} with {} snippets",
             result.html_url,
             result.files.len()
@@ -118,7 +118,7 @@ impl TheWay {
 
         let gist = client.get_gist(self.config.gist_id.as_ref().unwrap());
         if gist.is_err() {
-            spinner.finish_with_message(&self.highlight_string("Gist not found."));
+            spinner.finish_with_message(self.highlight_string("Gist not found."));
             self.config.gist_id =
                 Some(self.make_gist(self.config.github_access_token.as_ref().unwrap())?);
             return Ok(());
