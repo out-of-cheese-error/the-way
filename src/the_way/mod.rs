@@ -48,12 +48,14 @@ impl TheWay {
     /// Reads `sled` trees and metadata file from the locations specified in config.
     /// (makes new ones the first time).
     pub fn start(cli: TheWayCLI, languages: HashMap<String, Language>) -> color_eyre::Result<()> {
-        if let TheWayCLI::Config { cmd } = &cli {
-            if let ConfigCommand::Default { file } = cmd {
-                TheWayConfig::default_config(file.as_deref())?;
-                return Ok(());
-            }
+        if let TheWayCLI::Config {
+            cmd: ConfigCommand::Default { file },
+        } = &cli
+        {
+            TheWayConfig::default_config(file.as_deref())?;
+            return Ok(());
         }
+
         let config = TheWayConfig::load()?;
         let mut the_way = Self {
             db: Self::get_db(&config.db_dir)?,
