@@ -1708,7 +1708,7 @@ dependencies = [
 
 [[package]]
 name = "the-way"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "assert_cmd",
  "bincode",
