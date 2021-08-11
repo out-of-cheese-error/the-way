@@ -1663,7 +1663,7 @@ dependencies = [
 
 [[package]]
 name = "the-way"
-version = "0.14.1"
+version = "0.14.2"
 dependencies = [
     "assert_cmd",
     "bincode",
@@ -1674,16 +1674,16 @@ dependencies = [
     "confy",
     "dialoguer",
     "directories-next",
- "eyre",
- "hex",
- "indicatif",
- "predicates",
- "regex",
- "rexpect",
- "serde",
- "serde_derive",
- "serde_json",
- "serde_yaml",
+    "eyre",
+    "hex",
+    "indicatif",
+    "predicates",
+    "regex",
+    "rexpect",
+    "serde",
+    "serde_derive",
+    "serde_json",
+    "serde_yaml",
  "skim",
  "sled",
  "structopt",
