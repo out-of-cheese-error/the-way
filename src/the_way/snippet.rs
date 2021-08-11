@@ -177,13 +177,13 @@ impl Snippet {
             let description = format!("{} - {} - {}", gist.description, gist.id, file_name);
             let language = &gist_file.language;
             let tags = "gist";
-            let extension = Language::get_extension(&language, languages);
+            let extension = Language::get_extension(language, languages);
             let snippet = Self::new(
                 index,
                 description,
                 language.to_string(),
                 extension.to_string(),
-                &tags,
+                tags,
                 Utc::now(),
                 Utc::now(),
                 code.to_string(),
@@ -249,8 +249,7 @@ impl Snippet {
         colorized.extend_from_slice(&self.pretty_print_header(highlighter, language));
         colorized.push(String::from("\n"));
         colorized.extend_from_slice(&highlighter.highlight_code(&self.code, &self.extension));
-        colorized.push(String::from("\n"));
-        colorized.push(String::from("\n"));
+        colorized.push(String::from("\n\n"));
         colorized
     }
 
