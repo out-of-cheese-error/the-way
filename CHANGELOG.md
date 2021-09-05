@@ -270,8 +270,9 @@ I'll make sure to add changes to it from now, the previous two releases weren't 
 - A first working version of the-way
 - cargo install option
 
-[0.14.3]: https://github.com/out-of-cheese-error/the-way/compare/v0.14.2...v0.14.3
+[0.14.4]: https://github.com/out-of-cheese-error/the-way/compare/v0.14.3...v0.14.4
 
+[0.14.3]: https://github.com/out-of-cheese-error/the-way/compare/v0.14.2...v0.14.3
 [0.14.2]: https://github.com/out-of-cheese-error/the-way/compare/v0.14.1...v0.14.2
 [0.14.1]: https://github.com/out-of-cheese-error/the-way/compare/v0.14.0...v0.14.1
 [0.14.0]: https://github.com/out-of-cheese-error/the-way/compare/v0.13.0...v0.14.0
