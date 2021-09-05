@@ -5,6 +5,7 @@ use std::io;
 
 use chrono::{DateTime, Utc};
 use regex::Regex;
+use syntect::highlighting::Style;
 
 use crate::gist::Gist;
 use crate::language::{CodeHighlight, Language};
@@ -259,7 +260,7 @@ impl Snippet {
     }
 
     /// If snippet is a shell snippet, interactively fill parameters
-    pub(crate) fn fill_snippet(&self) -> color_eyre::Result<Cow<str>> {
+    pub(crate) fn fill_snippet(&self, highlight_style: Style) -> color_eyre::Result<Cow<str>> {
         // other languages, return as is
         if !self.is_shell_snippet() {
             return Ok(Cow::Borrowed(self.code.as_str()));
@@ -269,9 +270,15 @@ impl Snippet {
         // Matches <param> or <param=value>
         let re2 = Regex::new("(?P<match><[^<>]+>)")?;
 
+        // Highlight parameters to fill
+        eprintln!(
+            "{}",
+            re2.replace_all(&self.code, |caps: &regex::Captures| {
+                utils::highlight_string(&caps["match"], highlight_style)
+            })
+        );
         // Ask user to fill in (unique) parameters
         let mut filled_parameters = HashMap::new();
-        eprintln!("{}", self.code);
         for capture in re1.captures_iter(&self.code) {
             let mut parts = capture["parameter"].split('=');
             let parameter_name = parts.next().unwrap().to_owned();

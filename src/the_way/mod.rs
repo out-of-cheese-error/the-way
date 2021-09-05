@@ -170,7 +170,7 @@ impl TheWay {
     /// Copy a snippet to clipboard
     fn copy(&self, index: usize, to_stdout: bool) -> color_eyre::Result<()> {
         let snippet = self.get_snippet(index)?;
-        let code = snippet.fill_snippet()?;
+        let code = snippet.fill_snippet(self.highlighter.highlight_style)?;
         if to_stdout {
             // See https://github.com/rust-lang/rust/issues/46016
             let mut stdout = std::io::stdout();
