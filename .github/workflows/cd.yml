@@ -55,12 +55,20 @@ jobs:
           else
             shasum -a 256 the-way-${{ matrix.artifact_prefix }}.tar.gz > the-way-${{ matrix.artifact_prefix }}.sha256
           fi
+      - name: Rust Cargo Deb Package Build (amd64, Ubuntu)
+        # You may pin to the exact commit or the version.
+        # uses: ebbflow-io/cargo-deb-amd64-ubuntu@10535fdef274ceb3c64916b052d0d59d94e97455
+        uses: ebbflow-io/cargo-deb-amd64-ubuntu@1.0
+        with:
+          # build command
+          cmd: cargo deb --target=x86_64-unknown-linux-musl
       - name: Releasing assets
         uses: softprops/action-gh-release@v1
         with:
           files: |
             target/${{ matrix.target }}/release/the-way-${{ matrix.artifact_prefix }}.tar.gz
             target/${{ matrix.target }}/release/the-way-${{ matrix.artifact_prefix }}.sha256
+            target/x86_64-unknown-linux-musl/debian/the-way*.deb
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
