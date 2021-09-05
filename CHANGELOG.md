@@ -8,6 +8,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## Unreleased
 
 * Highlight parameters in shell snippets (Issue [#75](https://github.com/out-of-cheese-error/the-way/issues/75))
+* Make .deb with CD
 
 ## [0.14.2] - 2021-08-11
 

@@ -68,7 +68,7 @@ jobs:
           files: |
             target/${{ matrix.target }}/release/the-way-${{ matrix.artifact_prefix }}.tar.gz
             target/${{ matrix.target }}/release/the-way-${{ matrix.artifact_prefix }}.sha256
-            target/x86_64-unknown-linux-musl/debian/the-way*.deb
+            target/x86_64-unknown-linux-musl/debian/*.deb
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
