@@ -17,11 +17,10 @@ lets you
 * delete a snippet with Shift-Left
 * copy a particular snippet to your clipboard (with Enter), so you can paste it into whatever editor or IDE you're working with.
 
-See it in action (with some self-referential examples):
+See it in action with some self-referential examples (click to open in asciinema):
 
-![demo](images/the-way-general-embedded.svg)
+[![demo](https://asciinema.org/a/436289.png)](https://asciinema.org/a/436289)
 
-> made with [asciinema](https://github.com/asciinema/asciinema), [svg-term-cli](https://github.com/marionebl/svg-term-cli), and [svgembed](https://github.com/miraclx/svgembed)
 
 Table of Contents
 =================
@@ -188,11 +187,9 @@ just use the same name and write in the default the first time it's used.
 
 Here's another self-referential example that saves a shell command to add new language syntaxes:
 
-![cmd_demo](images/the-way-cmd-embedded.svg)
+[![cmd_demo](https://asciinema.org/a/436293.png)](https://asciinema.org/a/436293)
 
-> made with [asciinema](https://github.com/asciinema/asciinema), [svg-term-cli](https://github.com/marionebl/svg-term-cli), and [svgembed](https://github.com/miraclx/svgembed)
-
-(todo: change GIF to use cmdsearch instead of search)
+(todo: Use cmdsearch instead of search)
 
 ## Sync to Gist
 `the-way sync` syncs snippets to a Gist, each named `snippet_<index>.<extension>`, with an `index.md` file linking each snippet's description. 
