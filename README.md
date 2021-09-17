@@ -254,7 +254,7 @@ taken from [bat](https://github.com/sharkdp/bat/blob/master/assets/patches/Markd
 
 ## Configuration
 The default config TOML file is located in
-* Linux: `/home/<username>/.config`
+* Linux: `/home/<username>/.config/the-way`
 * Mac: `/Users/<username>/Library/Preferences`
 
 This file contains locations of data directories, which are automatically created and set according to XDG and Standard Directories guidelines.
