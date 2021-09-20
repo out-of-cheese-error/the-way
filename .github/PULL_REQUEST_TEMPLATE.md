@@ -3,7 +3,7 @@
 <!--
 Please, make sure:
 - you have read the contributing guidelines:
-  https://github.com/out-of-cheese-error/the-way/blob/master/docs/CONTRIBUTING.md
+  https://github.com/out-of-cheese-error/the-way/blob/master/CONTRIBUTING.md
 - you have linted the code using clippy:
   https://github.com/rust-lang/rust-clippy
 - you have formatted the code using rustfmt:
