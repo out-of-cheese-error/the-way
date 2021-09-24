@@ -5,7 +5,7 @@ use std::str;
 use chrono::{Date, DateTime, Utc, MAX_DATE, MIN_DATE};
 use chrono_english::{parse_date_string, Dialect};
 use color_eyre::Help;
-use dialoguer::{Editor, Input};
+use dialoguer::{Confirm, Editor, Input};
 use syntect::highlighting::Style;
 use syntect::util::as_24_bit_terminal_escaped;
 
@@ -165,6 +165,16 @@ pub fn user_input(
             .trim()
             .to_owned()),
     }
+}
+
+/// Get a yes/no answer from the user
+pub fn confirm(prompt: &str, default: bool) -> color_eyre::Result<bool> {
+    let theme = dialoguer::theme::ColorfulTheme::default();
+    Ok(Confirm::with_theme(&theme)
+        .with_prompt(prompt)
+        .default(default)
+        .show_default(false)
+        .interact()?)
 }
 
 /// Make an indicatif spinner with given message
