@@ -46,7 +46,7 @@ Table of Contents
 # Install
 
 ## Requirements
-`xclip` on Linux and `pbcopy` on OSX
+`xclip` or `xsel` on Linux and `pbcopy` on OSX
 
 ## Binaries
 See the [releases](https://github.com/out-of-cheese-error/the-way/releases/latest)

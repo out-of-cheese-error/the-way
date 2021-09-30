@@ -10,6 +10,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 * Prompt user to open snippet in editor when editing existing snippet. #104
 
+* Support xsel as an alternative to xclip.
+
 ## [0.14.4] - 2021-09-05
 ### Fixed
 * .deb package extended description

@@ -29,6 +29,12 @@ mod copy {
     pub const ARGS: [&str; 3] = ["-in", "-selection", "clipboard"];
 }
 
+#[cfg(target_os = "linux")]
+mod copy {
+    pub const COMMAND: &str = "xsel";
+    pub const ARGS: [&str; 1] = ["-ib"];
+}
+
 #[cfg(target_os = "macos")]
 mod copy {
     pub const COMMAND: &str = "pbcopy";
