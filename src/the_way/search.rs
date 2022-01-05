@@ -25,6 +25,7 @@ struct SearchSnippet {
 impl<'a> SkimItem for SearchSnippet {
     fn text(&self) -> Cow<str> {
         AnsiString::parse(&self.text_highlight).into_inner()
+            + AnsiString::parse(&self.code_highlight).into_inner()
     }
 
     fn display<'b>(&'b self, context: DisplayContext<'b>) -> AnsiString<'b> {
@@ -34,18 +35,22 @@ impl<'a> SkimItem for SearchSnippet {
                 text.override_attrs(
                     indices
                         .iter()
-                        // TODO: Why is this i+2 to i+3?
-                        .map(|i| (context.highlight_attr, ((*i + 2) as u32, (*i + 3) as u32)))
+                        .filter(|&i| *i < self.text_highlight.len() - 1)
+                        .map(|i| (context.highlight_attr, (*i as u32, (*i + 1) as u32)))
                         .collect(),
                 );
             }
             Matches::CharRange(start, end) => {
-                text.override_attrs(vec![(context.highlight_attr, (start as u32, end as u32))]);
+                if end < self.text_highlight.len() {
+                    text.override_attrs(vec![(context.highlight_attr, (start as u32, end as u32))]);
+                }
             }
             Matches::ByteRange(start, end) => {
-                let start = text.stripped()[..start].chars().count();
-                let end = start + text.stripped()[start..end].chars().count();
-                text.override_attrs(vec![(context.highlight_attr, (start as u32, end as u32))]);
+                if end < text.stripped().len() {
+                    let start = text.stripped()[..start].chars().count();
+                    let end = start + text.stripped()[start..end].chars().count();
+                    text.override_attrs(vec![(context.highlight_attr, (start as u32, end as u32))]);
+                }
             }
             Matches::None => (),
         }
@@ -99,6 +104,7 @@ impl TheWay {
             .header(Some(
                 "Press Enter to copy, Shift-left to delete, Shift-right to edit",
             ))
+            .exact(true)
             .multi(true)
             .reverse(true)
             .color(Some(&color))
