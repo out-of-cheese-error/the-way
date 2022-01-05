@@ -9,7 +9,7 @@ use serde_yaml::Value;
 use syntect::easy::HighlightLines;
 use syntect::highlighting::{Color, FontStyle, Style, StyleModifier, ThemeSet};
 use syntect::parsing::{SyntaxDefinition, SyntaxSet};
-use syntect::util::{as_24_bit_terminal_escaped, LinesWithEndings};
+use syntect::util::LinesWithEndings;
 
 use crate::errors::LostTheWay;
 use crate::utils;
@@ -213,13 +213,11 @@ impl CodeHighlight {
 
     /// Style used to highlight lines in search
     fn set_highlight_style(&mut self) {
-        let highlight_color = self.theme_set.themes[&self.theme_name]
-            .settings
-            .selection
-            .unwrap_or(Color::WHITE);
         self.highlight_style = self.highlight_style.apply(StyleModifier {
-            foreground: Some(highlight_color),
-            background: None,
+            foreground: self.theme_set.themes[&self.theme_name]
+                .settings
+                .selection_foreground,
+            background: self.theme_set.themes[&self.theme_name].settings.selection,
             font_style: None,
         });
     }
@@ -306,19 +304,19 @@ impl CodeHighlight {
     }
 
     /// Makes a box colored according to GitHub language colors
-    pub(crate) fn highlight_block(language_color: Color) -> String {
-        utils::highlight_string(
-            &format!("{} ", utils::BOX),
+    pub(crate) fn highlight_block(language_color: Color) -> (Style, String) {
+        (
             Style::default().apply(StyleModifier {
                 foreground: Some(language_color),
                 background: None,
                 font_style: None,
             }),
+            format!("{} ", utils::BOX),
         )
     }
 
     /// Syntax highlight code block
-    pub(crate) fn highlight_code(&self, code: &str, extension: &str) -> Vec<String> {
+    pub(crate) fn highlight_code(&self, code: &str, extension: &str) -> Vec<(Style, String)> {
         let mut colorized = Vec::new();
         let extension = extension.split('.').nth(1).unwrap_or("txt");
         let syntax = self.syntax_set.find_syntax_by_extension(extension);
@@ -328,11 +326,12 @@ impl CodeHighlight {
         };
         let mut h = HighlightLines::new(syntax, &self.theme_set.themes[&self.theme_name]);
         for line in LinesWithEndings::from(code) {
-            let ranges: Vec<(Style, &str)> = h.highlight(line, &self.syntax_set);
-            let escaped = as_24_bit_terminal_escaped(&ranges[..], false);
-            colorized.push(escaped);
+            colorized.extend(
+                h.highlight(line, &self.syntax_set)
+                    .into_iter()
+                    .map(|(style, s)| (style, s.to_string())),
+            );
         }
-        colorized.push(String::from(utils::END_ANSI));
         colorized
     }
 }

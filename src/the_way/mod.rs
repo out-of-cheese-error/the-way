@@ -156,14 +156,18 @@ impl TheWay {
     /// Pretty prints a snippet to terminal
     fn view(&self, index: usize) -> color_eyre::Result<()> {
         let snippet = self.get_snippet(index)?;
-        for line in snippet.pretty_print(
-            &self.highlighter,
-            self.languages
-                .get(&snippet.language)
-                .unwrap_or(&Language::default()),
-        ) {
-            print!("{}", line)
-        }
+        print!(
+            "{}",
+            utils::highlight_strings(
+                &snippet.pretty_print(
+                    &self.highlighter,
+                    self.languages
+                        .get(&snippet.language)
+                        .unwrap_or(&Language::default()),
+                ),
+                false
+            )
+        );
         Ok(())
     }
 
@@ -254,9 +258,7 @@ impl TheWay {
                 ),
             );
         }
-        for line in colorized {
-            print!("{}", line);
-        }
+        print!("{}", utils::highlight_strings(&colorized, false));
     }
 
     /// Lists snippets (optionally filtered)
@@ -272,18 +274,7 @@ impl TheWay {
     fn search(&mut self, filters: &Filters, stdout: bool) -> color_eyre::Result<()> {
         let mut snippets = self.filter_snippets(filters)?;
         snippets.sort_by(|a, b| a.index.cmp(&b.index));
-        self.make_search(
-            snippets,
-            &format!(
-                "#{}",
-                hex::encode(vec![
-                    self.highlighter.highlight_style.foreground.r,
-                    self.highlighter.highlight_style.foreground.g,
-                    self.highlighter.highlight_style.foreground.b,
-                ])
-            ),
-            stdout,
-        )?;
+        self.make_search(snippets, self.highlighter.highlight_style, stdout)?;
         Ok(())
     }
 

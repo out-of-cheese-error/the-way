@@ -1,16 +1,19 @@
 //! Fuzzy search capabilities
 use std::borrow::Cow;
+use std::collections::HashSet;
 use std::sync::Arc;
 
-use skim::prelude::{unbounded, Key, SkimOptionsBuilder};
+use skim::prelude::{unbounded, ExactOrFuzzyEngineFactory, Key, SkimOptionsBuilder};
 use skim::{
-    AnsiString, DisplayContext, ItemPreview, Matches, PreviewContext, Skim, SkimItem,
-    SkimItemReceiver, SkimItemSender,
+    AnsiString, DisplayContext, FuzzyAlgorithm, ItemPreview, MatchEngineFactory, MatchRange,
+    Matches, PreviewContext, Skim, SkimItem, SkimItemReceiver, SkimItemSender,
 };
+use syntect::highlighting::Style;
 
 use crate::errors::LostTheWay;
 use crate::language::Language;
 use crate::the_way::{snippet::Snippet, TheWay};
+use crate::utils;
 
 /// searchable snippet information
 #[derive(Debug)]
@@ -18,14 +21,38 @@ struct SearchSnippet {
     index: usize,
     /// Highlighted title
     text_highlight: String,
-    /// Highlighted code
-    code_highlight: String,
+    /// Code for search
+    code: SearchCode,
+}
+
+#[derive(Debug, Clone)]
+struct SearchCode {
+    /// Code highlighted fragments
+    code_fragments: Vec<(Style, String)>,
+    /// Style for matched text
+    selection_style: Style,
+}
+
+impl SearchCode {
+    fn get_code(&self) -> String {
+        self.code_fragments
+            .iter()
+            .map(|(_, line)| line.as_ref())
+            .collect::<Vec<_>>()
+            .join("")
+    }
+}
+
+impl SkimItem for SearchCode {
+    fn text(&self) -> Cow<str> {
+        AnsiString::parse(&self.get_code()).into_inner()
+    }
 }
 
 impl<'a> SkimItem for SearchSnippet {
     fn text(&self) -> Cow<str> {
         AnsiString::parse(&self.text_highlight).into_inner()
-            + AnsiString::parse(&self.code_highlight).into_inner()
+            + AnsiString::parse(&self.code.get_code()).into_inner()
     }
 
     fn display<'b>(&'b self, context: DisplayContext<'b>) -> AnsiString<'b> {
@@ -57,8 +84,42 @@ impl<'a> SkimItem for SearchSnippet {
         text
     }
 
-    fn preview(&self, _context: PreviewContext) -> ItemPreview {
-        ItemPreview::AnsiText(self.code_highlight.to_owned())
+    fn preview(&self, context: PreviewContext) -> ItemPreview {
+        if context.selected_indices.contains(&context.current_index) {
+            let fuzzy_engine = ExactOrFuzzyEngineFactory::builder()
+                .exact_mode(true)
+                .fuzzy_algorithm(FuzzyAlgorithm::SkimV2)
+                .build()
+                .create_engine(context.query);
+            if let Some(match_result) = fuzzy_engine.match_item(Arc::new(self.code.clone())) {
+                let indices: HashSet<_> = match match_result.matched_range {
+                    MatchRange::ByteRange(start, end) => (start..end).collect(),
+                    MatchRange::Chars(indices) => indices.into_iter().collect(),
+                };
+                ItemPreview::AnsiText(
+                    self.code
+                        .code_fragments
+                        .iter()
+                        .flat_map(|(style, line)| {
+                            line.chars().map(move |c| (*style, c.to_string()))
+                        })
+                        .enumerate()
+                        .map(|(i, (style, line))| {
+                            if indices.contains(&i) {
+                                utils::highlight_strings(&[(self.code.selection_style, line)], true)
+                            } else {
+                                utils::highlight_string(&line, style)
+                            }
+                        })
+                        .collect::<Vec<_>>()
+                        .join(""),
+                )
+            } else {
+                ItemPreview::AnsiText(utils::highlight_strings(&self.code.code_fragments, false))
+            }
+        } else {
+            ItemPreview::AnsiText(utils::highlight_strings(&self.code.code_fragments, false))
+        }
     }
 }
 
@@ -69,33 +130,45 @@ impl TheWay {
     pub(crate) fn make_search(
         &mut self,
         snippets: Vec<Snippet>,
-        highlight_color: &str,
+        selection_style: Style,
         stdout: bool,
     ) -> color_eyre::Result<()> {
         let default_language = Language::default();
+
         let search_snippets: Vec<_> = snippets
             .into_iter()
-            .map(|snippet| SearchSnippet {
-                code_highlight: self
-                    .highlighter
-                    .highlight_code(&snippet.code, &snippet.extension)
-                    .join(""),
-                text_highlight: snippet
-                    .pretty_print_header(
-                        &self.highlighter,
-                        self.languages
-                            .get(&snippet.language)
-                            .unwrap_or(&default_language),
-                    )
-                    .join(""),
-                index: snippet.index,
+            .map(|snippet| {
+                let language = self
+                    .languages
+                    .get(&snippet.language)
+                    .unwrap_or(&default_language);
+                SearchSnippet {
+                    code: SearchCode {
+                        code_fragments: self
+                            .highlighter
+                            .highlight_code(&snippet.code, &snippet.extension),
+                        selection_style,
+                    },
+                    text_highlight: utils::highlight_strings(
+                        &snippet.pretty_print_header(&self.highlighter, &language),
+                        false,
+                    ),
+                    index: snippet.index,
+                }
             })
             .collect();
-        let color = format!("bg+:{}", highlight_color);
+        let color = format!(
+            "bg+:#{}",
+            hex::encode(vec![
+                selection_style.background.r,
+                selection_style.background.g,
+                selection_style.background.b,
+            ])
+        );
         let options = SkimOptionsBuilder::default()
             .height(Some("100%"))
             .preview(Some(""))
-            .preview_window(Some("up:70%"))
+            .preview_window(Some("up:70%:wrap"))
             .bind(vec![
                 "shift-left:accept",
                 "shift-right:accept",
