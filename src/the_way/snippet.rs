@@ -101,18 +101,28 @@ impl Snippet {
             .and_hms(0, 0, 0),
             None => Utc::now(),
         };
-        let show_default = old_code
-            .map(|c| c.split('\n').nth(1).is_none())
-            .unwrap_or(false);
-        let mut code = utils::user_input(
-            "Code snippet (<RET> to edit in external editor)",
-            if show_default { old_code } else { None },
-            show_default,
-            true,
-        )?;
-        if code.is_empty() {
-            code = utils::external_editor_input(old_code.as_deref(), &extension)?;
-        }
+
+        let code = match old_code {
+            Some(old) => {
+                if utils::confirm("Edit snippet? [y/N]", false)? {
+                    utils::external_editor_input(old_code.as_deref(), &extension)?
+                } else {
+                    old.to_string()
+                }
+            }
+            None => {
+                let mut input = utils::user_input(
+                    "Code snippet (leave empty to open external editor)",
+                    None,  // default
+                    false, // show default
+                    true,  // allow empty
+                )?;
+                if input.is_empty() {
+                    input = utils::external_editor_input(None, &extension)?;
+                }
+                input
+            }
+        };
         Ok(Self::new(
             index,
             description,

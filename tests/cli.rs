@@ -162,8 +162,8 @@ fn change_snippet_rexpect(config_file: PathBuf) -> rexpect::errors::Result<()> {
     p.send_line("")?;
     p.exp_regex("Date")?;
     p.send_line("")?;
-    p.exp_regex("Code snippet")?;
-    p.send_line("code 2")?;
+    p.exp_regex("Edit snippet")?;
+    p.send_line("")?;
     p.exp_regex("Snippet #1 changed")?;
     p.wait_for_prompt()?;
     p.send_line(&format!("{} view 1", executable))?;
