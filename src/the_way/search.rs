@@ -31,28 +31,20 @@ struct SearchCode {
     code_fragments: Vec<(Style, String)>,
     /// Style for matched text
     selection_style: Style,
-}
-
-impl SearchCode {
-    fn get_code(&self) -> String {
-        self.code_fragments
-            .iter()
-            .map(|(_, line)| line.as_ref())
-            .collect::<Vec<_>>()
-            .join("")
-    }
+    /// Highlighted code
+    code_highlight: String,
 }
 
 impl SkimItem for SearchCode {
     fn text(&self) -> Cow<str> {
-        AnsiString::parse(&self.get_code()).into_inner()
+        AnsiString::parse(&self.code_highlight).into_inner()
     }
 }
 
 impl<'a> SkimItem for SearchSnippet {
     fn text(&self) -> Cow<str> {
         AnsiString::parse(&self.text_highlight).into_inner()
-            + AnsiString::parse(&self.code.get_code()).into_inner()
+            + AnsiString::parse(&self.code.code_highlight).into_inner()
     }
 
     fn display<'b>(&'b self, context: DisplayContext<'b>) -> AnsiString<'b> {
@@ -115,10 +107,10 @@ impl<'a> SkimItem for SearchSnippet {
                         .join(""),
                 )
             } else {
-                ItemPreview::AnsiText(utils::highlight_strings(&self.code.code_fragments, false))
+                ItemPreview::AnsiText(self.code.code_highlight.clone())
             }
         } else {
-            ItemPreview::AnsiText(utils::highlight_strings(&self.code.code_fragments, false))
+            ItemPreview::AnsiText(self.code.code_highlight.clone())
         }
     }
 }
@@ -143,12 +135,15 @@ impl TheWay {
                     .languages
                     .get(&snippet.language)
                     .unwrap_or(&default_language);
+                let code_fragments = self
+                    .highlighter
+                    .highlight_code(&snippet.code, &snippet.extension);
+                let code_highlight = utils::highlight_strings(&code_fragments, false);
                 SearchSnippet {
                     code: SearchCode {
-                        code_fragments: self
-                            .highlighter
-                            .highlight_code(&snippet.code, &snippet.extension),
+                        code_fragments,
                         selection_style,
+                        code_highlight,
                     },
                     text_highlight: utils::highlight_strings(
                         &snippet.pretty_print_header(&self.highlighter, &language),
