@@ -125,11 +125,12 @@ impl<'a> SkimItem for SearchSnippet {
 
 impl TheWay {
     /// Converts a list of snippets into searchable objects and opens a fuzzy search window with the
-    /// bottom panel listing each snippet's index, description, language and tags (all searchable)
-    /// and the top panel showing the code for the selected snippet.
+    /// bottom panel listing each snippet's index, description, language and tags
+    /// and the top panel showing the code for the selected snippet (all searchable).
     pub(crate) fn make_search(
         &mut self,
         snippets: Vec<Snippet>,
+        skim_theme: String,
         selection_style: Style,
         stdout: bool,
     ) -> color_eyre::Result<()> {
@@ -157,14 +158,6 @@ impl TheWay {
                 }
             })
             .collect();
-        let color = format!(
-            "bg+:#{}",
-            hex::encode(vec![
-                selection_style.background.r,
-                selection_style.background.g,
-                selection_style.background.b,
-            ])
-        );
         let options = SkimOptionsBuilder::default()
             .height(Some("100%"))
             .preview(Some(""))
@@ -180,7 +173,7 @@ impl TheWay {
             .exact(true)
             .multi(true)
             .reverse(true)
-            .color(Some(&color))
+            .color(Some(&skim_theme))
             .build()
             .map_err(|_| LostTheWay::SearchError)?;
 

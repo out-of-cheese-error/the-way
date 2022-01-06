@@ -7,7 +7,7 @@ use color_eyre::Help;
 use hex::FromHex;
 use serde_yaml::Value;
 use syntect::easy::HighlightLines;
-use syntect::highlighting::{Color, FontStyle, Style, StyleModifier, ThemeSet};
+use syntect::highlighting::{Color, FontStyle, Style, StyleModifier, ThemeSet, ThemeSettings};
 use syntect::parsing::{SyntaxDefinition, SyntaxSet};
 use syntect::util::LinesWithEndings;
 
@@ -117,7 +117,32 @@ pub(crate) struct CodeHighlight {
     /// Style used to print tags
     pub(crate) tag_style: Style,
     /// Style in `skim` when selecting during search
-    pub(crate) highlight_style: Style,
+    pub(crate) selection_style: Style,
+    /// Color settings for `skim`
+    pub(crate) skim_theme: String,
+}
+
+fn syntect_theme_to_skim_theme(settings: &ThemeSettings) -> String {
+    let mut theme = String::new();
+    if let Some(c) = settings.foreground {
+        theme.push_str(&format!("fg:#{},", hex::encode(vec![c.r, c.g, c.b,])));
+    }
+    if let Some(c) = settings.selection {
+        theme.push_str(&format!(
+            "current_match_bg:#{},",
+            hex::encode(vec![c.r, c.g, c.b,])
+        ));
+    }
+    if let Some(c) = settings.selection_foreground {
+        theme.push_str(&format!(
+            "current_match:#{},",
+            hex::encode(vec![c.r, c.g, c.b,])
+        ));
+    }
+    if theme[theme.len() - 1..].starts_with(",") {
+        theme.pop();
+    }
+    theme
 }
 
 impl CodeHighlight {
@@ -146,6 +171,7 @@ impl CodeHighlight {
             ))?;
         let syntax_set = syntax_set.build();
         let mut highlighter = Self {
+            skim_theme: syntect_theme_to_skim_theme(&theme_set.themes[theme.into()].settings),
             syntax_set,
             theme_name: theme.into(),
             theme_set,
@@ -153,7 +179,7 @@ impl CodeHighlight {
             main_style: Style::default(),
             accent_style: Style::default(),
             tag_style: Style::default(),
-            highlight_style: Style::default(),
+            selection_style: Style::default(),
         };
         highlighter.set_styles();
         Ok(highlighter)
@@ -164,7 +190,7 @@ impl CodeHighlight {
         self.set_main_style();
         self.set_accent_style();
         self.set_tag_style();
-        self.set_highlight_style();
+        self.set_selection_style();
     }
 
     /// Style used to print description
@@ -211,9 +237,9 @@ impl CodeHighlight {
         });
     }
 
-    /// Style used to highlight lines in search
-    fn set_highlight_style(&mut self) {
-        self.highlight_style = self.highlight_style.apply(StyleModifier {
+    /// Style used to highlight matched text in search
+    fn set_selection_style(&mut self) {
+        self.selection_style = self.selection_style.apply(StyleModifier {
             foreground: self.theme_set.themes[&self.theme_name]
                 .settings
                 .selection_foreground,

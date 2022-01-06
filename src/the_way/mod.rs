@@ -174,7 +174,7 @@ impl TheWay {
     /// Copy a snippet to clipboard
     fn copy(&self, index: usize, to_stdout: bool) -> color_eyre::Result<()> {
         let snippet = self.get_snippet(index)?;
-        let code = snippet.fill_snippet(self.highlighter.highlight_style)?;
+        let code = snippet.fill_snippet(self.highlighter.selection_style)?;
         if to_stdout {
             // See https://github.com/rust-lang/rust/issues/46016
             let mut stdout = std::io::stdout();
@@ -274,7 +274,12 @@ impl TheWay {
     fn search(&mut self, filters: &Filters, stdout: bool) -> color_eyre::Result<()> {
         let mut snippets = self.filter_snippets(filters)?;
         snippets.sort_by(|a, b| a.index.cmp(&b.index));
-        self.make_search(snippets, self.highlighter.highlight_style, stdout)?;
+        self.make_search(
+            snippets,
+            self.highlighter.skim_theme.to_owned(),
+            self.highlighter.selection_style,
+            stdout,
+        )?;
         Ok(())
     }
 
