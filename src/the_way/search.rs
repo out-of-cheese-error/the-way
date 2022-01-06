@@ -33,6 +33,8 @@ struct SearchCode {
     selection_style: Style,
     /// Highlighted code
     code_highlight: String,
+    /// Use exact search
+    exact: bool,
 }
 
 impl SkimItem for SearchCode {
@@ -79,7 +81,7 @@ impl<'a> SkimItem for SearchSnippet {
     fn preview(&self, context: PreviewContext) -> ItemPreview {
         if context.selected_indices.contains(&context.current_index) {
             let fuzzy_engine = ExactOrFuzzyEngineFactory::builder()
-                .exact_mode(true)
+                .exact_mode(self.code.exact)
                 .fuzzy_algorithm(FuzzyAlgorithm::SkimV2)
                 .build()
                 .create_engine(context.query);
@@ -125,6 +127,7 @@ impl TheWay {
         skim_theme: String,
         selection_style: Style,
         stdout: bool,
+        exact: bool,
     ) -> color_eyre::Result<()> {
         let default_language = Language::default();
 
@@ -144,6 +147,7 @@ impl TheWay {
                         code_fragments,
                         selection_style,
                         code_highlight,
+                        exact,
                     },
                     text_highlight: utils::highlight_strings(
                         &snippet.pretty_print_header(&self.highlighter, &language),
@@ -165,7 +169,7 @@ impl TheWay {
             .header(Some(
                 "Press Enter to copy, Shift-left to delete, Shift-right to edit",
             ))
-            .exact(true)
+            .exact(exact)
             .multi(true)
             .reverse(true)
             .color(Some(&skim_theme))

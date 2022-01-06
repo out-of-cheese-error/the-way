@@ -72,7 +72,11 @@ impl TheWay {
         match cli {
             TheWayCLI::New => self.the_way(),
             TheWayCLI::Cmd { code } => self.the_way_cmd(code),
-            TheWayCLI::Search { filters, stdout } => self.search(&filters, stdout),
+            TheWayCLI::Search {
+                filters,
+                stdout,
+                exact,
+            } => self.search(&filters, stdout, exact),
             TheWayCLI::Cp { index, stdout } => self.copy(index, stdout),
             TheWayCLI::Edit { index } => self.edit(index),
             TheWayCLI::Del { index, force } => self.delete(index, force),
@@ -271,7 +275,7 @@ impl TheWay {
 
     /// Displays all snippet descriptions in a skim fuzzy search window
     /// A preview window on the right shows the indices of snippets matching the query
-    fn search(&mut self, filters: &Filters, stdout: bool) -> color_eyre::Result<()> {
+    fn search(&mut self, filters: &Filters, stdout: bool, exact: bool) -> color_eyre::Result<()> {
         let mut snippets = self.filter_snippets(filters)?;
         snippets.sort_by(|a, b| a.index.cmp(&b.index));
         self.make_search(
@@ -279,6 +283,7 @@ impl TheWay {
             self.highlighter.skim_theme.to_owned(),
             self.highlighter.selection_style,
             stdout,
+            exact,
         )?;
         Ok(())
     }
