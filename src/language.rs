@@ -7,9 +7,9 @@ use color_eyre::Help;
 use hex::FromHex;
 use serde_yaml::Value;
 use syntect::easy::HighlightLines;
-use syntect::highlighting::{Color, FontStyle, Style, StyleModifier, ThemeSet};
+use syntect::highlighting::{Color, FontStyle, Style, StyleModifier, ThemeSet, ThemeSettings};
 use syntect::parsing::{SyntaxDefinition, SyntaxSet};
-use syntect::util::{as_24_bit_terminal_escaped, LinesWithEndings};
+use syntect::util::LinesWithEndings;
 
 use crate::errors::LostTheWay;
 use crate::utils;
@@ -117,7 +117,32 @@ pub(crate) struct CodeHighlight {
     /// Style used to print tags
     pub(crate) tag_style: Style,
     /// Style in `skim` when selecting during search
-    pub(crate) highlight_style: Style,
+    pub(crate) selection_style: Style,
+    /// Color settings for `skim`
+    pub(crate) skim_theme: String,
+}
+
+fn syntect_theme_to_skim_theme(settings: &ThemeSettings) -> String {
+    let mut theme = String::new();
+    if let Some(c) = settings.foreground {
+        theme.push_str(&format!("fg:#{},", hex::encode(vec![c.r, c.g, c.b,])));
+    }
+    if let Some(c) = settings.selection {
+        theme.push_str(&format!(
+            "current_match_bg:#{},",
+            hex::encode(vec![c.r, c.g, c.b,])
+        ));
+    }
+    if let Some(c) = settings.selection_foreground {
+        theme.push_str(&format!(
+            "current_match:#{},",
+            hex::encode(vec![c.r, c.g, c.b,])
+        ));
+    }
+    if theme[theme.len() - 1..].starts_with(",") {
+        theme.pop();
+    }
+    theme
 }
 
 impl CodeHighlight {
@@ -146,6 +171,7 @@ impl CodeHighlight {
             ))?;
         let syntax_set = syntax_set.build();
         let mut highlighter = Self {
+            skim_theme: syntect_theme_to_skim_theme(&theme_set.themes[theme.into()].settings),
             syntax_set,
             theme_name: theme.into(),
             theme_set,
@@ -153,7 +179,7 @@ impl CodeHighlight {
             main_style: Style::default(),
             accent_style: Style::default(),
             tag_style: Style::default(),
-            highlight_style: Style::default(),
+            selection_style: Style::default(),
         };
         highlighter.set_styles();
         Ok(highlighter)
@@ -164,7 +190,7 @@ impl CodeHighlight {
         self.set_main_style();
         self.set_accent_style();
         self.set_tag_style();
-        self.set_highlight_style();
+        self.set_selection_style();
     }
 
     /// Style used to print description
@@ -211,15 +237,13 @@ impl CodeHighlight {
         });
     }
 
-    /// Style used to highlight lines in search
-    fn set_highlight_style(&mut self) {
-        let highlight_color = self.theme_set.themes[&self.theme_name]
-            .settings
-            .selection
-            .unwrap_or(Color::WHITE);
-        self.highlight_style = self.highlight_style.apply(StyleModifier {
-            foreground: Some(highlight_color),
-            background: None,
+    /// Style used to highlight matched text in search
+    fn set_selection_style(&mut self) {
+        self.selection_style = self.selection_style.apply(StyleModifier {
+            foreground: self.theme_set.themes[&self.theme_name]
+                .settings
+                .selection_foreground,
+            background: self.theme_set.themes[&self.theme_name].settings.selection,
             font_style: None,
         });
     }
@@ -306,19 +330,19 @@ impl CodeHighlight {
     }
 
     /// Makes a box colored according to GitHub language colors
-    pub(crate) fn highlight_block(language_color: Color) -> String {
-        utils::highlight_string(
-            &format!("{} ", utils::BOX),
+    pub(crate) fn highlight_block(language_color: Color) -> (Style, String) {
+        (
             Style::default().apply(StyleModifier {
                 foreground: Some(language_color),
                 background: None,
                 font_style: None,
             }),
+            format!("{} ", utils::BOX),
         )
     }
 
     /// Syntax highlight code block
-    pub(crate) fn highlight_code(&self, code: &str, extension: &str) -> Vec<String> {
+    pub(crate) fn highlight_code(&self, code: &str, extension: &str) -> Vec<(Style, String)> {
         let mut colorized = Vec::new();
         let extension = extension.split('.').nth(1).unwrap_or("txt");
         let syntax = self.syntax_set.find_syntax_by_extension(extension);
@@ -328,11 +352,12 @@ impl CodeHighlight {
         };
         let mut h = HighlightLines::new(syntax, &self.theme_set.themes[&self.theme_name]);
         for line in LinesWithEndings::from(code) {
-            let ranges: Vec<(Style, &str)> = h.highlight(line, &self.syntax_set);
-            let escaped = as_24_bit_terminal_escaped(&ranges[..], false);
-            colorized.push(escaped);
+            colorized.extend(
+                h.highlight(line, &self.syntax_set)
+                    .into_iter()
+                    .map(|(style, s)| (style, s.to_string())),
+            );
         }
-        colorized.push(String::from(utils::END_ANSI));
         colorized
     }
 }
