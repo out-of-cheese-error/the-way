@@ -1,8 +1,10 @@
 //! Snippet information and methods
 use std::borrow::Cow;
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
+use std::hash::Hash;
 use std::io;
 
+use crate::errors::LostTheWay;
 use chrono::{DateTime, Utc};
 use regex::Regex;
 use syntect::highlighting::Style;
@@ -12,7 +14,7 @@ use crate::language::{CodeHighlight, Language};
 use crate::utils;
 
 /// Stores information about a quote
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Eq)]
 pub struct Snippet {
     /// Snippet index, used to retrieve, copy, or modify a snippet
     #[serde(default)]
@@ -35,6 +37,25 @@ pub struct Snippet {
     /// Time of last update
     #[serde(default = "Utc::now")]
     pub updated: DateTime<Utc>,
+}
+
+impl PartialEq for Snippet {
+    fn eq(&self, other: &Self) -> bool {
+        self.description == other.description
+            && self.language.to_ascii_lowercase() == other.language.to_ascii_lowercase()
+            && self.code.trim() == other.code.trim()
+            && self.tags.iter().collect::<BTreeSet<_>>()
+                == other.tags.iter().collect::<BTreeSet<_>>()
+    }
+}
+
+impl Hash for Snippet {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.description.hash(state);
+        self.language.to_ascii_lowercase().hash(state);
+        self.code.trim().hash(state);
+        self.tags.iter().collect::<BTreeSet<_>>().hash(state);
+    }
 }
 
 impl Snippet {
@@ -175,22 +196,42 @@ impl Snippet {
         Ok(())
     }
 
-    /// Read potentially multiple snippets from a regular Gist (not a sync/backup Gist)
+    /// Read potentially multiple snippets from a Gist
+    /// if start_index is None, indices are read from the Gist filenames (index.md is set to index 0)
     pub(crate) fn from_gist(
-        start_index: usize,
+        start_index: Option<usize>,
         languages: &HashMap<String, Language>,
         gist: &Gist,
-    ) -> Vec<Self> {
+    ) -> color_eyre::Result<Vec<Self>> {
         let mut index = start_index;
         let mut snippets = Vec::new();
         for (file_name, gist_file) in &gist.files {
             let code = &gist_file.content;
             let description = format!("{} - {} - {}", gist.description, gist.id, file_name);
-            let language = &gist_file.language;
+            let language = &gist_file.language.to_ascii_lowercase();
             let tags = "gist";
             let extension = Language::get_extension(language, languages);
             let snippet = Self::new(
-                index,
+                {
+                    if let Some(i) = index {
+                        i
+                    } else if file_name == "index.md" {
+                        0
+                    } else {
+                        file_name
+                            .split('.')
+                            .next()
+                            .ok_or(LostTheWay::GistFormattingError {
+                                message: format!("Filename {} missing extension", file_name),
+                            })?
+                            .split('_')
+                            .nth(1)
+                            .ok_or(LostTheWay::GistFormattingError {
+                                message: format!("Filename {} missing index", file_name),
+                            })?
+                            .parse()?
+                    }
+                },
                 description,
                 language.to_string(),
                 extension.to_string(),
@@ -200,9 +241,9 @@ impl Snippet {
                 code.to_string(),
             );
             snippets.push(snippet);
-            index += 1;
+            index = index.map(|i| i + 1);
         }
-        snippets
+        Ok(snippets)
     }
 
     /// Filters snippets in date range

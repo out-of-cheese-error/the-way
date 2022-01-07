@@ -82,7 +82,11 @@ impl TheWay {
             TheWayCLI::Del { index, force } => self.delete(index, force),
             TheWayCLI::View { index } => self.view(index),
             TheWayCLI::List { filters } => self.list(&filters),
-            TheWayCLI::Import { file, gist_url } => self.import(file.as_deref(), gist_url),
+            TheWayCLI::Import {
+                file,
+                gist_url,
+                the_way_url,
+            } => self.import(file.as_deref(), gist_url, the_way_url),
             TheWayCLI::Export { filters, file } => self.export(&filters, file.as_deref()),
             TheWayCLI::Complete { shell } => {
                 Self::complete(shell);
@@ -199,19 +203,38 @@ impl TheWay {
     }
 
     /// Import from file or gist
-    fn import(&mut self, file: Option<&Path>, gist_url: Option<String>) -> color_eyre::Result<()> {
+    fn import(
+        &mut self,
+        file: Option<&Path>,
+        gist_url: Option<String>,
+        the_way_url: Option<String>,
+    ) -> color_eyre::Result<()> {
         let mut num = 0;
-        if let Some(gist_url) = gist_url {
-            let snippets = self.import_gist(&gist_url)?;
-            num = snippets.len();
-        } else {
-            for mut snippet in self.import_file(file)? {
-                snippet.index = self.get_current_snippet_index()? + 1;
-                self.add_snippet(&snippet)?;
-                self.increment_snippet_index()?;
-                num += 1;
+        match (gist_url, the_way_url) {
+            (Some(gist_url), None) => {
+                let snippets = self.import_gist(&gist_url)?;
+                num = snippets.len();
+            }
+            (None, Some(the_way_url)) => {
+                let snippets = self.import_the_way_gist(&the_way_url)?;
+                num += snippets.len();
+            }
+            (None, None) => {
+                for mut snippet in self.import_file(file)? {
+                    snippet.index = self.get_current_snippet_index()? + 1;
+                    self.add_snippet(&snippet)?;
+                    self.increment_snippet_index()?;
+                    num += 1;
+                }
+            }
+            _ => {
+                return Err(LostTheWay::OutOfCheeseError {
+                    message: "the-way called with both gist_url and the_way_url".to_string(),
+                }
+                .into());
             }
         }
+
         println!(
             "{}",
             self.highlight_string(&format!("Imported {} snippets", num))

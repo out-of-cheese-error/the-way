@@ -13,6 +13,51 @@ const DESCRIPTION: &str = "The Way Code Snippets";
 /// Heading for the index.md file
 const INDEX: &str = "# Is it not written...\n";
 
+fn parse_index_line(index_line: &str) -> color_eyre::Result<(String, usize, String, Vec<String>)> {
+    // "[{snippet.description}]({result.html_url}#file-{snippet_{snippet.index}{snippet.extension}}) :tag1:tag2:\n"
+    let re = regex::Regex::new(r"\* \[(.*)\]\(.*#file-snippet_([0-9]*)(.*)\)( :(.*)+:)?")?;
+    let caps = re
+        .captures(index_line)
+        .ok_or(LostTheWay::GistFormattingError {
+            message: format!("Index line isn't formatted correctly:\n{}", index_line),
+        })?;
+    let description = caps[1].to_owned();
+    let index = caps[2].parse::<usize>()?;
+    let extension = caps[3].replace('-', ".");
+    if let Some(tags) = caps.get(4) {
+        let tags = tags
+            .as_str()
+            .trim()
+            .split(':')
+            .filter_map(|t| {
+                let t = t.to_owned();
+                if t.is_empty() {
+                    None
+                } else {
+                    Some(t)
+                }
+            })
+            .collect::<Vec<_>>();
+        Ok((description, index, extension, tags))
+    } else {
+        Ok((description, index, extension, vec![]))
+    }
+}
+
+fn make_index_line(index: &mut String, html_url: &str, snippet: &Snippet) {
+    index.push_str(&format!(
+        "* [{}]({}#file-{}){}\n",
+        snippet.description,
+        html_url,
+        format!("snippet_{}{}", snippet.index, snippet.extension).replace('.', "-"),
+        if snippet.tags.is_empty() {
+            String::new()
+        } else {
+            format!(" :{}:", snippet.tags.join(":"))
+        }
+    ));
+}
+
 impl TheWay {
     /// Import Snippets from a regular Gist
     pub(crate) fn import_gist(&mut self, gist_url: &str) -> color_eyre::Result<Vec<Snippet>> {
@@ -27,10 +72,70 @@ impl TheWay {
         }
         let gist = gist.unwrap();
         let start_index = self.get_current_snippet_index()? + 1;
-        let snippets = Snippet::from_gist(start_index, &self.languages, &gist);
+        let snippets = Snippet::from_gist(Some(start_index), &self.languages, &gist)?;
         for snippet in &snippets {
             self.add_snippet(snippet)?;
             self.increment_snippet_index()?;
+        }
+        Ok(snippets)
+    }
+
+    /// Import snippets from a Gist created by `the_way sync`
+    pub(crate) fn import_the_way_gist(
+        &mut self,
+        gist_url: &str,
+    ) -> color_eyre::Result<Vec<Snippet>> {
+        let client = GistClient::new(None)?;
+        let spinner = utils::get_spinner("Fetching gist...");
+        let gist = client.get_gist_by_url(gist_url);
+        if let Err(err) = gist {
+            spinner.finish_with_message("Error fetching gist.");
+            return Err(err);
+        }
+        let gist = gist.unwrap();
+        let snippets = Snippet::from_gist(None, &self.languages, &gist)?;
+        let index_snippet =
+            snippets
+                .iter()
+                .find(|s| s.index == 0)
+                .ok_or(LostTheWay::GistFormattingError {
+                    message: String::from("Index file not found"),
+                })?;
+        let mut index_mapping = HashMap::new();
+        for line in index_snippet.code.trim().split('\n').skip(1) {
+            let (description, index, extension, tags) = parse_index_line(line)?;
+            index_mapping.insert(index, (description, extension, tags));
+        }
+        let mut snippets = snippets
+            .into_iter()
+            .filter(|s| s.index != 0)
+            .map(|mut s| {
+                if let Some((description, extension, tags)) = index_mapping.get(&s.index) {
+                    s.description = description.to_owned();
+                    if &s.extension != extension {
+                        return Err(LostTheWay::GistFormattingError {
+                            message: format!(
+                                "Extension mismatch, expected {} but got {}",
+                                extension, s.extension
+                            ),
+                        });
+                    }
+                    s.tags = tags.to_owned();
+                    Ok(s)
+                } else {
+                    Err(LostTheWay::GistFormattingError {
+                        message: format!("Snippet index {} not found in index file", s.index),
+                    })
+                }
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+
+        let mut start_index = self.get_current_snippet_index()? + 1;
+        for snippet in &mut snippets {
+            snippet.index = start_index;
+            self.add_snippet(snippet)?;
+            self.increment_snippet_index()?;
+            start_index += 1;
         }
         Ok(snippets)
     }
@@ -66,12 +171,7 @@ impl TheWay {
         // Make index file
         let mut index = String::from(INDEX);
         for snippet in &snippets {
-            index.push_str(&format!(
-                "* [{}]({}#file-{})\n",
-                snippet.description,
-                result.html_url,
-                format!("snippet_{}{}", snippet.index, snippet.extension).replace(".", "-")
-            ));
+            make_index_line(&mut index, &result.html_url, snippet);
         }
         let mut update_files = HashMap::new();
         update_files.insert(
@@ -173,12 +273,7 @@ impl TheWay {
                 }
             }
             // Add to index
-            index.push_str(&format!(
-                "* [{}]({}#file-{})\n",
-                snippet.description,
-                gist.html_url,
-                format!("snippet_{}{}", snippet.index, snippet.extension).replace(".", "-")
-            ));
+            make_index_line(&mut index, &gist.html_url, snippet);
         }
         for file in gist.files.keys() {
             if file.contains("snippet_") {
@@ -187,19 +282,19 @@ impl TheWay {
                 let snippet_id = file
                     .split('.')
                     .next()
-                    .ok_or(LostTheWay::SyncError {
-                        message: "Invalid filename".into(),
+                    .ok_or(LostTheWay::GistFormattingError {
+                        message: format!("Invalid filename {}: No .", file),
                     })
                     .suggestion(suggestion)?
                     .split('_')
                     .last()
-                    .ok_or(LostTheWay::SyncError {
-                        message: "Invalid filename".into(),
+                    .ok_or(LostTheWay::GistFormattingError {
+                        message: format!("Invalid filename {}: No _", file),
                     })
                     .suggestion(suggestion)?
                     .parse::<usize>()
-                    .map_err(|e| LostTheWay::SyncError {
-                        message: format!("Invalid filename: {}", e),
+                    .map_err(|e| LostTheWay::GistFormattingError {
+                        message: format!("Invalid filename {}: {}", file, e),
                     })
                     .suggestion(suggestion)?;
                 // Snippet deleted locally => delete from Gist

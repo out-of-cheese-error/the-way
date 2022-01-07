@@ -52,8 +52,6 @@ pub enum TheWayCLI {
         #[structopt(parse(from_os_str))]
         file: Option<PathBuf>,
 
-        #[structopt(long, short)]
-
         /// URL to a Gist, if provided will import snippets from given Gist
         ///
         /// Multiple files will be converted to separate snippets.
@@ -61,7 +59,13 @@ pub enum TheWayCLI {
         /// "<gist_description> - <gist_id> - <file_name>".
         /// Each snippet will be tagged with "gist" and its Gist ID.
         /// Works for both secret and public gists.
+        #[structopt(long, short)]
         gist_url: Option<String>,
+
+        /// URL to a gist file produced by `the-way sync`. If provided will import snippets with
+        /// descriptions and tags taken from the `index.md` index file in the gist.
+        #[structopt(long, short = "w", conflicts_with = "gist_url")]
+        the_way_url: Option<String>,
     },
     /// Saves (optionally filtered) snippets to JSON.
     Export {

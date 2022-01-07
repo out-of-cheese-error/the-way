@@ -41,6 +41,9 @@ pub enum LostTheWay {
     /// Error due to invalid Gist URL
     #[error("GistUrlError: {message:?}")]
     GistUrlError { message: String },
+    /// Error due to invalid the-way gist
+    #[error("GistFormattingError: {message:?}")]
+    GistFormattingError { message: String },
     /// Catch-all for stuff that should never happen
     #[error("OutOfCheeseError: {message:?}\nRedo from start.")]
     OutOfCheeseError { message: String },
