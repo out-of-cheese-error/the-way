@@ -13,6 +13,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 
 * Prompt user to open snippet in editor when editing existing snippet. (Issue [#104](https://github.com/out-of-cheese-error/the-way/issues/104))
+* Updated dependencies
 
 ## [0.14.4] - 2021-09-05
 ### Fixed
