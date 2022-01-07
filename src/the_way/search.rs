@@ -1,16 +1,19 @@
 //! Fuzzy search capabilities
 use std::borrow::Cow;
+use std::collections::HashSet;
 use std::sync::Arc;
 
-use skim::prelude::{unbounded, Key, SkimOptionsBuilder};
+use skim::prelude::{unbounded, ExactOrFuzzyEngineFactory, Key, SkimOptionsBuilder};
 use skim::{
-    AnsiString, DisplayContext, ItemPreview, Matches, PreviewContext, Skim, SkimItem,
-    SkimItemReceiver, SkimItemSender,
+    AnsiString, DisplayContext, FuzzyAlgorithm, ItemPreview, MatchEngineFactory, MatchRange,
+    Matches, PreviewContext, Skim, SkimItem, SkimItemReceiver, SkimItemSender,
 };
+use syntect::highlighting::Style;
 
 use crate::errors::LostTheWay;
 use crate::language::Language;
 use crate::the_way::{snippet::Snippet, TheWay};
+use crate::utils;
 
 /// searchable snippet information
 #[derive(Debug)]
@@ -18,13 +21,32 @@ struct SearchSnippet {
     index: usize,
     /// Highlighted title
     text_highlight: String,
+    /// Code for search
+    code: SearchCode,
+}
+
+#[derive(Debug, Clone)]
+struct SearchCode {
+    /// Code highlighted fragments
+    code_fragments: Vec<(Style, String)>,
+    /// Style for matched text
+    selection_style: Style,
     /// Highlighted code
     code_highlight: String,
+    /// Use exact search
+    exact: bool,
+}
+
+impl SkimItem for SearchCode {
+    fn text(&self) -> Cow<str> {
+        AnsiString::parse(&self.code_highlight).into_inner()
+    }
 }
 
 impl<'a> SkimItem for SearchSnippet {
     fn text(&self) -> Cow<str> {
         AnsiString::parse(&self.text_highlight).into_inner()
+            + AnsiString::parse(&self.code.code_highlight).into_inner()
     }
 
     fn display<'b>(&'b self, context: DisplayContext<'b>) -> AnsiString<'b> {
@@ -34,63 +56,111 @@ impl<'a> SkimItem for SearchSnippet {
                 text.override_attrs(
                     indices
                         .iter()
-                        // TODO: Why is this i+2 to i+3?
-                        .map(|i| (context.highlight_attr, ((*i + 2) as u32, (*i + 3) as u32)))
+                        .filter(|&i| *i < self.text_highlight.len() - 1)
+                        .map(|i| (context.highlight_attr, (*i as u32, (*i + 1) as u32)))
                         .collect(),
                 );
             }
             Matches::CharRange(start, end) => {
-                text.override_attrs(vec![(context.highlight_attr, (start as u32, end as u32))]);
+                if end < self.text_highlight.len() {
+                    text.override_attrs(vec![(context.highlight_attr, (start as u32, end as u32))]);
+                }
             }
             Matches::ByteRange(start, end) => {
-                let start = text.stripped()[..start].chars().count();
-                let end = start + text.stripped()[start..end].chars().count();
-                text.override_attrs(vec![(context.highlight_attr, (start as u32, end as u32))]);
+                if end < text.stripped().len() {
+                    let start = text.stripped()[..start].chars().count();
+                    let end = start + text.stripped()[start..end].chars().count();
+                    text.override_attrs(vec![(context.highlight_attr, (start as u32, end as u32))]);
+                }
             }
             Matches::None => (),
         }
         text
     }
 
-    fn preview(&self, _context: PreviewContext) -> ItemPreview {
-        ItemPreview::AnsiText(self.code_highlight.to_owned())
+    fn preview(&self, context: PreviewContext) -> ItemPreview {
+        if context.selected_indices.contains(&context.current_index) {
+            let fuzzy_engine = ExactOrFuzzyEngineFactory::builder()
+                .exact_mode(self.code.exact)
+                .fuzzy_algorithm(FuzzyAlgorithm::SkimV2)
+                .build()
+                .create_engine(context.query);
+            if let Some(match_result) = fuzzy_engine.match_item(Arc::new(self.code.clone())) {
+                let indices: HashSet<_> = match match_result.matched_range {
+                    MatchRange::ByteRange(start, end) => (start..end).collect(),
+                    MatchRange::Chars(indices) => indices.into_iter().collect(),
+                };
+                ItemPreview::AnsiText(
+                    self.code
+                        .code_fragments
+                        .iter()
+                        .flat_map(|(style, line)| {
+                            line.chars().map(move |c| (*style, c.to_string()))
+                        })
+                        .enumerate()
+                        .map(|(i, (style, line))| {
+                            if indices.contains(&i) {
+                                utils::highlight_strings(&[(self.code.selection_style, line)], true)
+                            } else {
+                                utils::highlight_string(&line, style)
+                            }
+                        })
+                        .collect::<Vec<_>>()
+                        .join(""),
+                )
+            } else {
+                ItemPreview::AnsiText(self.code.code_highlight.clone())
+            }
+        } else {
+            ItemPreview::AnsiText(self.code.code_highlight.clone())
+        }
     }
 }
 
 impl TheWay {
     /// Converts a list of snippets into searchable objects and opens a fuzzy search window with the
-    /// bottom panel listing each snippet's index, description, language and tags (all searchable)
-    /// and the top panel showing the code for the selected snippet.
+    /// bottom panel listing each snippet's index, description, language and tags
+    /// and the top panel showing the code for the selected snippet (all searchable).
     pub(crate) fn make_search(
         &mut self,
         snippets: Vec<Snippet>,
-        highlight_color: &str,
+        skim_theme: String,
+        selection_style: Style,
         stdout: bool,
+        exact: bool,
     ) -> color_eyre::Result<()> {
         let default_language = Language::default();
+
         let search_snippets: Vec<_> = snippets
             .into_iter()
-            .map(|snippet| SearchSnippet {
-                code_highlight: self
+            .map(|snippet| {
+                let language = self
+                    .languages
+                    .get(&snippet.language)
+                    .unwrap_or(&default_language);
+                let code_fragments = self
                     .highlighter
-                    .highlight_code(&snippet.code, &snippet.extension)
-                    .join(""),
-                text_highlight: snippet
-                    .pretty_print_header(
-                        &self.highlighter,
-                        self.languages
-                            .get(&snippet.language)
-                            .unwrap_or(&default_language),
-                    )
-                    .join(""),
-                index: snippet.index,
+                    .highlight_code(&snippet.code, &snippet.extension);
+                let code_highlight = utils::highlight_strings(&code_fragments, false);
+                SearchSnippet {
+                    code: SearchCode {
+                        code_fragments,
+                        selection_style,
+                        code_highlight,
+                        exact,
+                    },
+                    text_highlight: utils::highlight_strings(
+                        &snippet.pretty_print_header(&self.highlighter, &language),
+                        false,
+                    ),
+                    index: snippet.index,
+                }
             })
             .collect();
-        let color = format!("bg+:{}", highlight_color);
         let options = SkimOptionsBuilder::default()
             .height(Some("100%"))
             .preview(Some(""))
-            .preview_window(Some("up:70%"))
+            .preview_window(Some("up:70%:wrap"))
             .bind(vec![
                 "shift-left:accept",
                 "shift-right:accept",
@@ -99,9 +169,10 @@ impl TheWay {
             .header(Some(
                 "Press Enter to copy, Shift-left to delete, Shift-right to edit",
             ))
+            .exact(exact)
             .multi(true)
             .reverse(true)
-            .color(Some(&color))
+            .color(Some(&skim_theme))
             .build()
             .map_err(|_| LostTheWay::SearchError)?;
 

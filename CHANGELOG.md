@@ -6,9 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [0.15.0] - ???
+### Added
+* Search in code as well as description/tags (Issue [115](https://github.com/out-of-cheese-error/the-way/issues/115))
+* `-e/--exact` option for search that toggles exact search
+
 ### Changed
 
-* Prompt user to open snippet in editor when editing existing snippet. #104
+* Prompt user to open snippet in editor when editing existing snippet. (Issue [#104](https://github.com/out-of-cheese-error/the-way/issues/104))
 
 ## [0.14.4] - 2021-09-05
 ### Fixed

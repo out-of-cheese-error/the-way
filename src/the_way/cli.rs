@@ -30,6 +30,9 @@ pub enum TheWayCLI {
         // Print to stdout instead of copying (with Enter)
         #[structopt(long)]
         stdout: bool,
+        // Use exact search instead of fuzzy
+        #[structopt(long, short)]
+        exact: bool,
     },
     /// Sync snippets to a Gist
     ///

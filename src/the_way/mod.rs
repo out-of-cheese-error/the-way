@@ -72,7 +72,11 @@ impl TheWay {
         match cli {
             TheWayCLI::New => self.the_way(),
             TheWayCLI::Cmd { code } => self.the_way_cmd(code),
-            TheWayCLI::Search { filters, stdout } => self.search(&filters, stdout),
+            TheWayCLI::Search {
+                filters,
+                stdout,
+                exact,
+            } => self.search(&filters, stdout, exact),
             TheWayCLI::Cp { index, stdout } => self.copy(index, stdout),
             TheWayCLI::Edit { index } => self.edit(index),
             TheWayCLI::Del { index, force } => self.delete(index, force),
@@ -156,21 +160,25 @@ impl TheWay {
     /// Pretty prints a snippet to terminal
     fn view(&self, index: usize) -> color_eyre::Result<()> {
         let snippet = self.get_snippet(index)?;
-        for line in snippet.pretty_print(
-            &self.highlighter,
-            self.languages
-                .get(&snippet.language)
-                .unwrap_or(&Language::default()),
-        ) {
-            print!("{}", line)
-        }
+        print!(
+            "{}",
+            utils::highlight_strings(
+                &snippet.pretty_print(
+                    &self.highlighter,
+                    self.languages
+                        .get(&snippet.language)
+                        .unwrap_or(&Language::default()),
+                ),
+                false
+            )
+        );
         Ok(())
     }
 
     /// Copy a snippet to clipboard
     fn copy(&self, index: usize, to_stdout: bool) -> color_eyre::Result<()> {
         let snippet = self.get_snippet(index)?;
-        let code = snippet.fill_snippet(self.highlighter.highlight_style)?;
+        let code = snippet.fill_snippet(self.highlighter.selection_style)?;
         if to_stdout {
             // See https://github.com/rust-lang/rust/issues/46016
             let mut stdout = std::io::stdout();
@@ -254,9 +262,7 @@ impl TheWay {
                 ),
             );
         }
-        for line in colorized {
-            print!("{}", line);
-        }
+        print!("{}", utils::highlight_strings(&colorized, false));
     }
 
     /// Lists snippets (optionally filtered)
@@ -269,20 +275,15 @@ impl TheWay {
 
     /// Displays all snippet descriptions in a skim fuzzy search window
     /// A preview window on the right shows the indices of snippets matching the query
-    fn search(&mut self, filters: &Filters, stdout: bool) -> color_eyre::Result<()> {
+    fn search(&mut self, filters: &Filters, stdout: bool, exact: bool) -> color_eyre::Result<()> {
         let mut snippets = self.filter_snippets(filters)?;
         snippets.sort_by(|a, b| a.index.cmp(&b.index));
         self.make_search(
             snippets,
-            &format!(
-                "#{}",
-                hex::encode(vec![
-                    self.highlighter.highlight_style.foreground.r,
-                    self.highlighter.highlight_style.foreground.g,
-                    self.highlighter.highlight_style.foreground.b,
-                ])
-            ),
+            self.highlighter.skim_theme.to_owned(),
+            self.highlighter.selection_style,
             stdout,
+            exact,
         )?;
         Ok(())
     }

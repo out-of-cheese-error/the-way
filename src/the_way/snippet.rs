@@ -236,18 +236,16 @@ impl Snippet {
         &self,
         highlighter: &CodeHighlight,
         language: &Language,
-    ) -> Vec<String> {
+    ) -> Vec<(Style, String)> {
         let mut colorized = Vec::new();
         let block = CodeHighlight::highlight_block(language.color);
         colorized.push(block);
         let text = format!("#{}. {} ", self.index, self.description);
-        colorized.push(utils::highlight_string(&text, highlighter.main_style));
-
+        colorized.push((highlighter.main_style, text));
         let text = format!("| {} ", self.language);
-        colorized.push(utils::highlight_string(&text, highlighter.accent_style));
-
+        colorized.push((highlighter.accent_style, text));
         let text = format!(":{}:\n", self.tags.join(":"));
-        colorized.push(utils::highlight_string(&text, highlighter.tag_style));
+        colorized.push((highlighter.tag_style, text));
         colorized
     }
 
@@ -255,12 +253,12 @@ impl Snippet {
         &self,
         highlighter: &CodeHighlight,
         language: &Language,
-    ) -> Vec<String> {
-        let mut colorized = vec![String::from("\n")];
+    ) -> Vec<(Style, String)> {
+        let mut colorized = vec![(Style::default(), String::from("\n"))];
         colorized.extend_from_slice(&self.pretty_print_header(highlighter, language));
-        colorized.push(String::from("\n"));
+        colorized.push((Style::default(), String::from("\n")));
         colorized.extend_from_slice(&highlighter.highlight_code(&self.code, &self.extension));
-        colorized.push(String::from("\n\n"));
+        colorized.push((Style::default(), String::from("\n\n")));
         colorized
     }
 
