@@ -129,7 +129,7 @@ SUBCOMMANDS:
 
 ## Main features
 * Add code and shell snippets
-* Interactive fuzzy search with edit, delete and copy to clipboard functionality
+* Interactive fuzzy or exact search with edit, delete and copy to clipboard functionality
 * Filter by tag, date, language and/or regex pattern
 * Import / export via JSON
 * Import from Gist (with `the-way import -g <gist_url>`)
