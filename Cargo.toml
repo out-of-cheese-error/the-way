@@ -1,6 +1,6 @@
 [package]
 name = "the-way"
-version = "0.14.4"
+version = "0.15.0"
 edition = "2018"
 authors = ["Ninjani"]
 description = "A code snippets manager for your terminal"
