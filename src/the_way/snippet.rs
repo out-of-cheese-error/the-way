@@ -105,7 +105,7 @@ impl Snippet {
         let code = match old_code {
             Some(old) => {
                 if utils::confirm("Edit snippet? [y/N]", false)? {
-                    utils::external_editor_input(old_code.as_deref(), &extension)?
+                    utils::external_editor_input(old_code, &extension)?
                 } else {
                     old.to_string()
                 }

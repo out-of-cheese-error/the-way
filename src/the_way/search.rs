@@ -150,7 +150,7 @@ impl TheWay {
                         exact,
                     },
                     text_highlight: utils::highlight_strings(
-                        &snippet.pretty_print_header(&self.highlighter, &language),
+                        &snippet.pretty_print_header(&self.highlighter, language),
                         false,
                     ),
                     index: snippet.index,

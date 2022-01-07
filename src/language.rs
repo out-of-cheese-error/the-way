@@ -139,7 +139,7 @@ fn syntect_theme_to_skim_theme(settings: &ThemeSettings) -> String {
             hex::encode(vec![c.r, c.g, c.b,])
         ));
     }
-    if theme[theme.len() - 1..].starts_with(",") {
+    if theme[theme.len() - 1..].starts_with(',') {
         theme.pop();
     }
     theme
@@ -171,7 +171,7 @@ impl CodeHighlight {
             ))?;
         let syntax_set = syntax_set.build();
         let mut highlighter = Self {
-            skim_theme: syntect_theme_to_skim_theme(&theme_set.themes[theme.into()].settings),
+            skim_theme: syntect_theme_to_skim_theme(&theme_set.themes[theme].settings),
             syntax_set,
             theme_name: theme.into(),
             theme_set,
