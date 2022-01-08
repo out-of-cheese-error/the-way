@@ -51,7 +51,7 @@ impl TheWay {
         Ok(())
     }
 
-    /// Get the language: snippet_indices tree
+    /// Get the language: snippet indices tree
     fn language_tree(&self) -> color_eyre::Result<sled::Tree> {
         Ok(self.db.open_tree("language_to_snippet")?)
     }
@@ -108,7 +108,7 @@ impl TheWay {
         self.snippets_tree()?
             .iter()
             .map(|item| {
-                item.map_err(|_| {
+                item.map_err(|_e| {
                     LostTheWay::OutOfCheeseError {
                         message: "sled PageCache Error".into(),
                     }

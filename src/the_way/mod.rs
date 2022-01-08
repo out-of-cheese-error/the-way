@@ -229,7 +229,7 @@ impl TheWay {
             }
             _ => {
                 return Err(LostTheWay::OutOfCheeseError {
-                    message: "the-way called with both gist_url and the_way_url".to_string(),
+                    message: "the-way called with both gist_url and the_way_url".into(),
                 }
                 .into());
             }
@@ -252,7 +252,7 @@ impl TheWay {
         let mut buffered = io::BufReader::new(reader);
         let mut snippets = Snippet::read(&mut buffered).collect::<Result<Vec<_>, _>>()?;
         for snippet in &mut snippets {
-            snippet.set_extension(&snippet.language.to_owned(), &self.languages);
+            snippet.set_extension(&snippet.language.clone(), &self.languages);
         }
         Ok(snippets)
     }
@@ -303,7 +303,7 @@ impl TheWay {
         snippets.sort_by(|a, b| a.index.cmp(&b.index));
         self.make_search(
             snippets,
-            self.highlighter.skim_theme.to_owned(),
+            self.highlighter.skim_theme.clone(),
             self.highlighter.selection_style,
             stdout,
             exact,
@@ -373,19 +373,18 @@ impl TheWay {
     fn themes(&mut self, cmd: ThemeCommand) -> color_eyre::Result<()> {
         match cmd {
             ThemeCommand::Set { theme } => {
-                let theme = match theme {
-                    Some(theme) => theme,
-                    None => {
-                        let themes = self.highlighter.get_themes();
-                        let theme_index =
-                            Select::with_theme(&dialoguer::theme::ColorfulTheme::default())
-                                .with_prompt("Choose a syntax highlighting theme:")
-                                .items(&themes[..])
-                                .interact()?;
-                        themes[theme_index].to_owned()
-                    }
+                let theme = if let Some(theme) = theme {
+                    theme
+                } else {
+                    let themes = self.highlighter.get_themes();
+                    let theme_index =
+                        Select::with_theme(&dialoguer::theme::ColorfulTheme::default())
+                            .with_prompt("Choose a syntax highlighting theme:")
+                            .items(&themes[..])
+                            .interact()?;
+                    themes[theme_index].clone()
                 };
-                self.highlighter.set_theme(theme.to_owned())?;
+                self.highlighter.set_theme(theme.clone())?;
                 println!(
                     "{}",
                     self.highlight_string(&format!("Theme changed to {}", theme))
@@ -423,6 +422,7 @@ impl TheWay {
         }
     }
 
+    /// Adds some color to logging output, uses selected theme
     pub(crate) fn highlight_string(&self, input: &str) -> String {
         utils::highlight_string(input, self.highlighter.main_style)
     }

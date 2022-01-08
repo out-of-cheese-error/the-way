@@ -27,10 +27,10 @@ pub enum TheWayCLI {
     Search {
         #[structopt(flatten)]
         filters: Filters,
-        // Print to stdout instead of copying (with Enter)
+        /// Print to stdout instead of copying (with Enter)
         #[structopt(long)]
         stdout: bool,
-        // Use exact search instead of fuzzy
+        /// Use exact search instead of fuzzy
         #[structopt(long, short)]
         exact: bool,
     },
@@ -83,6 +83,7 @@ pub enum TheWayCLI {
     },
     /// Generate shell completions
     Complete {
+        /// Shell to generate completions for
         #[structopt(possible_values = & Shell::variants())]
         shell: Shell,
     },
@@ -136,11 +137,13 @@ pub enum ThemeCommand {
     Set { theme: Option<String> },
     /// Add a theme from a Sublime Text ".tmTheme" file.
     Add {
+        /// .tmTheme file path
         #[structopt(parse(from_os_str))]
         file: PathBuf,
     },
     /// Add highlight support for a language using a ".sublime-syntax" file.
     Language {
+        /// .sublime-syntax file path
         #[structopt(parse(from_os_str))]
         file: PathBuf,
     },

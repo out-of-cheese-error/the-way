@@ -48,7 +48,7 @@ pub fn copy_to_clipboard(text: &str) -> color_eyre::Result<()> {
         .args(&copy::ARGS)
         .stdin(Stdio::piped())
         .spawn()
-        .map_err(|_| LostTheWay::ClipboardError {
+        .map_err(|_e| LostTheWay::ClipboardError {
             message: format!("is {} available?", copy::COMMAND),
         })?;
 
@@ -56,7 +56,7 @@ pub fn copy_to_clipboard(text: &str) -> color_eyre::Result<()> {
     // https://doc.rust-lang.org/std/process/struct.ChildStdin.html.
     {
         let stdin = child.stdin.as_mut().ok_or(LostTheWay::ClipboardError {
-            message: "Could not access stdin".to_string(),
+            message: "Could not access stdin".into(),
         })?;
         stdin.write_all(text.as_bytes())?;
     }
@@ -71,7 +71,7 @@ pub fn copy_to_clipboard(text: &str) -> color_eyre::Result<()> {
 pub fn split_tags(input: &str) -> Vec<String> {
     input
         .split(' ')
-        .map(|word| word.trim().to_string())
+        .map(|word| word.trim().to_owned())
         .collect::<Vec<String>>()
 }
 
@@ -93,7 +93,7 @@ pub fn split_indices_usize(index_list: &[u8]) -> color_eyre::Result<Vec<usize>> 
 pub fn make_indices_string(index_list: &[usize]) -> color_eyre::Result<Vec<u8>> {
     Ok(index_list
         .iter()
-        .map(|index| index.to_string())
+        .map(std::string::ToString::to_string)
         .collect::<Vec<String>>()
         .join(str::from_utf8(&[SEMICOLON])?)
         .as_bytes()
