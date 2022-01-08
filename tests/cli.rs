@@ -651,7 +651,7 @@ fn sync_gist() -> color_eyre::Result<()> {
     let gist = client.get_gist(&gist.id);
     assert!(gist.is_ok());
     let gist = gist?;
-    assert_eq!(updated, &gist.updated_at);
+    assert!((*updated - gist.updated_at) < chrono::Duration::seconds(1));
 
     // check Gist contents
     assert_eq!(gist.files.len(), 2);

@@ -4,12 +4,10 @@ use std::collections::{BTreeSet, HashMap};
 use std::hash::Hash;
 use std::io;
 
-use crate::errors::LostTheWay;
 use chrono::{DateTime, Utc};
 use regex::Regex;
 use syntect::highlighting::Style;
 
-use crate::gist::Gist;
 use crate::language::{CodeHighlight, Language};
 use crate::utils;
 
@@ -60,7 +58,7 @@ impl Hash for Snippet {
 
 impl Snippet {
     /// New snippet
-    fn new(
+    pub(crate) fn new(
         index: usize,
         description: String,
         language: String,
@@ -123,26 +121,23 @@ impl Snippet {
             None => Utc::now(),
         };
 
-        let code = match old_code {
-            Some(old) => {
-                if utils::confirm("Edit snippet? [y/N]", false)? {
-                    utils::external_editor_input(old_code, &extension)?
-                } else {
-                    old.to_string()
-                }
+        let code = if let Some(old) = old_code {
+            if utils::confirm("Edit snippet? [y/N]", false)? {
+                utils::external_editor_input(old_code, &extension)?
+            } else {
+                old.to_owned()
             }
-            None => {
-                let mut input = utils::user_input(
-                    "Code snippet (leave empty to open external editor)",
-                    None,  // default
-                    false, // show default
-                    true,  // allow empty
-                )?;
-                if input.is_empty() {
-                    input = utils::external_editor_input(None, &extension)?;
-                }
-                input
+        } else {
+            let mut input = utils::user_input(
+                "Code snippet (leave empty to open external editor)",
+                None,  // default
+                false, // show default
+                true,  // allow empty
+            )?;
+            if input.is_empty() {
+                input = utils::external_editor_input(None, &extension)?;
             }
+            input
         };
         Ok(Self::new(
             index,
@@ -194,56 +189,6 @@ impl Snippet {
     pub(crate) fn to_json(&self, json_writer: &mut dyn io::Write) -> color_eyre::Result<()> {
         serde_json::to_writer(json_writer, self)?;
         Ok(())
-    }
-
-    /// Read potentially multiple snippets from a Gist
-    /// if start_index is None, indices are read from the Gist filenames (index.md is set to index 0)
-    pub(crate) fn from_gist(
-        start_index: Option<usize>,
-        languages: &HashMap<String, Language>,
-        gist: &Gist,
-    ) -> color_eyre::Result<Vec<Self>> {
-        let mut index = start_index;
-        let mut snippets = Vec::new();
-        for (file_name, gist_file) in &gist.files {
-            let code = &gist_file.content;
-            let description = format!("{} - {} - {}", gist.description, gist.id, file_name);
-            let language = &gist_file.language.to_ascii_lowercase();
-            let tags = "gist";
-            let extension = Language::get_extension(language, languages);
-            let snippet = Self::new(
-                {
-                    if let Some(i) = index {
-                        i
-                    } else if file_name == "index.md" {
-                        0
-                    } else {
-                        file_name
-                            .split('.')
-                            .next()
-                            .ok_or(LostTheWay::GistFormattingError {
-                                message: format!("Filename {} missing extension", file_name),
-                            })?
-                            .split('_')
-                            .nth(1)
-                            .ok_or(LostTheWay::GistFormattingError {
-                                message: format!("Filename {} missing index", file_name),
-                            })?
-                            .parse()?
-                    }
-                },
-                description,
-                language.to_string(),
-                extension.to_string(),
-                tags,
-                Utc::now(),
-                Utc::now(),
-                code.to_string(),
-            );
-            snippets.push(snippet);
-            index = index.map(|i| i + 1);
-        }
-        Ok(snippets)
     }
 
     /// Filters snippets in date range

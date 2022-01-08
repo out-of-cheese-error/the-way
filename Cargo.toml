@@ -59,6 +59,9 @@ ureq = { version = "2.4.0", features = ["json"] }
 # pattern filter and filling shell script variables
 regex = "1.5.4"
 
+# utility crates
+strum = { version = "0.23", features = ["derive"] }
+
 [dev-dependencies]
 assert_cmd = "2.0.2"
 predicates = "2.1.0"
