@@ -9,8 +9,6 @@ use crate::gist::{CreateGistPayload, Gist, GistClient, GistContent, UpdateGistPa
 use crate::language::Language;
 use crate::the_way::{snippet::Snippet, TheWay};
 use crate::utils;
-use strum::EnumIter;
-use strum::IntoEnumIterator;
 
 /// Gist description
 const DESCRIPTION: &str = "The Way Code Snippets";
@@ -65,7 +63,7 @@ fn make_index_line(index_file_content: &mut String, html_url: &str, snippet: &Sn
     ));
 }
 
-#[derive(Debug, EnumIter, PartialEq, Eq, Hash, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 enum SyncAction {
     Downloaded,
     Uploaded,
@@ -273,9 +271,7 @@ impl TheWay {
         let spinner = utils::get_spinner("Syncing...");
 
         // Count each type of sync action
-        let mut counts = SyncAction::iter()
-            .map(|action| (action, 0))
-            .collect::<HashMap<_, _>>();
+        let mut action_counts = HashMap::new();
         // Keep track of added and updated files
         let mut files = HashMap::new();
         // Index file
@@ -304,7 +300,7 @@ impl TheWay {
                 &mut files,
                 &mut index_file_content,
             )?;
-            *counts.entry(sync_action).or_insert(0) += 1;
+            *action_counts.entry(sync_action).or_insert(0) += 1;
         }
         // Compare gist to local snippets
         for file in gist.files.keys() {
@@ -332,7 +328,7 @@ impl TheWay {
                 // Snippet deleted locally => delete from Gist
                 if self.get_snippet(snippet_id).is_err() {
                     files.insert(file.clone(), None);
-                    *counts.entry(SyncAction::Deleted).or_insert(0) += 1;
+                    *action_counts.entry(SyncAction::Deleted).or_insert(0) += 1;
                 }
             }
         }
@@ -359,20 +355,15 @@ impl TheWay {
         spinner.finish_with_message("Done!");
 
         // Print results
-        for (action, count) in counts {
-            if count > 0 {
-                if action == SyncAction::UpToDate {
-                    println!(
-                        "{}",
-                        self.highlight_string(&format!("{} snippet(s) are up to date", count))
-                    );
+        for (action, count) in action_counts {
+            println!(
+                "{}",
+                self.highlight_string(&if action == SyncAction::UpToDate {
+                    format!("{} snippet(s) are up to date", count)
                 } else {
-                    println!(
-                        "{}",
-                        self.highlight_string(&format!("{:?} {} snippet(s)", action, count))
-                    );
-                }
-            }
+                    format!("{:?} {} snippet(s)", action, count)
+                })
+            );
         }
         println!(
             "{}",
