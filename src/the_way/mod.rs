@@ -189,7 +189,7 @@ impl TheWay {
                 }
             }
         } else {
-            utils::copy_to_clipboard(&code)?;
+            utils::copy_to_clipboard(&self.config.copy_cmd, &code)?;
             eprintln!(
                 "{}",
                 self.highlight_string(&format!("Snippet #{} copied to clipboard", index))

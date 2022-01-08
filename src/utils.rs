@@ -23,33 +23,62 @@ pub const NAME: &str = "the-way";
 /// ASCII code of semicolon
 pub const SEMICOLON: u8 = 59;
 
-#[cfg(target_os = "linux")]
-mod copy {
-    pub const COMMAND: &str = "xclip";
-    pub const ARGS: [&str; 3] = ["-in", "-selection", "clipboard"];
-}
-
-#[cfg(target_os = "macos")]
-mod copy {
-    pub const COMMAND: &str = "pbcopy";
-    pub const ARGS: [&str; 0] = [];
-}
-
-#[cfg(target_os = "android")]
-mod copy {
-    pub const COMMAND: &str = "termux-clipboard-set";
-    pub const ARGS: [&str; 0] = [];
+/// Defines the default supported clipboard copy commands.
+/// A `String` containing the copy command with the arguments is returned
+/// according to the conditional compilation on the detected OS.
+pub(crate) fn get_default_copy_cmd() -> Option<String> {
+    if cfg!(target_os = "linux") {
+        Some("xclip -in -selection clipboard".to_string())
+    } else if cfg!(target_os = "macos") {
+        Some("pbcopy".to_string())
+    } else if cfg!(target_os = "android") {
+        Some("termux-clipboard-set".to_string())
+    } else {
+        None
+    }
 }
 
 /// Set clipboard contents to text
 /// See [issue](https://github.com/aweinstock314/rust-clipboard/issues/28#issuecomment-534295371)
-pub fn copy_to_clipboard(text: &str) -> color_eyre::Result<()> {
-    let mut child = Command::new(copy::COMMAND)
-        .args(&copy::ARGS)
+pub fn copy_to_clipboard(copy_cmd_field: &Option<String>, text: &str) -> color_eyre::Result<()> {
+    let copy_cmd_vec = copy_cmd_field
+        .as_ref()
+        .ok_or(LostTheWay::NoDefaultCopyCommand)?
+        .trim()
+        .split_whitespace()
+        .map(|s| s.to_owned())
+        .collect::<Vec<String>>();
+
+    let default_copy_cmd_vec: Vec<String>;
+    let (copy_cmd, copy_args) = match copy_cmd_vec.split_first() {
+        Some((cmd, args)) => (cmd, args),
+        _ => {
+            default_copy_cmd_vec = get_default_copy_cmd()
+                .ok_or(LostTheWay::NoDefaultCopyCommand)?
+                .split_whitespace()
+                .map(|s| s.to_owned())
+                .collect();
+            let (cmd, args) = match default_copy_cmd_vec.split_first() {
+                Some((cmd, args)) => (cmd, args),
+                // Should never fails due to previous checking
+                _ => unreachable!(),
+            };
+            eprintln!("The `copy_cmd` field is empty, defaulting to `{}`", cmd);
+            (cmd, args)
+        }
+    };
+
+    let mut child = Command::new(copy_cmd)
+        .args(copy_args)
         .stdin(Stdio::piped())
         .spawn()
         .map_err(|_| LostTheWay::ClipboardError {
-            message: format!("is {} available?", copy::COMMAND),
+            message: format!(
+                "is {} available? Also check your `copy_cmd` settings ({})",
+                copy_cmd,
+                // Never fails as it's checked above
+                copy_cmd_field.as_ref().unwrap()
+            ),
         })?;
 
     // When stdin is dropped the fd is automatically closed. See
@@ -61,7 +90,7 @@ pub fn copy_to_clipboard(text: &str) -> color_eyre::Result<()> {
         stdin.write_all(text.as_bytes())?;
     }
 
-    // Wait on pbcopy/xclip to finish.
+    // Wait on copy command to finish.
     child.wait()?;
 
     Ok(())
