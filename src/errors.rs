@@ -30,6 +30,11 @@ pub enum LostTheWay {
     SyntaxError { syntax: String },
     #[error("ClipboardError: Couldn't copy to clipboard - {message}")]
     ClipboardError { message: String },
+    #[error(
+        "NoDefaultCopyCommand: No default command found for detected OS. \
+        Please add a supported command to your configuration file (as copy_cmd)"
+    )]
+    NoDefaultCopyCommand,
     #[error("SearchError: Search failed")]
     SearchError,
     /// Errors related to changing the configuration file

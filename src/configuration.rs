@@ -7,7 +7,7 @@ use directories_next::ProjectDirs;
 use structopt::StructOpt;
 
 use crate::errors::LostTheWay;
-use crate::utils::NAME;
+use crate::utils::{get_default_copy_cmd, NAME};
 
 #[derive(StructOpt, Debug)]
 pub enum ConfigCommand {
@@ -26,6 +26,8 @@ pub struct TheWayConfig {
     pub(crate) theme: String,
     pub(crate) db_dir: PathBuf,
     pub(crate) themes_dir: PathBuf,
+    #[serde(default = "get_default_copy_cmd")]
+    pub(crate) copy_cmd: Option<String>,
     pub(crate) github_access_token: Option<String>,
     pub gist_id: Option<String>,
 }
@@ -37,7 +39,7 @@ fn get_project_dir() -> color_eyre::Result<ProjectDirs> {
 
 impl Default for TheWayConfig {
     fn default() -> Self {
-        let (db_dir, themes_dir, theme) = {
+        let (db_dir, themes_dir, theme, copy_cmd) = {
             let dir = get_project_dir().expect("Couldn't get project dir");
             let data_dir = dir.data_dir();
             if !data_dir.exists() {
@@ -47,12 +49,14 @@ impl Default for TheWayConfig {
                 data_dir.join("the_way_db"),
                 data_dir.join("themes"),
                 String::from("base16-ocean.dark"),
+                get_default_copy_cmd(),
             )
         };
         let config = Self {
             theme,
             db_dir,
             themes_dir,
+            copy_cmd,
             github_access_token: None,
             gist_id: None,
         };
@@ -68,8 +72,12 @@ impl TheWayConfig {
             None => Box::new(io::stdout()),
         };
         let mut buffered = io::BufWriter::new(writer);
+        let copy_cmd = get_default_copy_cmd().ok_or(LostTheWay::NoDefaultCopyCommand)?;
         let contents =
-            "theme = 'base16-ocean.dark'\ndb_dir = 'the_way_db'\nthemes_dir = 'the_way_themes'";
+            format!(
+                "theme = 'base16-ocean.dark'\ndb_dir = 'the_way_db'\nthemes_dir = 'the_way_themes'\ncopy_cmd = '{}'",
+                copy_cmd
+            );
         write!(&mut buffered, "{}", contents)?;
         Ok(())
     }
