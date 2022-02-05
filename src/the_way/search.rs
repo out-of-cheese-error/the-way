@@ -18,6 +18,7 @@ use crate::utils;
 /// searchable snippet information
 #[derive(Debug)]
 struct SearchSnippet {
+    /// Snippet index
     index: usize,
     /// Highlighted title
     text_highlight: String,
@@ -25,6 +26,7 @@ struct SearchSnippet {
     code: SearchCode,
 }
 
+// searchable snippet code
 #[derive(Debug, Clone)]
 struct SearchCode {
     /// Code highlighted fragments
@@ -56,7 +58,7 @@ impl<'a> SkimItem for SearchSnippet {
                 text.override_attrs(
                     indices
                         .iter()
-                        .filter(|&i| *i < self.text_highlight.len() - 1)
+                        .filter(|&i| *i < self.text_highlight.len())
                         .map(|i| (context.highlight_attr, (*i as u32, (*i + 1) as u32)))
                         .collect(),
                 );
@@ -85,32 +87,38 @@ impl<'a> SkimItem for SearchSnippet {
                 .fuzzy_algorithm(FuzzyAlgorithm::SkimV2)
                 .build()
                 .create_engine(context.query);
-            if let Some(match_result) = fuzzy_engine.match_item(Arc::new(self.code.clone())) {
-                let indices: HashSet<_> = match match_result.matched_range {
-                    MatchRange::ByteRange(start, end) => (start..end).collect(),
-                    MatchRange::Chars(indices) => indices.into_iter().collect(),
-                };
-                ItemPreview::AnsiText(
-                    self.code
-                        .code_fragments
-                        .iter()
-                        .flat_map(|(style, line)| {
-                            line.chars().map(move |c| (*style, c.to_string()))
-                        })
-                        .enumerate()
-                        .map(|(i, (style, line))| {
-                            if indices.contains(&i) {
-                                utils::highlight_strings(&[(self.code.selection_style, line)], true)
-                            } else {
-                                utils::highlight_string(&line, style)
-                            }
-                        })
-                        .collect::<Vec<_>>()
-                        .join(""),
+            fuzzy_engine
+                .match_item(Arc::new(self.code.clone()))
+                .map_or_else(
+                    || ItemPreview::AnsiText(self.code.code_highlight.clone()),
+                    |match_result| {
+                        let indices: HashSet<_> = match match_result.matched_range {
+                            MatchRange::ByteRange(start, end) => (start..end).collect(),
+                            MatchRange::Chars(indices) => indices.into_iter().collect(),
+                        };
+                        ItemPreview::AnsiText(
+                            self.code
+                                .code_fragments
+                                .iter()
+                                .flat_map(|(style, line)| {
+                                    line.chars().map(move |c| (*style, c.to_string()))
+                                })
+                                .enumerate()
+                                .map(|(i, (style, line))| {
+                                    if indices.contains(&i) {
+                                        utils::highlight_strings(
+                                            &[(self.code.selection_style, line)],
+                                            true,
+                                        )
+                                    } else {
+                                        utils::highlight_string(&line, style)
+                                    }
+                                })
+                                .collect::<Vec<_>>()
+                                .join(""),
+                        )
+                    },
                 )
-            } else {
-                ItemPreview::AnsiText(self.code.code_highlight.clone())
-            }
         } else {
             ItemPreview::AnsiText(self.code.code_highlight.clone())
         }
@@ -174,19 +182,21 @@ impl TheWay {
             .reverse(true)
             .color(Some(&skim_theme))
             .build()
-            .map_err(|_| LostTheWay::SearchError)?;
+            .map_err(|_e| LostTheWay::SearchError)?;
 
         let (tx_item, rx_item): (SkimItemSender, SkimItemReceiver) = unbounded();
         for item in search_snippets {
-            let _ = tx_item.send(Arc::new(item));
+            tx_item.send(Arc::new(item))?;
         }
         drop(tx_item); // so that skim could know when to stop waiting for more items.
 
         if let Some(output) = Skim::run_with(&options, Some(rx_item)) {
             let key = output.final_key;
             for item in &output.selected_items {
-                let snippet: &SearchSnippet =
-                    (*item).as_any().downcast_ref::<SearchSnippet>().unwrap();
+                let snippet: &SearchSnippet = (*item)
+                    .as_any()
+                    .downcast_ref::<SearchSnippet>()
+                    .ok_or(LostTheWay::SearchError)?;
                 match key {
                     Key::Enter => {
                         self.copy(snippet.index, stdout)?;

@@ -82,7 +82,11 @@ impl TheWay {
             TheWayCLI::Del { index, force } => self.delete(index, force),
             TheWayCLI::View { index } => self.view(index),
             TheWayCLI::List { filters } => self.list(&filters),
-            TheWayCLI::Import { file, gist_url } => self.import(file.as_deref(), gist_url),
+            TheWayCLI::Import {
+                file,
+                gist_url,
+                the_way_url,
+            } => self.import(file.as_deref(), gist_url, the_way_url),
             TheWayCLI::Export { filters, file } => self.export(&filters, file.as_deref()),
             TheWayCLI::Complete { shell } => {
                 Self::complete(shell);
@@ -199,19 +203,38 @@ impl TheWay {
     }
 
     /// Import from file or gist
-    fn import(&mut self, file: Option<&Path>, gist_url: Option<String>) -> color_eyre::Result<()> {
+    fn import(
+        &mut self,
+        file: Option<&Path>,
+        gist_url: Option<String>,
+        the_way_url: Option<String>,
+    ) -> color_eyre::Result<()> {
         let mut num = 0;
-        if let Some(gist_url) = gist_url {
-            let snippets = self.import_gist(&gist_url)?;
-            num = snippets.len();
-        } else {
-            for mut snippet in self.import_file(file)? {
-                snippet.index = self.get_current_snippet_index()? + 1;
-                self.add_snippet(&snippet)?;
-                self.increment_snippet_index()?;
-                num += 1;
+        match (gist_url, the_way_url) {
+            (Some(gist_url), None) => {
+                let snippets = self.import_gist(&gist_url)?;
+                num = snippets.len();
+            }
+            (None, Some(the_way_url)) => {
+                let snippets = self.import_the_way_gist(&the_way_url)?;
+                num += snippets.len();
+            }
+            (None, None) => {
+                for mut snippet in self.import_file(file)? {
+                    snippet.index = self.get_current_snippet_index()? + 1;
+                    self.add_snippet(&snippet)?;
+                    self.increment_snippet_index()?;
+                    num += 1;
+                }
+            }
+            _ => {
+                return Err(LostTheWay::OutOfCheeseError {
+                    message: "the-way called with both gist_url and the_way_url".into(),
+                }
+                .into());
             }
         }
+
         println!(
             "{}",
             self.highlight_string(&format!("Imported {} snippets", num))
@@ -229,7 +252,7 @@ impl TheWay {
         let mut buffered = io::BufReader::new(reader);
         let mut snippets = Snippet::read(&mut buffered).collect::<Result<Vec<_>, _>>()?;
         for snippet in &mut snippets {
-            snippet.set_extension(&snippet.language.to_owned(), &self.languages);
+            snippet.set_extension(&snippet.language.clone(), &self.languages);
         }
         Ok(snippets)
     }
@@ -280,7 +303,7 @@ impl TheWay {
         snippets.sort_by(|a, b| a.index.cmp(&b.index));
         self.make_search(
             snippets,
-            self.highlighter.skim_theme.to_owned(),
+            self.highlighter.skim_theme.clone(),
             self.highlighter.selection_style,
             stdout,
             exact,
@@ -350,19 +373,18 @@ impl TheWay {
     fn themes(&mut self, cmd: ThemeCommand) -> color_eyre::Result<()> {
         match cmd {
             ThemeCommand::Set { theme } => {
-                let theme = match theme {
-                    Some(theme) => theme,
-                    None => {
-                        let themes = self.highlighter.get_themes();
-                        let theme_index =
-                            Select::with_theme(&dialoguer::theme::ColorfulTheme::default())
-                                .with_prompt("Choose a syntax highlighting theme:")
-                                .items(&themes[..])
-                                .interact()?;
-                        themes[theme_index].to_owned()
-                    }
+                let theme = if let Some(theme) = theme {
+                    theme
+                } else {
+                    let themes = self.highlighter.get_themes();
+                    let theme_index =
+                        Select::with_theme(&dialoguer::theme::ColorfulTheme::default())
+                            .with_prompt("Choose a syntax highlighting theme:")
+                            .items(&themes[..])
+                            .interact()?;
+                    themes[theme_index].clone()
                 };
-                self.highlighter.set_theme(theme.to_owned())?;
+                self.highlighter.set_theme(theme.clone())?;
                 println!(
                     "{}",
                     self.highlight_string(&format!("Theme changed to {}", theme))
@@ -400,6 +422,7 @@ impl TheWay {
         }
     }
 
+    /// Adds some color to logging output, uses selected theme
     pub(crate) fn highlight_string(&self, input: &str) -> String {
         utils::highlight_string(input, self.highlighter.main_style)
     }

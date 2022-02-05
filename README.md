@@ -192,13 +192,15 @@ Here's another self-referential example that saves a shell command to add new la
 (todo: Use cmdsearch instead of search)
 
 ## Sync to Gist
-`the-way sync` syncs snippets to a Gist, each named `snippet_<index>.<extension>`, with an `index.md` file linking each snippet's description. 
+`the-way sync` syncs snippets to a Gist, each named `snippet_<index>.<extension>`, with an `index.md` file linking each snippet's description and tags. 
 Local updates and deletions are uploaded to the Gist and Gist updates are downloaded.
 
 ![gist](images/gist.png)
 
 This functionality needs a [GitHub access token](https://github.com/settings/tokens/new) with the "gist" scope. 
 Either enter this token on running `sync` for the first time or set it to the environment variable `$THE_WAY_GITHUB_TOKEN`.
+
+You can also import snippets from a Gist created by the-way using `the-way import -w <gist_url>`.
 
 ## Shell completions
 ```bash

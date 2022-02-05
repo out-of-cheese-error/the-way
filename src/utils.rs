@@ -72,7 +72,7 @@ pub fn copy_to_clipboard(copy_cmd_field: &Option<String>, text: &str) -> color_e
         .args(copy_args)
         .stdin(Stdio::piped())
         .spawn()
-        .map_err(|_| LostTheWay::ClipboardError {
+        .map_err(|_e| LostTheWay::ClipboardError {
             message: format!(
                 "is {} available? Also check your `copy_cmd` settings ({})",
                 copy_cmd,
@@ -100,7 +100,7 @@ pub fn copy_to_clipboard(copy_cmd_field: &Option<String>, text: &str) -> color_e
 pub fn split_tags(input: &str) -> Vec<String> {
     input
         .split(' ')
-        .map(|word| word.trim().to_string())
+        .map(|word| word.trim().to_owned())
         .collect::<Vec<String>>()
 }
 
@@ -122,7 +122,7 @@ pub fn split_indices_usize(index_list: &[u8]) -> color_eyre::Result<Vec<usize>> 
 pub fn make_indices_string(index_list: &[usize]) -> color_eyre::Result<Vec<u8>> {
     Ok(index_list
         .iter()
-        .map(|index| index.to_string())
+        .map(std::string::ToString::to_string)
         .collect::<Vec<String>>()
         .join(str::from_utf8(&[SEMICOLON])?)
         .as_bytes()

@@ -12,6 +12,16 @@ const GITHUB_BASE_PATH: &str = "";
 const ACCEPT: &str = "application/vnd.github.v3+json";
 const USER_AGENT: &str = "the-way";
 
+/// Expects URL like `https://gist.github.com/user/<gist_id>`
+/// or `https://gist.github.com/<gist_id>`
+fn gist_id_from_url(gist_url: &str) -> color_eyre::Result<Option<&str>> {
+    let re = Regex::new(r"https://gist\.github\.com/(.+/)?(?P<gist_id>[0-9a-f]+)$")?;
+    Ok(re
+        .captures(gist_url)
+        .and_then(|cap| cap.name("gist_id").map(|gist_id| gist_id.as_str())))
+}
+
+/// Gist code content
 #[derive(Serialize, Debug)]
 pub struct GistContent<'a> {
     pub content: &'a str,
@@ -130,19 +140,9 @@ impl<'a> GistClient<'a> {
         Self::get_response(response.call())
     }
 
-    fn gist_id_from_url<'b>(&self, gist_url: &'b str) -> Option<&'b str> {
-        let re = Regex::new(
-            // Expect URL like https://gist.github.com/<user>/<gist_id>
-            r"https://gist\.github\.com/.+/(?P<gist_id>[0-9a-f]+)$",
-        )
-        .unwrap();
-        re.captures(gist_url)
-            .and_then(|cap| cap.name("gist_id").map(|gist_id| gist_id.as_str()))
-    }
-
     /// Retrieve a Gist by URL
     pub fn get_gist_by_url(&self, gist_url: &str) -> color_eyre::Result<Gist> {
-        let gist_id = self.gist_id_from_url(gist_url);
+        let gist_id = gist_id_from_url(gist_url)?;
         match gist_id {
             Some(gist_id) => self.get_gist(gist_id),
             None => Err(LostTheWay::GistUrlError {
@@ -156,7 +156,13 @@ impl<'a> GistClient<'a> {
     pub fn delete_gist(&self, gist_id: &str) -> color_eyre::Result<()> {
         let url = format!("{}{}/gists", GITHUB_API_URL, GITHUB_BASE_PATH);
         let status = self.add_headers(self.client.delete(&format!("{}/{}", url, gist_id)));
-        assert!(status.call().is_ok());
-        Ok(())
+        if status.call().is_err() {
+            Err(LostTheWay::GistUrlError {
+                message: format!("Couldn't delete gist with ID {}", gist_id),
+            }
+            .into())
+        } else {
+            Ok(())
+        }
     }
 }
