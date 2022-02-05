@@ -107,7 +107,7 @@ impl TheWay {
         let snippet =
             Snippet::from_user(self.get_current_snippet_index()? + 1, &self.languages, None)?;
         let index = self.add_snippet(&snippet)?;
-        self.color_print(&format!("Snippet #{} added", index))?;
+        self.color_print(&format!("Snippet #{} added\n", index))?;
         self.increment_snippet_index()?;
         Ok(())
     }
@@ -117,7 +117,7 @@ impl TheWay {
         let snippet =
             Snippet::cmd_from_user(self.get_current_snippet_index()? + 1, code.as_deref())?;
         let index = self.add_snippet(&snippet)?;
-        self.color_print(&format!("Snippet #{} added", index))?;
+        self.color_print(&format!("Snippet #{} added\n", index))?;
         self.increment_snippet_index()?;
         Ok(())
     }
@@ -126,12 +126,12 @@ impl TheWay {
     fn delete(&mut self, index: usize, force: bool) -> color_eyre::Result<()> {
         if force
             || Confirm::with_theme(&ColorfulTheme::default())
-                .with_prompt(&format!("Delete snippet #{}?", index))
+                .with_prompt(&format!("Delete snippet #{}?\n", index))
                 .default(false)
                 .interact()?
         {
             self.delete_snippet(index)?;
-            self.color_print(&format!("Snippet #{} deleted", index))?;
+            self.color_print(&format!("Snippet #{} deleted\n", index))?;
             Ok(())
         } else {
             let error: color_eyre::Result<()> = Err(LostTheWay::DoingNothing.into());
@@ -145,7 +145,7 @@ impl TheWay {
         let new_snippet = Snippet::from_user(index, &self.languages, Some(&old_snippet))?;
         self.delete_snippet(index)?;
         self.add_snippet(&new_snippet)?;
-        self.color_print(&format!("Snippet #{} changed", index))?;
+        self.color_print(&format!("Snippet #{} changed\n", index))?;
         Ok(())
     }
 
@@ -181,7 +181,7 @@ impl TheWay {
             eprintln!(
                 "{}",
                 utils::highlight_string(
-                    &format!("Snippet #{} copied to clipboard", index),
+                    &format!("Snippet #{} copied to clipboard\n", index),
                     self.highlighter.main_style
                 )
             );

@@ -264,7 +264,7 @@ impl TheWay {
         // Retrieve local snippets
         let mut snippets = self.list_snippets()?;
         if snippets.is_empty() {
-            self.color_print("No snippets to sync.")?;
+            self.color_print("No snippets to sync.\n")?;
             return Ok(());
         }
         // Make client
