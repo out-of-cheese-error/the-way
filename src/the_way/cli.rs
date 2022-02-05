@@ -28,7 +28,7 @@ pub enum TheWayCLI {
         #[structopt(flatten)]
         filters: Filters,
         /// Print to stdout instead of copying (with Enter)
-        #[structopt(long)]
+        #[structopt(long, short)]
         stdout: bool,
         /// Use exact search instead of fuzzy
         #[structopt(long, short)]
