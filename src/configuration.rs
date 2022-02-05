@@ -14,6 +14,7 @@ pub enum ConfigCommand {
     /// Prints / writes the default configuration options.
     /// Set the generated config file as default by setting the $THE_WAY_CONFIG environment variable
     Default {
+        /// File to save the configuration to.
         #[structopt(parse(from_os_str))]
         file: Option<PathBuf>,
     },
@@ -23,12 +24,17 @@ pub enum ConfigCommand {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TheWayConfig {
+    /// Selected theme
     pub(crate) theme: String,
+    /// Path to the directory containing the sled database files
     pub(crate) db_dir: PathBuf,
+    /// Path to the directory containing theme files
     pub(crate) themes_dir: PathBuf,
     #[serde(default = "get_default_copy_cmd")]
     pub(crate) copy_cmd: Option<String>,
+    /// Github token for the Gist API (i.e "gist" scope set)
     pub(crate) github_access_token: Option<String>,
+    /// ID of Gist used for sync
     pub gist_id: Option<String>,
 }
 
@@ -66,6 +72,7 @@ impl Default for TheWayConfig {
 }
 
 impl TheWayConfig {
+    /// Write default configuration file
     pub(crate) fn default_config(file: Option<&Path>) -> color_eyre::Result<()> {
         let writer: Box<dyn io::Write> = match file {
             Some(file) => Box::new(fs::File::create(file)?),
@@ -82,25 +89,30 @@ impl TheWayConfig {
         Ok(())
     }
 
+    /// Print the filename of the currently set configuration file
     pub(crate) fn print_config_location() -> color_eyre::Result<()> {
         println!("{}", Self::get()?.to_string_lossy());
         Ok(())
     }
 
+    /// Make database and theme directories
     fn make_dirs(&self) -> color_eyre::Result<()> {
         if !self.db_dir.exists() {
-            fs::create_dir(&self.db_dir).map_err(|e: io::Error| LostTheWay::ConfigError {
+            fs::create_dir_all(&self.db_dir).map_err(|e: io::Error| LostTheWay::ConfigError {
                 message: format!("Couldn't create db dir {:?}, {}", self.db_dir, e),
             })?;
         }
         if !self.themes_dir.exists() {
-            fs::create_dir(&self.themes_dir).map_err(|e: io::Error| LostTheWay::ConfigError {
-                message: format!("Couldn't create themes dir {:?}, {}", self.themes_dir, e),
+            fs::create_dir_all(&self.themes_dir).map_err(|e: io::Error| {
+                LostTheWay::ConfigError {
+                    message: format!("Couldn't create themes dir {:?}, {}", self.themes_dir, e),
+                }
             })?;
         }
         Ok(())
     }
 
+    /// Get default configuration file location according to XDG specification
     fn get_default_config_file() -> color_eyre::Result<PathBuf> {
         let dir = get_project_dir()?;
         let config_dir = dir.config_dir();

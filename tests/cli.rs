@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::fs;
 use std::path::PathBuf;
 
@@ -290,7 +291,7 @@ fn import_multiple_no_tags() -> color_eyre::Result<()> {
 }
 
 // This test is ignored because it tries to fetch a real Gist and runs into
-// Github rate limits when ran by CI (not sure why this happens though).
+// Github rate limits when ran by CI.
 #[ignore]
 #[test]
 fn import_gist() -> color_eyre::Result<()> {
@@ -310,6 +311,47 @@ fn import_gist() -> color_eyre::Result<()> {
         .stdout(predicate::str::contains(
             "the-way Test - e5deab8d78ce838f22f160c9b14daf17 - TestTheWay.java",
         ));
+    temp_dir.close()?;
+    Ok(())
+}
+
+// This test is ignored because it tries to fetch a real Gist and runs into
+// Github rate limits when ran by CI.
+#[ignore]
+#[test]
+fn import_the_way_gist() -> color_eyre::Result<()> {
+    use the_way::the_way::snippet::Snippet;
+
+    let temp_dir = tempdir()?;
+    let config_file = make_config_file(&temp_dir)?;
+    let mut cmd = Command::cargo_bin("the-way")?;
+    cmd.env("THE_WAY_CONFIG", &config_file)
+        .arg("import")
+        .arg("-w https://gist.github.com/Ninjani/c46ca310bfd7617f4ac4192130f33295")
+        .assert()
+        .success();
+
+    // export
+    let mut cmd = Command::cargo_bin("the-way")?;
+    let file = temp_dir.path().join("snippets.json");
+    cmd.env("THE_WAY_CONFIG", &config_file)
+        .arg("export")
+        .arg(file.to_str().unwrap())
+        .assert()
+        .success();
+
+    // load exported snippets
+    let snippets = serde_json::Deserializer::from_reader(fs::File::open(&file)?)
+        .into_iter::<Snippet>()
+        .collect::<Result<HashSet<_>, _>>()?;
+
+    // load the-way gist snippets
+    let test_snippets =
+        serde_json::Deserializer::from_reader(fs::File::open("./tests/data/snippets.json")?)
+            .into_iter::<Snippet>()
+            .collect::<Result<HashSet<_>, _>>()?;
+
+    assert_eq!(snippets, test_snippets);
     temp_dir.close()?;
     Ok(())
 }
@@ -609,7 +651,7 @@ fn sync_gist() -> color_eyre::Result<()> {
     let gist = client.get_gist(&gist.id);
     assert!(gist.is_ok());
     let gist = gist?;
-    assert_eq!(updated, &gist.updated_at);
+    assert!((*updated - gist.updated_at) < chrono::Duration::seconds(1));
 
     // check Gist contents
     assert_eq!(gist.files.len(), 2);

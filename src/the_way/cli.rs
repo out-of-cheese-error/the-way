@@ -27,10 +27,10 @@ pub enum TheWayCLI {
     Search {
         #[structopt(flatten)]
         filters: Filters,
-        // Print to stdout instead of copying (with Enter)
+        /// Print to stdout instead of copying (with Enter)
         #[structopt(long)]
         stdout: bool,
-        // Use exact search instead of fuzzy
+        /// Use exact search instead of fuzzy
         #[structopt(long, short)]
         exact: bool,
     },
@@ -52,8 +52,6 @@ pub enum TheWayCLI {
         #[structopt(parse(from_os_str))]
         file: Option<PathBuf>,
 
-        #[structopt(long, short)]
-
         /// URL to a Gist, if provided will import snippets from given Gist
         ///
         /// Multiple files will be converted to separate snippets.
@@ -61,7 +59,13 @@ pub enum TheWayCLI {
         /// "<gist_description> - <gist_id> - <file_name>".
         /// Each snippet will be tagged with "gist" and its Gist ID.
         /// Works for both secret and public gists.
+        #[structopt(long, short)]
         gist_url: Option<String>,
+
+        /// URL to a gist file produced by `the-way sync`. If provided will import snippets with
+        /// descriptions and tags taken from the `index.md` index file in the gist.
+        #[structopt(long, short = "w", conflicts_with = "gist_url")]
+        the_way_url: Option<String>,
     },
     /// Saves (optionally filtered) snippets to JSON.
     Export {
@@ -79,6 +83,7 @@ pub enum TheWayCLI {
     },
     /// Generate shell completions
     Complete {
+        /// Shell to generate completions for
         #[structopt(possible_values = & Shell::variants())]
         shell: Shell,
     },
@@ -132,11 +137,13 @@ pub enum ThemeCommand {
     Set { theme: Option<String> },
     /// Add a theme from a Sublime Text ".tmTheme" file.
     Add {
+        /// .tmTheme file path
         #[structopt(parse(from_os_str))]
         file: PathBuf,
     },
     /// Add highlight support for a language using a ".sublime-syntax" file.
     Language {
+        /// .sublime-syntax file path
         #[structopt(parse(from_os_str))]
         file: PathBuf,
     },

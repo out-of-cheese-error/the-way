@@ -28,6 +28,7 @@ pub enum LostTheWay {
     /// Thrown when trying to load a syntax which hasn't been added / doesn't exist
     #[error("SyntaxError: {syntax:?}")]
     SyntaxError { syntax: String },
+    /// Thrown when there's an error while trying to access system clipboard
     #[error("ClipboardError: Couldn't copy to clipboard - {message}")]
     ClipboardError { message: String },
     #[error(
@@ -35,6 +36,7 @@ pub enum LostTheWay {
         Please add a supported command to your configuration file (as copy_cmd)"
     )]
     NoDefaultCopyCommand,
+    /// Thrown when `skim` search fails
     #[error("SearchError: Search failed")]
     SearchError,
     /// Errors related to changing the configuration file
@@ -46,6 +48,9 @@ pub enum LostTheWay {
     /// Error due to invalid Gist URL
     #[error("GistUrlError: {message:?}")]
     GistUrlError { message: String },
+    /// Error due to invalid the-way gist
+    #[error("GistFormattingError: {message:?}")]
+    GistFormattingError { message: String },
     /// Catch-all for stuff that should never happen
     #[error("OutOfCheeseError: {message:?}\nRedo from start.")]
     OutOfCheeseError { message: String },

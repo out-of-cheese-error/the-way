@@ -1,18 +1,18 @@
 //! Snippet information and methods
 use std::borrow::Cow;
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
+use std::hash::Hash;
 use std::io;
 
 use chrono::{DateTime, Utc};
 use regex::Regex;
 use syntect::highlighting::Style;
 
-use crate::gist::Gist;
 use crate::language::{CodeHighlight, Language};
 use crate::utils;
 
 /// Stores information about a quote
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Eq)]
 pub struct Snippet {
     /// Snippet index, used to retrieve, copy, or modify a snippet
     #[serde(default)]
@@ -37,10 +37,29 @@ pub struct Snippet {
     pub updated: DateTime<Utc>,
 }
 
+impl PartialEq for Snippet {
+    fn eq(&self, other: &Self) -> bool {
+        self.description == other.description
+            && self.language.to_ascii_lowercase() == other.language.to_ascii_lowercase()
+            && self.code.trim() == other.code.trim()
+            && self.tags.iter().collect::<BTreeSet<_>>()
+                == other.tags.iter().collect::<BTreeSet<_>>()
+    }
+}
+
+impl Hash for Snippet {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.description.hash(state);
+        self.language.to_ascii_lowercase().hash(state);
+        self.code.trim().hash(state);
+        self.tags.iter().collect::<BTreeSet<_>>().hash(state);
+    }
+}
+
 impl Snippet {
     /// New snippet
     #[allow(clippy::too_many_arguments)]
-    fn new(
+    pub(crate) fn new(
         index: usize,
         description: String,
         language: String,
@@ -103,26 +122,23 @@ impl Snippet {
             None => Utc::now(),
         };
 
-        let code = match old_code {
-            Some(old) => {
-                if utils::confirm("Edit snippet? [y/N]", false)? {
-                    utils::external_editor_input(old_code, &extension)?
-                } else {
-                    old.to_string()
-                }
+        let code = if let Some(old) = old_code {
+            if utils::confirm("Edit snippet? [y/N]", false)? {
+                utils::external_editor_input(old_code, &extension)?
+            } else {
+                old.to_owned()
             }
-            None => {
-                let mut input = utils::user_input(
-                    "Code snippet (leave empty to open external editor)",
-                    None,  // default
-                    false, // show default
-                    true,  // allow empty
-                )?;
-                if input.is_empty() {
-                    input = utils::external_editor_input(None, &extension)?;
-                }
-                input
+        } else {
+            let mut input = utils::user_input(
+                "Code snippet (leave empty to open external editor)",
+                None,  // default
+                false, // show default
+                true,  // allow empty
+            )?;
+            if input.is_empty() {
+                input = utils::external_editor_input(None, &extension)?;
             }
+            input
         };
         Ok(Self::new(
             index,
@@ -174,36 +190,6 @@ impl Snippet {
     pub(crate) fn to_json(&self, json_writer: &mut dyn io::Write) -> color_eyre::Result<()> {
         serde_json::to_writer(json_writer, self)?;
         Ok(())
-    }
-
-    /// Read potentially multiple snippets from a regular Gist (not a sync/backup Gist)
-    pub(crate) fn from_gist(
-        start_index: usize,
-        languages: &HashMap<String, Language>,
-        gist: &Gist,
-    ) -> Vec<Self> {
-        let mut index = start_index;
-        let mut snippets = Vec::new();
-        for (file_name, gist_file) in &gist.files {
-            let code = &gist_file.content;
-            let description = format!("{} - {} - {}", gist.description, gist.id, file_name);
-            let language = &gist_file.language;
-            let tags = "gist";
-            let extension = Language::get_extension(language, languages);
-            let snippet = Self::new(
-                index,
-                description,
-                language.to_string(),
-                extension.to_string(),
-                tags,
-                Utc::now(),
-                Utc::now(),
-                code.to_string(),
-            );
-            snippets.push(snippet);
-            index += 1;
-        }
-        snippets
     }
 
     /// Filters snippets in date range
