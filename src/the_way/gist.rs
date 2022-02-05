@@ -246,11 +246,14 @@ impl TheWay {
         };
         // Upload index file to Gist
         let result = client.update_gist(&result.id, &update_payload)?;
-        spinner.finish_with_message(self.highlight_string(&format!(
-            "Created gist at {} with {} snippets",
-            result.html_url,
-            result.files.len()
-        )));
+        spinner.finish_with_message(utils::highlight_string(
+            &format!(
+                "Created gist at {} with {} snippets",
+                result.html_url,
+                result.files.len()
+            ),
+            self.highlighter.main_style,
+        ));
 
         // Return created Gist ID
         Ok(result.id)
@@ -261,7 +264,7 @@ impl TheWay {
         // Retrieve local snippets
         let mut snippets = self.list_snippets()?;
         if snippets.is_empty() {
-            println!("{}", self.highlight_string("No snippets to sync."));
+            self.color_print("No snippets to sync.\n")?;
             return Ok(());
         }
         // Make client
@@ -280,7 +283,10 @@ impl TheWay {
         // Retrieve gist and gist snippets
         let gist = client.get_gist(self.config.gist_id.as_ref().unwrap());
         if gist.is_err() {
-            spinner.finish_with_message(self.highlight_string("Gist not found."));
+            spinner.finish_with_message(utils::highlight_string(
+                "Gist not found.",
+                self.highlighter.main_style,
+            ));
             self.config.gist_id =
                 Some(self.make_gist(self.config.github_access_token.as_ref().unwrap())?);
             return Ok(());
@@ -356,19 +362,13 @@ impl TheWay {
 
         // Print results
         for (action, count) in action_counts {
-            println!(
-                "{}",
-                self.highlight_string(&if action == SyncAction::UpToDate {
-                    format!("{} snippet(s) are up to date", count)
-                } else {
-                    format!("{:?} {} snippet(s)", action, count)
-                })
-            );
+            self.color_print(&if action == SyncAction::UpToDate {
+                format!("{} snippet(s) are up to date\n", count)
+            } else {
+                format!("{:?} {} snippet(s)\n", action, count)
+            })?;
         }
-        println!(
-            "{}",
-            self.highlight_string(&format!("\nGist: {}", gist.html_url))
-        );
+        self.color_print(&format!("\nGist: {}\n", gist.html_url))?;
         Ok(())
     }
 
