@@ -3,7 +3,7 @@
 [![GitHub release](https://img.shields.io/github/release/out-of-cheese-error/the-way.svg)](https://GitHub.com/out-of-cheese-error/the-way/releases/)
 [![dependency status](https://deps.rs/repo/github/out-of-cheese-error/the-way/status.svg)](https://deps.rs/repo/github/out-of-cheese-error/the-way)
 [![GitHub license](https://img.shields.io/github/license/out-of-cheese-error/the-way.svg)](https://github.com/out-of-cheese-error/the-way/blob/master/LICENSE)
-   
+
 # The Way
 A code snippets manager for your terminal.
 
@@ -261,6 +261,15 @@ The default config TOML file is located in
 
 This file contains locations of data directories, which are automatically created and set according to XDG and Standard Directories guidelines.
 Change this by creating a config file with `the-way config default > config.toml` and then setting the environment variable `$THE_WAY_CONFIG` to point to this file.
+
+### Copy command
+By default `xclip` is used on Linux, `pbcopy` on OSX and `termux-clipboard-set` on Android.
+You can override the default command by setting the `copy_cmd` field in the configuration file.
+For example to use `xsel` as a copy command, set the `copy_cmd` field as follows:
+
+```toml
+copy_cmd = 'xsel -ib'
+```
 
 # Why "The Way"?
 The name is a reference to [the Way of Mrs.Cosmopilite](https://wiki.lspace.org/mediawiki/The_Way_of_Mrs._Cosmopilite), kōans for every situation.

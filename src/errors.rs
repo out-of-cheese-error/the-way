@@ -31,6 +31,11 @@ pub enum LostTheWay {
     /// Thrown when there's an error while trying to access system clipboard
     #[error("ClipboardError: Couldn't copy to clipboard - {message}")]
     ClipboardError { message: String },
+    #[error(
+        "NoDefaultCopyCommand: No default command found for detected OS. \
+        Please add a supported command to your configuration file (as copy_cmd)"
+    )]
+    NoDefaultCopyCommand,
     /// Thrown when `skim` search fails
     #[error("SearchError: Search failed")]
     SearchError,

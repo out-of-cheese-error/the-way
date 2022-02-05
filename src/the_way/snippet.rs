@@ -58,6 +58,7 @@ impl Hash for Snippet {
 
 impl Snippet {
     /// New snippet
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         index: usize,
         description: String,
@@ -277,9 +278,11 @@ impl Snippet {
             let mut parts = capture["parameter"].split('=');
             let parameter_name = parts.next().unwrap().to_owned();
             let default = parts.next();
-            if !filled_parameters.contains_key(&parameter_name) {
+            if let std::collections::hash_map::Entry::Vacant(e) =
+                filled_parameters.entry(parameter_name.clone())
+            {
                 let filled = utils::user_input(&parameter_name, default, true, false)?;
-                filled_parameters.insert(parameter_name, filled);
+                e.insert(filled);
             }
         }
 

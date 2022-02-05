@@ -6,7 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
-* Add option to import a `the-way`-style gist with `the-way import -w <gist-url>` (Issue [98](https://github.com/out-of-cheese-error/the-way/issues/98))
+### Added
+* Option to import a `the-way`-style gist with `the-way import -w <gist-url>` (Issue [98](https://github.com/out-of-cheese-error/the-way/issues/98))
+* Field `copy_cmd` in configuration file which allows user to change the default copy command.
+  In case of empty field value (empty string) the default command is used.
+  ([PR 118](https://github.com/out-of-cheese-error/the-way/pull/118))
+* Enum error `NoDefaultCopyCommand` to represent the case where the OS copy
+  command is not supported by default.
+
+### Changed
+* Apply the Clippy's recommendations for the snippet.rs file.
 
 ## [0.15.0] - 2022-01-07
 ### Added
@@ -283,8 +292,8 @@ I'll make sure to add changes to it from now, the previous two releases weren't 
 - A first working version of the-way
 - cargo install option
 
+[0.15.0]: https://github.com/out-of-cheese-error/the-way/compare/v0.14.4...v0.15.0
 [0.14.4]: https://github.com/out-of-cheese-error/the-way/compare/v0.14.3...v0.14.4
-
 [0.14.3]: https://github.com/out-of-cheese-error/the-way/compare/v0.14.2...v0.14.3
 [0.14.2]: https://github.com/out-of-cheese-error/the-way/compare/v0.14.1...v0.14.2
 [0.14.1]: https://github.com/out-of-cheese-error/the-way/compare/v0.14.0...v0.14.1
