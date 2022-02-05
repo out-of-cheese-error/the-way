@@ -116,7 +116,7 @@ pub enum TheWayCLI {
         /// Index of snippet to copy
         index: usize,
         /// Print to stdout instead of copying
-        #[structopt(long)]
+        #[structopt(long, short)]
         stdout: bool,
     },
     /// View snippet
