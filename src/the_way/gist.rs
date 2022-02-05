@@ -86,11 +86,14 @@ impl TheWay {
         };
         // Upload index file to Gist
         let result = client.update_gist(&result.id, &update_payload)?;
-        spinner.finish_with_message(self.highlight_string(&format!(
-            "Created gist at {} with {} snippets",
-            result.html_url,
-            result.files.len()
-        )));
+        spinner.finish_with_message(utils::highlight_string(
+            &format!(
+                "Created gist at {} with {} snippets",
+                result.html_url,
+                result.files.len()
+            ),
+            self.highlighter.main_style,
+        ));
 
         // Return created Gist ID
         Ok(result.id)
@@ -99,7 +102,7 @@ impl TheWay {
     /// Syncs local and Gist snippets
     pub(crate) fn sync_gist(&mut self) -> color_eyre::Result<()> {
         if self.list_snippets()?.is_empty() {
-            println!("{}", self.highlight_string("No snippets to sync."));
+            self.color_print("No snippets to sync.")?;
             return Ok(());
         }
         // Make client
@@ -118,7 +121,10 @@ impl TheWay {
 
         let gist = client.get_gist(self.config.gist_id.as_ref().unwrap());
         if gist.is_err() {
-            spinner.finish_with_message(self.highlight_string("Gist not found."));
+            spinner.finish_with_message(utils::highlight_string(
+                "Gist not found.",
+                self.highlighter.main_style,
+            ));
             self.config.gist_id =
                 Some(self.make_gist(self.config.github_access_token.as_ref().unwrap())?);
             return Ok(());
@@ -231,36 +237,21 @@ impl TheWay {
         }
         spinner.finish_with_message("Done!");
         if added > 0 {
-            println!(
-                "{}",
-                self.highlight_string(&format!("Added {} snippet(s)", added))
-            );
+            self.color_print(&format!("Added {} snippet(s)\n", added))?;
         }
         if updated > 0 {
-            println!(
-                "{}",
-                self.highlight_string(&format!("Updated {} snippet(s)", updated))
-            );
+            self.color_print(&format!("Updated {} snippet(s)\n", updated))?;
         }
         if deleted > 0 {
-            println!(
-                "{}",
-                self.highlight_string(&format!("Deleted {} snippet(s)", deleted))
-            );
+            self.color_print(&format!("Deleted {} snippet(s)\n", deleted))?;
         }
         if downloaded > 0 {
-            println!(
-                "{}",
-                self.highlight_string(&format!("Downloaded {} snippet(s)", downloaded))
-            );
+            self.color_print(&format!("Downloaded {} snippet(s)\n", downloaded))?;
         }
         if added + updated + downloaded + deleted == 0 {
-            println!("{}", self.highlight_string("Everything up to date"));
+            self.color_print("Everything up to date\n")?;
         }
-        println!(
-            "{}",
-            self.highlight_string(&format!("\nGist: {}", gist.html_url))
-        );
+        self.color_print(&format!("\nGist: {}\n", gist.html_url))?;
         Ok(())
     }
 }

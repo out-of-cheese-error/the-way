@@ -103,10 +103,7 @@ impl TheWay {
         let snippet =
             Snippet::from_user(self.get_current_snippet_index()? + 1, &self.languages, None)?;
         let index = self.add_snippet(&snippet)?;
-        println!(
-            "{}",
-            self.highlight_string(&format!("Snippet #{} added", index))
-        );
+        self.color_print(&format!("Snippet #{} added", index))?;
         self.increment_snippet_index()?;
         Ok(())
     }
@@ -116,10 +113,7 @@ impl TheWay {
         let snippet =
             Snippet::cmd_from_user(self.get_current_snippet_index()? + 1, code.as_deref())?;
         let index = self.add_snippet(&snippet)?;
-        println!(
-            "{}",
-            self.highlight_string(&format!("Snippet #{} added", index))
-        );
+        self.color_print(&format!("Snippet #{} added", index))?;
         self.increment_snippet_index()?;
         Ok(())
     }
@@ -133,10 +127,7 @@ impl TheWay {
                 .interact()?
         {
             self.delete_snippet(index)?;
-            println!(
-                "{}",
-                self.highlight_string(&format!("Snippet #{} deleted", index))
-            );
+            self.color_print(&format!("Snippet #{} deleted", index))?;
             Ok(())
         } else {
             let error: color_eyre::Result<()> = Err(LostTheWay::DoingNothing.into());
@@ -150,28 +141,22 @@ impl TheWay {
         let new_snippet = Snippet::from_user(index, &self.languages, Some(&old_snippet))?;
         self.delete_snippet(index)?;
         self.add_snippet(&new_snippet)?;
-        println!(
-            "{}",
-            self.highlight_string(&format!("Snippet #{} changed", index))
-        );
+        self.color_print(&format!("Snippet #{} changed", index))?;
         Ok(())
     }
 
     /// Pretty prints a snippet to terminal
     fn view(&self, index: usize) -> color_eyre::Result<()> {
         let snippet = self.get_snippet(index)?;
-        print!(
-            "{}",
-            utils::highlight_strings(
-                &snippet.pretty_print(
-                    &self.highlighter,
-                    self.languages
-                        .get(&snippet.language)
-                        .unwrap_or(&Language::default()),
-                ),
-                false
-            )
-        );
+        utils::smart_print(
+            &snippet.pretty_print(
+                &self.highlighter,
+                self.languages
+                    .get(&snippet.language)
+                    .unwrap_or(&Language::default()),
+            ),
+            false,
+        )?;
         Ok(())
     }
 
@@ -181,8 +166,7 @@ impl TheWay {
         let code = snippet.fill_snippet(self.highlighter.selection_style)?;
         if to_stdout {
             // See https://github.com/rust-lang/rust/issues/46016
-            let mut stdout = std::io::stdout();
-            if let Err(e) = writeln!(stdout, "{}", code) {
+            if let Err(e) = writeln!(std::io::stdout(), "{}", code) {
                 if e.kind() != ErrorKind::BrokenPipe {
                     eprintln!("{}", e);
                     process::exit(1);
@@ -192,7 +176,10 @@ impl TheWay {
             utils::copy_to_clipboard(&self.config.copy_cmd, &code)?;
             eprintln!(
                 "{}",
-                self.highlight_string(&format!("Snippet #{} copied to clipboard", index))
+                utils::highlight_string(
+                    &format!("Snippet #{} copied to clipboard", index),
+                    self.highlighter.main_style
+                )
             );
         }
         Ok(())
@@ -212,10 +199,7 @@ impl TheWay {
                 num += 1;
             }
         }
-        println!(
-            "{}",
-            self.highlight_string(&format!("Imported {} snippets", num))
-        );
+        self.color_print(&format!("Imported {} snippets\n", num))?;
         Ok(())
     }
 
@@ -249,7 +233,7 @@ impl TheWay {
     }
 
     /// Prints given snippets in full
-    fn show_snippets(&self, snippets: &[Snippet]) {
+    fn show_snippets(&self, snippets: &[Snippet]) -> color_eyre::Result<()> {
         let mut colorized = Vec::new();
         let default_language = Language::default();
         for snippet in snippets {
@@ -262,14 +246,15 @@ impl TheWay {
                 ),
             );
         }
-        print!("{}", utils::highlight_strings(&colorized, false));
+        utils::smart_print(&colorized, false)?;
+        Ok(())
     }
 
     /// Lists snippets (optionally filtered)
     fn list(&self, filters: &Filters) -> color_eyre::Result<()> {
         let mut snippets = self.filter_snippets(filters)?;
         snippets.sort_by(|a, b| a.index.cmp(&b.index));
-        self.show_snippets(&snippets);
+        self.show_snippets(&snippets)?;
         Ok(())
     }
 
@@ -310,7 +295,7 @@ impl TheWay {
                 }
             }
             self.reset_index()?;
-            println!("{}", self.highlight_string("Data cleared."));
+            self.color_print("Data cleared.\n")?;
             Ok(())
         } else {
             let error: color_eyre::Result<()> = Err(LostTheWay::DoingNothing.into());
@@ -326,11 +311,7 @@ impl TheWay {
             .or_else(|| self.config.github_access_token.clone());
         // Get token from user if not set
         if self.config.github_access_token.is_none() {
-            println!(
-                "{}",
-                self.highlight_string("Get a GitHub access token from https://github.com/settings/tokens/new (add the \"gist\" scope)\n",
-                )
-            );
+            self.color_print("Get a GitHub access token from https://github.com/settings/tokens/new (add the \"gist\" scope)\n\n")?;
             self.config.github_access_token = Some(
                 dialoguer::Password::with_theme(&ColorfulTheme::default())
                     .with_prompt("GitHub access token")
@@ -363,44 +344,33 @@ impl TheWay {
                     }
                 };
                 self.highlighter.set_theme(theme.to_owned())?;
-                println!(
-                    "{}",
-                    self.highlight_string(&format!("Theme changed to {}", theme))
-                );
+                self.color_print(&format!("Theme changed to {}\n", theme))?;
                 self.config.theme = theme;
                 self.config.store()?;
                 Ok(())
             }
             ThemeCommand::Add { file } => {
                 let theme = self.highlighter.add_theme(&file)?;
-                println!(
-                    "{}",
-                    self.highlight_string(&format!("Added theme {}", theme))
-                );
+                self.color_print(&format!("Added theme {}\n", theme))?;
                 Ok(())
             }
             ThemeCommand::Language { file } => {
                 let language = self.highlighter.add_syntax(&file)?;
-                println!(
-                    "{}",
-                    self.highlight_string(&format!("Added {} syntax", language))
-                );
+                self.color_print(&format!("Added {} syntax\n", language))?;
                 Ok(())
             }
             ThemeCommand::Get => {
-                println!(
-                    "{}",
-                    self.highlight_string(&format!(
-                        "Current theme: {}",
-                        self.highlighter.get_theme_name()
-                    ))
-                );
+                self.color_print(&format!(
+                    "Current theme: {}\n",
+                    self.highlighter.get_theme_name()
+                ))?;
                 Ok(())
             }
         }
     }
 
-    pub(crate) fn highlight_string(&self, input: &str) -> String {
-        utils::highlight_string(input, self.highlighter.main_style)
+    pub(crate) fn color_print(&self, input: &str) -> color_eyre::Result<()> {
+        utils::smart_print(&[(self.highlighter.main_style, input.to_string())], false)?;
+        Ok(())
     }
 }
