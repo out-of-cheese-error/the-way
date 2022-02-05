@@ -7,6 +7,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
 ### Added
+* `-s` for `--stdout` in `copy` and `search` commands (Issue [122](https://github.com/out-of-cheese-error/the-way/issues/122))
 * Option to import a `the-way`-style gist with `the-way import -w <gist-url>` (Issue [98](https://github.com/out-of-cheese-error/the-way/issues/98))
 * Field `copy_cmd` in configuration file which allows user to change the default copy command.
   In case of empty field value (empty string) the default command is used.
@@ -15,6 +16,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   command is not supported by default.
 
 ### Changed
+* Don't use ANSI color codes when terminal is not in tty mode (Issue [123](https://github.com/out-of-cheese-error/the-way/issues/123))
 * Apply the Clippy's recommendations for the snippet.rs file.
 
 ## [0.15.0] - 2022-01-07

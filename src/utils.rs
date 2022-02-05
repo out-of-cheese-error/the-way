@@ -239,3 +239,21 @@ pub fn highlight_strings(inputs: &[(Style, String)], bg: bool) -> String {
         )
     }
 }
+
+/// Print with color if stdout is tty else without
+pub fn smart_print(inputs: &[(Style, String)], bg: bool) -> color_eyre::Result<()> {
+    write!(
+        grep_cli::stdout(termcolor::ColorChoice::Auto),
+        "{}",
+        if grep_cli::is_tty_stdout() {
+            highlight_strings(inputs, bg)
+        } else {
+            inputs
+                .iter()
+                .map(|(_, s)| s.to_string())
+                .collect::<Vec<_>>()
+                .join("")
+        }
+    )?;
+    Ok(())
+}
