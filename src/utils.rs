@@ -246,10 +246,10 @@ pub fn smart_print(inputs: &[(Style, String)], bg: bool) -> color_eyre::Result<(
         grep_cli::stdout(termcolor::ColorChoice::Auto),
         "{}",
         if grep_cli::is_tty_stdout() {
-            highlight_strings(&inputs, bg)
+            highlight_strings(inputs, bg)
         } else {
             inputs
-                .into_iter()
+                .iter()
                 .map(|(_, s)| s.to_string())
                 .collect::<Vec<_>>()
                 .join("")

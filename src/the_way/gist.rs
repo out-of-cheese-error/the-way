@@ -362,7 +362,6 @@ impl TheWay {
 
         // Print results
         for (action, count) in action_counts {
-
             self.color_print(&if action == SyncAction::UpToDate {
                 format!("{} snippet(s) are up to date\n", count)
             } else {
