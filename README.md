@@ -192,8 +192,14 @@ Here's another self-referential example that saves a shell command to add new la
 (todo: Use cmdsearch instead of search)
 
 ## Sync to Gist
-`the-way sync` syncs snippets to a Gist, each named `snippet_<index>.<extension>`, with an `index.md` file linking each snippet's description and tags. 
+`the-way sync date` syncs snippets to a Gist, each named `snippet_<index>.<extension>`, with an `index.md` file linking each snippet's description and tags. 
 Local updates and deletions are uploaded to the Gist and Gist updates are downloaded.
+
+`the-way sync local` uploads all local changes, additions, and deletions to the Gist. 
+This is useful after upgrading to a new version of the-way if the Gist format has changed, or something gets messed up in the Gist.
+
+`the-way sync gist` downloads all Gist changes, additions, and deletions to the local database.
+This is useful to sync snippets across computers, as it uses the Gist as the source of truth.
 
 ![gist](images/gist.png)
 

@@ -38,7 +38,13 @@ pub enum TheWayCLI {
     ///
     /// Controlled by $THE_WAY_GITHUB_TOKEN env variable.
     /// Set this to an access token with the "gist" scope obtained from https://github.com/settings/tokens/new
-    Sync,
+    Sync {
+        #[structopt(subcommand)]
+        cmd: SyncCommand,
+        /// Don't ask for confirmation before deleting local snippets
+        #[structopt(long, short)]
+        force: bool,
+    },
     /// Lists (optionally filtered) snippets
     List {
         #[structopt(flatten)]
@@ -149,4 +155,14 @@ pub enum ThemeCommand {
     },
     /// Prints the current theme name
     Get,
+}
+
+#[derive(StructOpt, Debug, Eq, PartialEq)]
+pub enum SyncCommand {
+    /// Sync by comparing each snippet's updated date to Gist updated date
+    Date,
+    /// Use local snippets as source of truth, choose this after upgrading to a new release or if Gist is messed up
+    Local,
+    /// Use Gist snippets as source of truth, choose this to sync snippets across computers
+    Gist,
 }
