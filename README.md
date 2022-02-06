@@ -26,6 +26,7 @@ Table of Contents
 =================
 
 * [Install](#install)
+  * [Requirements](#requirements)
   * [Binaries](#binaries)
   * [With brew](#with-brew)
   * [With cargo](#with-cargo)
@@ -36,10 +37,14 @@ Table of Contents
 * [Features](#features)
   * [Main features](#main-features)
   * [Shell commands](#shell-commands)
+    * [bash](#bash)
+    * [zsh](#zsh)
+    * [fish](#fish)
   * [Sync to Gist](#sync-to-gist)
   * [Shell completions](#shell-completions)
   * [Syntax highlighting](#syntax-highlighting)
   * [Configuration](#configuration)
+    * [Copy command](#copy-command)
 * [Why "The Way"?](#why-the-way)
 
 
