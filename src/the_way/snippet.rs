@@ -12,7 +12,7 @@ use crate::language::{CodeHighlight, Language};
 use crate::utils;
 
 /// Stores information about a quote
-#[derive(Serialize, Deserialize, Debug, Eq)]
+#[derive(Serialize, Deserialize, Debug, Eq, Clone)]
 pub struct Snippet {
     /// Snippet index, used to retrieve, copy, or modify a snippet
     #[serde(default)]

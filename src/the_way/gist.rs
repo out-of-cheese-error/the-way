@@ -7,8 +7,10 @@ use color_eyre::Help;
 use crate::errors::LostTheWay;
 use crate::gist::{CreateGistPayload, Gist, GistClient, GistContent, UpdateGistPayload};
 use crate::language::Language;
-use crate::the_way::{snippet::Snippet, TheWay};
+use crate::the_way::{cli::SyncCommand, snippet::Snippet, TheWay};
 use crate::utils;
+use std::string::ToString;
+use strum_macros::Display;
 
 /// Gist description
 const DESCRIPTION: &str = "The Way Code Snippets";
@@ -63,13 +65,22 @@ fn make_index_line(index_file_content: &mut String, html_url: &str, snippet: &Sn
     ));
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, Display)]
 enum SyncAction {
+    #[strum(serialize = "downloaded from Gist")]
     Downloaded,
+    #[strum(serialize = "uploaded to Gist")]
     Uploaded,
-    Added,
+    #[strum(serialize = "added locally")]
+    AddedLocal,
+    #[strum(serialize = "deleted locally")]
+    DeletedLocal,
+    #[strum(serialize = "added to Gist")]
+    AddedGist,
+    #[strum(serialize = "deleted from Gist")]
+    DeletedGist,
+    #[strum(serialize = "up to date")]
     UpToDate,
-    Deleted,
 }
 
 impl Snippet {
@@ -259,11 +270,11 @@ impl TheWay {
         Ok(result.id)
     }
 
-    /// Syncs local and Gist snippets
-    pub(crate) fn sync_gist(&mut self) -> color_eyre::Result<()> {
+    /// Syncs local and Gist snippets according to user-selected source
+    pub(crate) fn sync_gist(&mut self, source: SyncCommand) -> color_eyre::Result<()> {
         // Retrieve local snippets
         let mut snippets = self.list_snippets()?;
-        if snippets.is_empty() {
+        if snippets.is_empty() && source == SyncCommand::Local {
             self.color_print("No snippets to sync.\n")?;
             return Ok(());
         }
@@ -275,8 +286,11 @@ impl TheWay {
 
         // Count each type of sync action
         let mut action_counts = HashMap::new();
-        // Keep track of added and updated files
+        // Keep track of added and updated Gist files
         let mut files = HashMap::new();
+        // Keep track of local snippets to add and delete
+        let mut add_snippets = Vec::new();
+        let mut delete_snippets = Vec::new();
         // Index file
         let mut index_file_content = String::from(INDEX_HEADING);
 
@@ -297,44 +311,98 @@ impl TheWay {
             .map(|snippet| (snippet.index, snippet))
             .collect::<HashMap<_, _>>();
 
-        // Compare local snippets to gist
+        // Compare local snippets to gist snippets
         for snippet in &mut snippets {
-            let sync_action = self.sync_snippet(
-                snippet,
-                &gist_snippets,
-                &gist,
-                &mut files,
-                &mut index_file_content,
-            )?;
+            // if snippet is already present in gist:
+            //     if source is Gist download changes to local snippet
+            //     if source is Date and gist date is newer, download changes to local snippet
+            //     if source is Local, upload changes to gist
+            //     if source is Date and gist date is older, upload changes to gist
+            // else
+            //     if source is Local or Date, add snippet to gist
+            //     if source is Gist, delete snippet from local
+            let sync_action = if let Some(gist_snippet) = gist_snippets.get(&snippet.index) {
+                // Snippets with same index exist in local and gist
+                if snippet == gist_snippet {
+                    // No change
+                    SyncAction::UpToDate
+                } else if source == SyncCommand::Local
+                    || (source == SyncCommand::Date && snippet.updated > gist.updated_at)
+                {
+                    // Snippet updated locally or source is local => update Gist
+                    files.insert(
+                        format!("snippet_{}{}", snippet.index, snippet.extension),
+                        Some(GistContent {
+                            content: snippet.code.as_str(),
+                        }),
+                    );
+                    SyncAction::Uploaded
+                } else if source == SyncCommand::Gist
+                    || (source == SyncCommand::Date && snippet.updated < gist.updated_at)
+                {
+                    // Snippet updated in Gist or source is Gist => update local snippet
+                    let index_key = gist_snippet.index.to_string();
+                    let index_key = index_key.as_bytes();
+                    self.add_to_snippet(index_key, &gist_snippet.to_bytes()?)?;
+                    SyncAction::Downloaded
+                } else {
+                    // Update dates match
+                    SyncAction::UpToDate
+                }
+            } else {
+                // Snippet with this index not in Gist
+                match source {
+                    SyncCommand::Local | SyncCommand::Date => {
+                        // Snippet in local and not in gist => add to gist
+                        files.insert(
+                            format!("snippet_{}{}", snippet.index, snippet.extension),
+                            Some(GistContent {
+                                content: snippet.code.as_str(),
+                            }),
+                        );
+                        SyncAction::AddedGist
+                    }
+                    SyncCommand::Gist => {
+                        // Snippet deleted in gist => delete from local
+                        delete_snippets.push(snippet.index);
+                        SyncAction::DeletedLocal
+                    }
+                }
+            };
+            if sync_action != SyncAction::DeletedLocal {
+                // add snippet to index file
+                make_index_line(&mut index_file_content, &gist.html_url, snippet);
+            }
             *action_counts.entry(sync_action).or_insert(0) += 1;
         }
-        // Compare gist to local snippets
+        // Compare gist snippets to local snippets
         for file in gist.files.keys() {
             if file != "index.md" {
-                let suggestion =
-                    "Make sure snippet files in the Gist are of the form \'snippet_<index>.<ext>\'";
-                let snippet_id = file
-                    .split('.')
-                    .next()
-                    .ok_or(LostTheWay::GistFormattingError {
-                        message: format!("Invalid filename {}: No .", file),
-                    })
-                    .suggestion(suggestion)?
-                    .split('_')
-                    .last()
-                    .ok_or(LostTheWay::GistFormattingError {
-                        message: format!("Invalid filename {}: No _", file),
-                    })
-                    .suggestion(suggestion)?
-                    .parse::<usize>()
-                    .map_err(|e| LostTheWay::GistFormattingError {
-                        message: format!("Invalid filename {}: {}", file, e),
-                    })
-                    .suggestion(suggestion)?;
-                // Snippet deleted locally => delete from Gist
-                if self.get_snippet(snippet_id).is_err() {
-                    files.insert(file.clone(), None);
-                    *action_counts.entry(SyncAction::Deleted).or_insert(0) += 1;
+                let snippet_index = get_gist_snippet_index(file)?;
+                // if snippet is not present locally:
+                //     if source is Local or Date, delete snippet from gist
+                //     if source is Gist add snippet to local snippets
+                if self.get_snippet(snippet_index).is_err() {
+                    let sync_action = match source {
+                        SyncCommand::Local | SyncCommand::Date => {
+                            // delete from Gist
+                            files.insert(file.clone(), None);
+                            SyncAction::DeletedGist
+                        }
+                        SyncCommand::Gist => {
+                            // add to local
+                            let gist_snippet = gist_snippets.get(&snippet_index).ok_or(
+                                LostTheWay::GistFormattingError {
+                                    message: format!("Invalid snippet index {}", snippet_index),
+                                },
+                            )?;
+                            add_snippets.push(gist_snippet);
+                            // add snippet to index file
+                            make_index_line(&mut index_file_content, &gist.html_url, gist_snippet);
+                            SyncAction::AddedLocal
+                        }
+                    };
+                    *action_counts.entry(sync_action).or_insert(0) += 1;
                 }
             }
         }
@@ -359,74 +427,42 @@ impl TheWay {
             )?;
         }
         spinner.finish_with_message("Done!");
+        for snippet in add_snippets {
+            self.add_snippet(snippet)?;
+        }
+        for snippet_index in delete_snippets {
+            self.delete_snippet(snippet_index)?;
+        }
 
         // Print results
         for (action, count) in action_counts {
-            self.color_print(&if action == SyncAction::UpToDate {
-                format!("{} snippet(s) are up to date\n", count)
-            } else {
-                format!("{:?} {} snippet(s)\n", action, count)
-            })?;
+            self.color_print(&format!("{} snippet(s) {}\n", count, action))?;
         }
         self.color_print(&format!("\nGist: {}\n", gist.html_url))?;
         Ok(())
     }
+}
 
-    /// Synchronize a snippet with the gist:
-    /// if gist date is newer and snippet is different, download to local snippet
-    /// if gist date is older and snippet is different, upload to gist
-    /// if snippet not in gist, add
-    fn sync_snippet<'a>(
-        &self,
-        snippet: &'a mut Snippet,
-        gist_snippets: &HashMap<usize, Snippet>,
-        gist: &Gist,
-        files: &mut HashMap<String, Option<GistContent<'a>>>,
-        index_file_content: &mut String,
-    ) -> color_eyre::Result<SyncAction> {
-        let action = if let Some(gist_snippet) = gist_snippets.get(&snippet.index) {
-            match snippet.updated.cmp(&gist.updated_at) {
-                std::cmp::Ordering::Less => {
-                    // Snippet updated in Gist => download to local
-                    if snippet == gist_snippet {
-                        SyncAction::UpToDate
-                    } else {
-                        let index_key = gist_snippet.index.to_string();
-                        let index_key = index_key.as_bytes();
-                        self.add_to_snippet(index_key, &gist_snippet.to_bytes()?)?;
-                        SyncAction::Downloaded
-                    }
-                }
-                std::cmp::Ordering::Greater => {
-                    // Snippet updated locally => update Gist
-                    if snippet == gist_snippet {
-                        SyncAction::UpToDate
-                    } else {
-                        files.insert(
-                            format!("snippet_{}{}", snippet.index, snippet.extension),
-                            Some(GistContent {
-                                content: snippet.code.as_str(),
-                            }),
-                        );
-                        SyncAction::Uploaded
-                    }
-                }
-                std::cmp::Ordering::Equal => {
-                    // Snippet up to date
-                    SyncAction::UpToDate
-                }
-            }
-        } else {
-            files.insert(
-                format!("snippet_{}{}", snippet.index, snippet.extension),
-                Some(GistContent {
-                    content: snippet.code.as_str(),
-                }),
-            );
-            SyncAction::Added
-        };
-        // Add to index
-        make_index_line(index_file_content, &gist.html_url, snippet);
-        Ok(action)
-    }
+fn get_gist_snippet_index(file: &str) -> color_eyre::Result<usize> {
+    let suggestion =
+        "Make sure snippet files in the Gist are of the form \'snippet_<index>.<ext>\'";
+    let snippet_index = file
+        .split('.')
+        .next()
+        .ok_or(LostTheWay::GistFormattingError {
+            message: format!("Invalid filename {}: No .", file),
+        })
+        .suggestion(suggestion)?
+        .split('_')
+        .last()
+        .ok_or(LostTheWay::GistFormattingError {
+            message: format!("Invalid filename {}: No _", file),
+        })
+        .suggestion(suggestion)?
+        .parse::<usize>()
+        .map_err(|e| LostTheWay::GistFormattingError {
+            message: format!("Invalid filename {}: {}", file, e),
+        })
+        .suggestion(suggestion)?;
+    Ok(snippet_index)
 }

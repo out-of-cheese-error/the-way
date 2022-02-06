@@ -57,6 +57,8 @@ termcolor = "1.1.2"
 
 # Sync to Gist/GitLab
 ureq = { version = "2.4.0", features = ["json"] }
+strum = "0.23.0"
+strum_macros = "0.23.0"
 
 # pattern filter and filling shell script variables
 regex = "1.5.4"

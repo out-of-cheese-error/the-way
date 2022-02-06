@@ -14,7 +14,7 @@ use crate::configuration::{ConfigCommand, TheWayConfig};
 use crate::errors::LostTheWay;
 use crate::language::{CodeHighlight, Language};
 use crate::the_way::{
-    cli::{TheWayCLI, ThemeCommand},
+    cli::{SyncCommand, TheWayCLI, ThemeCommand},
     filter::Filters,
     snippet::Snippet,
 };
@@ -98,7 +98,7 @@ impl TheWay {
                 ConfigCommand::Default { file } => TheWayConfig::default_config(file.as_deref()), //Already handled
                 ConfigCommand::Get => TheWayConfig::print_config_location(),
             },
-            TheWayCLI::Sync => self.sync(),
+            TheWayCLI::Sync { cmd } => self.sync(cmd),
         }
     }
 
@@ -326,7 +326,7 @@ impl TheWay {
     }
 
     /// Syncs snippets to Gist
-    fn sync(&mut self) -> color_eyre::Result<()> {
+    fn sync(&mut self, cmd: SyncCommand) -> color_eyre::Result<()> {
         // Check if environment variable has changed
         self.config.github_access_token = std::env::var("THE_WAY_GITHUB_TOKEN")
             .ok()
@@ -341,7 +341,7 @@ impl TheWay {
             );
         }
         if self.config.gist_id.is_some() {
-            self.sync_gist()?;
+            self.sync_gist(cmd)?;
         } else {
             self.config.gist_id =
                 Some(self.make_gist(self.config.github_access_token.as_ref().unwrap())?);
