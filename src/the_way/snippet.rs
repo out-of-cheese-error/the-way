@@ -250,8 +250,11 @@ impl Snippet {
     }
 
     fn is_shell_snippet(&self) -> bool {
-        // sh, bash, csh, tcsh
-        matches!(self.language.as_str(), "sh" | "bash" | "csh" | "tcsh")
+        // sh, bash, csh, tcsh, shell, zsh, fish
+        matches!(
+            self.language.as_str(),
+            "sh" | "bash" | "csh" | "tcsh" | "shell" | "zsh" | "fish"
+        )
     }
 
     /// If snippet is a shell snippet, interactively fill parameters
