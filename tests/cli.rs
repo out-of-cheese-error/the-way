@@ -1,12 +1,14 @@
 use std::collections::HashSet;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use assert_cmd::Command;
 use predicates::prelude::*;
 use rexpect::session::PtyReplSession;
 use rexpect::spawn_bash;
 use tempfile::{tempdir, TempDir};
+use the_way::configuration::TheWayConfig;
+use the_way::gist::{Gist, GistClient, GistContent, UpdateGistPayload};
 
 fn make_config_file(temp_dir: &TempDir) -> color_eyre::Result<PathBuf> {
     let db_dir = temp_dir.path().join("db");
@@ -553,34 +555,27 @@ fn copy_shell_script_rexpect(config_file: PathBuf) -> rexpect::errors::Result<()
     Ok(())
 }
 
-#[ignore]
-#[test]
-/// Tests Gist sync functionality. Needs to have the environment variable $THE_WAY_GITHUB_TOKEN set!
-/// Ignored by default since Travis doesn't allow secret/encrypted environment variables in PRs
-fn sync_gist() -> color_eyre::Result<()> {
-    use the_way::configuration::TheWayConfig;
-    use the_way::gist::{GistClient, GistContent, UpdateGistPayload};
-
-    let temp_dir = tempdir()?;
-    let config_file = make_config_file(&temp_dir)?;
-
-    let contents_1 = r#"{"description":"test description 1","language":"rust","tags":["tag1","tag2"],"code":"some\ntest\ncode\n"}"#;
+fn make_gist(config_file: &Path, client: &GistClient) -> color_eyre::Result<Gist> {
+    let contents_1 = r#"{"description":"test description 1","language":"rust","tags":["tag1","tag2"],"code":"code\nthe\nfirst\n"}"#;
     let contents_2 =
-        r#"{"description":"test description 2","language":"python","code":"some\ntest\ncode\n"}"#;
-    let contents = format!("{}\n{}", contents_1, contents_2);
+        r#"{"description":"test description 2","language":"python","code":"code\nthe\nsecond\n"}"#;
+    let contents_3 =
+        r#"{"description":"test description 3","language":"python","code":"code\nthe\nfourth\n"}"#;
+    let contents = format!("{}\n{}\n{}", contents_1, contents_2, contents_3);
 
     // import
     let mut cmd = Command::cargo_bin("the-way")?;
-    cmd.env("THE_WAY_CONFIG", &config_file)
+    cmd.env("THE_WAY_CONFIG", config_file)
         .arg("import")
         .write_stdin(contents)
         .assert()
-        .stdout(predicate::str::contains("Imported 2 snippets"));
+        .stdout(predicate::str::contains("Imported 3 snippets"));
 
-    // sync
+    // sync (doesn't matter which one, this just makes a new Gist)
     let mut cmd = Command::cargo_bin("the-way")?;
-    cmd.env("THE_WAY_CONFIG", &config_file)
+    cmd.env("THE_WAY_CONFIG", config_file)
         .arg("sync")
+        .arg("date")
         .assert()
         .success();
 
@@ -592,27 +587,33 @@ fn sync_gist() -> color_eyre::Result<()> {
     assert!(config.gist_id.is_some());
 
     // get Gist
-    let token = &std::env::var("THE_WAY_GITHUB_TOKEN")?;
-    let client = GistClient::new(Some(token))?;
     let gist = client.get_gist(&config.gist_id.unwrap());
     assert!(gist.is_ok());
     let gist = gist?;
 
     // check Gist contents
-    assert_eq!(gist.files.len(), 3);
+    assert_eq!(gist.files.len(), 4);
     for (filename, gistfile) in &gist.files {
-        if filename.starts_with("snippet_") {
-            assert_eq!(gistfile.content, "some\ntest\ncode\n");
-        }
+        assert!(
+            (filename.starts_with("snippet_1") && (gistfile.content == "code\nthe\nfirst\n"))
+                || (filename.starts_with("snippet_2")
+                    && (gistfile.content == "code\nthe\nsecond\n"))
+                || (filename.starts_with("snippet_3")
+                    && (gistfile.content == "code\nthe\nfourth\n"))
+                || filename.starts_with("index")
+        );
     }
+    Ok(gist)
+}
 
-    // edit Gist
+fn sync_edit(config_file: &Path, gist: &Gist, client: &GistClient) -> color_eyre::Result<()> {
+    // edit snippet_1 in Gist
     let update_payload = UpdateGistPayload {
         description: &gist.description,
         files: vec![(
             "snippet_1.rs".to_owned(),
             Some(GistContent {
-                content: "some\nmore\ntest\ncode\n",
+                content: "code\nthe\nthird\n",
             }),
         )]
         .into_iter()
@@ -620,7 +621,7 @@ fn sync_gist() -> color_eyre::Result<()> {
     };
     assert!(client.update_gist(&gist.id, &update_payload).is_ok());
 
-    // delete locally (easier than editing)
+    // delete snippet_2 locally
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
         .arg("del")
@@ -629,10 +630,54 @@ fn sync_gist() -> color_eyre::Result<()> {
         .assert()
         .stdout(predicate::str::contains("Snippet #2 deleted"));
 
-    // sync - download + deleted
+    // delete snippet_3 from Gist
+    let update_payload = UpdateGistPayload {
+        description: &gist.description,
+        files: vec![("snippet_3.py".to_owned(), None)]
+            .into_iter()
+            .collect(),
+    };
+    assert!(client.update_gist(&gist.id, &update_payload).is_ok());
+
+    // get Gist
+    let gist = client.get_gist(&gist.id);
+    assert!(gist.is_ok());
+    let gist = gist?;
+
+    // check Gist contents
+    assert_eq!(gist.files.len(), 3);
+    for (filename, gistfile) in &gist.files {
+        assert!(
+            (filename.starts_with("snippet_1") && (gistfile.content == "code\nthe\nthird\n"))
+                || (filename.starts_with("snippet_2")
+                    && (gistfile.content == "code\nthe\nsecond\n"))
+                || filename.starts_with("index")
+        );
+    }
+
+    Ok(())
+}
+
+#[ignore]
+#[test]
+/// Tests `the-way sync date` functionality. Needs to have the environment variable $THE_WAY_GITHUB_TOKEN set!
+/// Ignored by default since Travis doesn't allow secret/encrypted environment variables in PRs
+fn sync_date() -> color_eyre::Result<()> {
+    let temp_dir = tempdir()?;
+    let config_file = make_config_file(&temp_dir)?;
+    let token = &std::env::var("THE_WAY_GITHUB_TOKEN")?;
+    let client = GistClient::new(Some(token))?;
+
+    // make Gist with 3 snippets
+    let gist = make_gist(&config_file, &client)?;
+    // make edits: edit snippet_1 in Gist, delete snippet_2 locally, delete snippet_3 in Gist
+    sync_edit(&config_file, &gist, &client)?;
+
+    // sync - downloads snippet_1 locally + deletes snippet_2 in Gist + adds snippet_3 to Gist
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
         .arg("sync")
+        .arg("date")
         .assert()
         .success();
 
@@ -646,6 +691,7 @@ fn sync_gist() -> color_eyre::Result<()> {
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
         .arg("sync")
+        .arg("date")
         .assert()
         .success();
     let gist = client.get_gist(&gist.id);
@@ -654,20 +700,176 @@ fn sync_gist() -> color_eyre::Result<()> {
     assert!((*updated - gist.updated_at) < chrono::Duration::seconds(1));
 
     // check Gist contents
-    assert_eq!(gist.files.len(), 2);
+    assert_eq!(gist.files.len(), 3);
     for (filename, gistfile) in &gist.files {
-        if filename.starts_with("snippet_") {
-            assert_eq!(gistfile.content, "some\nmore\ntest\ncode\n");
-        }
+        assert!(
+            (filename.starts_with("snippet_1") && (gistfile.content == "code\nthe\nthird\n"))
+                // added snippet 3 to Gist
+                || (filename.starts_with("snippet_3")
+                    && (gistfile.content == "code\nthe\nfourth\n"))
+                || filename.starts_with("index") // deleted snippet 2 from Gist
+        );
     }
 
-    // check downloaded
+    // downloaded snippet 1 locally
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
         .arg("view")
         .arg("1")
         .assert()
-        .stdout(predicates::str::contains("more"));
+        .stdout(predicate::str::contains("third"));
+
+    // delete Gist
+    assert!(client.delete_gist(&gist.id).is_ok());
+    assert!(client.get_gist(&gist.id).is_err());
+    temp_dir.close()?;
+    Ok(())
+}
+
+#[ignore]
+#[test]
+/// Tests `the-way sync local` functionality. Needs to have the environment variable $THE_WAY_GITHUB_TOKEN set!
+/// Ignored by default since Travis doesn't allow secret/encrypted environment variables in PRs
+fn sync_local() -> color_eyre::Result<()> {
+    let temp_dir = tempdir()?;
+    let config_file = make_config_file(&temp_dir)?;
+    let token = &std::env::var("THE_WAY_GITHUB_TOKEN")?;
+    let client = GistClient::new(Some(token))?;
+
+    // make Gist with 3 snippets
+    let gist = make_gist(&config_file, &client)?;
+    // make edits: edit snippet_1 in Gist, delete snippet_2 locally, delete snippet_3 in Gist
+    sync_edit(&config_file, &gist, &client)?;
+
+    // sync - uploads local snippet_1 to Gist + deletes snippet_2 from Gist + adds snippet_3 to Gist
+    let mut cmd = Command::cargo_bin("the-way")?;
+    cmd.env("THE_WAY_CONFIG", &config_file)
+        .arg("sync")
+        .arg("local")
+        .assert()
+        .success();
+
+    // get Gist
+    let gist = client.get_gist(&gist.id);
+    assert!(gist.is_ok());
+    let gist = gist?;
+    let updated = &gist.updated_at;
+
+    // sync again - nothing changed
+    let mut cmd = Command::cargo_bin("the-way")?;
+    cmd.env("THE_WAY_CONFIG", &config_file)
+        .arg("sync")
+        .arg("local")
+        .assert()
+        .success();
+    let gist = client.get_gist(&gist.id);
+    assert!(gist.is_ok());
+    let gist = gist?;
+    assert!((*updated - gist.updated_at) < chrono::Duration::seconds(1));
+
+    // check Gist contents
+    assert_eq!(gist.files.len(), 3);
+    for (filename, gistfile) in &gist.files {
+        assert!(
+            // uploaded local snippet_1 to Gist
+            (filename.starts_with("snippet_1") && (gistfile.content == "code\nthe\nfirst\n"))
+                // added snippet_3 to Gist
+                || (filename.starts_with("snippet_3") && (gistfile.content == "code\nthe\nfourth\n"))
+                || filename.starts_with("index") // deleted snippet_2 from Gist
+        );
+    }
+
+    // check snippet_1 not downloaded
+    let mut cmd = Command::cargo_bin("the-way")?;
+    cmd.env("THE_WAY_CONFIG", &config_file)
+        .arg("view")
+        .arg("1")
+        .assert()
+        .stdout(predicate::str::contains("third").not());
+
+    // delete Gist
+    assert!(client.delete_gist(&gist.id).is_ok());
+    assert!(client.get_gist(&gist.id).is_err());
+    temp_dir.close()?;
+    Ok(())
+}
+
+#[ignore]
+#[test]
+/// Tests `the-way sync gist` functionality. Needs to have the environment variable $THE_WAY_GITHUB_TOKEN set!
+/// Ignored by default since Travis doesn't allow secret/encrypted environment variables in PRs
+fn sync_gist() -> color_eyre::Result<()> {
+    let temp_dir = tempdir()?;
+    let config_file = make_config_file(&temp_dir)?;
+
+    let token = &std::env::var("THE_WAY_GITHUB_TOKEN")?;
+    let client = GistClient::new(Some(token))?;
+
+    // make Gist with 3 snippets
+    let gist = make_gist(&config_file, &client)?;
+    // make edits: edit snippet_1 in Gist, delete snippet_2 locally, delete snippet_3 in Gist
+    sync_edit(&config_file, &gist, &client)?;
+
+    // sync - downloads snippet 1 locally + adds snippet 2 locally + deletes snippet 3 locally
+    let mut cmd = Command::cargo_bin("the-way")?;
+    cmd.env("THE_WAY_CONFIG", &config_file)
+        .arg("sync")
+        .arg("gist")
+        .assert()
+        .success();
+
+    // get Gist
+    let gist = client.get_gist(&gist.id);
+    assert!(gist.is_ok());
+    let gist = gist?;
+    let updated = &gist.updated_at;
+
+    // sync again - nothing changed
+    let mut cmd = Command::cargo_bin("the-way")?;
+    cmd.env("THE_WAY_CONFIG", &config_file)
+        .arg("sync")
+        .arg("gist")
+        .assert()
+        .success();
+    let gist = client.get_gist(&gist.id);
+    assert!(gist.is_ok());
+    let gist = gist?;
+    assert!((*updated - gist.updated_at) < chrono::Duration::seconds(1));
+
+    // check Gist contents
+    assert_eq!(gist.files.len(), 3);
+    for (filename, gistfile) in &gist.files {
+        assert!(
+            (filename.starts_with("snippet_1") && (gistfile.content == "code\nthe\nthird\n"))
+                || (filename.starts_with("snippet_2")
+                    && (gistfile.content == "code\nthe\nsecond\n"))
+                || filename.starts_with("index")
+        );
+    }
+
+    // downloaded snippet_1 locally
+    let mut cmd = Command::cargo_bin("the-way")?;
+    cmd.env("THE_WAY_CONFIG", &config_file)
+        .arg("view")
+        .arg("1")
+        .assert()
+        .stdout(predicate::str::contains("third"));
+
+    // added snippet_2 locally
+    let mut cmd = Command::cargo_bin("the-way")?;
+    cmd.env("THE_WAY_CONFIG", &config_file)
+        .arg("view")
+        .arg("2")
+        .assert()
+        .stdout(predicate::str::contains("second"));
+
+    // deleted snippet_3 locally
+    let mut cmd = Command::cargo_bin("the-way")?;
+    cmd.env("THE_WAY_CONFIG", &config_file)
+        .arg("view")
+        .arg("3")
+        .assert()
+        .failure();
 
     // delete Gist
     assert!(client.delete_gist(&gist.id).is_ok());
