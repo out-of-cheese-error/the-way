@@ -814,6 +814,7 @@ fn sync_gist() -> color_eyre::Result<()> {
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
         .arg("sync")
+        .arg("-f")
         .arg("gist")
         .assert()
         .success();

@@ -41,6 +41,9 @@ pub enum TheWayCLI {
     Sync {
         #[structopt(subcommand)]
         cmd: SyncCommand,
+        /// Don't ask for confirmation before deleting local snippets
+        #[structopt(long, short)]
+        force: bool,
     },
     /// Lists (optionally filtered) snippets
     List {
@@ -158,8 +161,8 @@ pub enum ThemeCommand {
 pub enum SyncCommand {
     /// Sync by comparing each snippet's updated date to Gist updated date
     Date,
-    /// Use local snippets as source, choose this after upgrading to a new release
+    /// Use local snippets as source of truth, choose this after upgrading to a new release or if Gist is messed up
     Local,
-    /// Use Gist snippets as source, choose this to sync snippets to a new computer
+    /// Use Gist snippets as source of truth, choose this to sync snippets across computers
     Gist,
 }

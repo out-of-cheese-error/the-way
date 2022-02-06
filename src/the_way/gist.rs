@@ -271,7 +271,7 @@ impl TheWay {
     }
 
     /// Syncs local and Gist snippets according to user-selected source
-    pub(crate) fn sync_gist(&mut self, source: SyncCommand) -> color_eyre::Result<()> {
+    pub(crate) fn sync_gist(&mut self, source: SyncCommand, force: bool) -> color_eyre::Result<()> {
         // Retrieve local snippets
         let mut snippets = self.list_snippets()?;
         if snippets.is_empty() && source == SyncCommand::Local {
@@ -430,12 +430,25 @@ impl TheWay {
         for snippet in add_snippets {
             self.add_snippet(snippet)?;
         }
-        for snippet_index in delete_snippets {
-            self.delete_snippet(snippet_index)?;
+        let delete = if delete_snippets.is_empty() || force {
+            true
+        } else {
+            utils::confirm(
+                &format!("Delete {} snippets locally?", delete_snippets.len()),
+                false,
+            )?
+        };
+        if delete {
+            for index in delete_snippets {
+                self.delete_snippet(index)?;
+            }
         }
 
         // Print results
         for (action, count) in action_counts {
+            if action == SyncAction::DeletedLocal && !delete {
+                continue;
+            }
             self.color_print(&format!("{} snippet(s) {}\n", count, action))?;
         }
         self.color_print(&format!("\nGist: {}\n", gist.html_url))?;
