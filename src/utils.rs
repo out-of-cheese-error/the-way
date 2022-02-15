@@ -222,22 +222,12 @@ pub fn highlight_string(line: &str, style: Style) -> String {
 
 /// Color strings for the terminal
 pub fn highlight_strings(inputs: &[(Style, String)], bg: bool) -> String {
-    if bg {
-        let mut s = String::new();
-        for (style, line) in inputs {
-            s.push_str(&as_24_bit_terminal_escaped(&[(*style, line)], true));
-            s.push_str(END_ANSI);
-        }
-        s
-    } else {
-        as_24_bit_terminal_escaped(
-            &inputs
-                .iter()
-                .map(|(style, line)| (*style, line.as_ref()))
-                .collect::<Vec<_>>(),
-            false,
-        )
+    let mut s = String::new();
+    for (style, line) in inputs {
+        s.push_str(&as_24_bit_terminal_escaped(&[(*style, line)], bg));
+        s.push_str(END_ANSI);
     }
+    s
 }
 
 /// Print with color if stdout is tty else without
