@@ -14,7 +14,7 @@ use crate::configuration::{ConfigCommand, TheWayConfig};
 use crate::errors::LostTheWay;
 use crate::language::{CodeHighlight, Language};
 use crate::the_way::{
-    cli::{SyncCommand, TheWayCLI, ThemeCommand},
+    cli::{SyncCommand, TheWayCLI, TheWaySubcommand, ThemeCommand},
     filter::Filters,
     snippet::Snippet,
 };
@@ -40,6 +40,8 @@ pub struct TheWay {
     languages: HashMap<String, Language>,
     /// for `syntect` code highlighting
     highlighter: CodeHighlight,
+    /// colorize output even if terminal is not in tty mode
+    colorize: bool,
 }
 
 // All command-line related functions
@@ -48,9 +50,9 @@ impl TheWay {
     /// Reads `sled` trees and metadata file from the locations specified in config.
     /// (makes new ones the first time).
     pub fn start(cli: TheWayCLI, languages: HashMap<String, Language>) -> color_eyre::Result<()> {
-        if let TheWayCLI::Config {
+        if let TheWaySubcommand::Config {
             cmd: ConfigCommand::Default { file },
-        } = &cli
+        } = &cli.cmd
         {
             TheWayConfig::default_config(file.as_deref())?;
             return Ok(());
@@ -62,6 +64,7 @@ impl TheWay {
             languages,
             highlighter: CodeHighlight::new(&config.theme, config.themes_dir.clone())?,
             config,
+            colorize: cli.colorize,
         };
         the_way.set_merge()?;
         the_way.run(cli)?;
@@ -69,36 +72,37 @@ impl TheWay {
     }
 
     fn run(&mut self, cli: TheWayCLI) -> color_eyre::Result<()> {
-        match cli {
-            TheWayCLI::New => self.the_way(),
-            TheWayCLI::Cmd { code } => self.the_way_cmd(code),
-            TheWayCLI::Search {
+        self.colorize = cli.colorize;
+        match cli.cmd {
+            TheWaySubcommand::New => self.the_way(),
+            TheWaySubcommand::Cmd { code } => self.the_way_cmd(code),
+            TheWaySubcommand::Search {
                 filters,
                 stdout,
                 exact,
             } => self.search(&filters, stdout, exact),
-            TheWayCLI::Cp { index, stdout } => self.copy(index, stdout),
-            TheWayCLI::Edit { index } => self.edit(index),
-            TheWayCLI::Del { index, force } => self.delete(index, force),
-            TheWayCLI::View { index } => self.view(index),
-            TheWayCLI::List { filters } => self.list(&filters),
-            TheWayCLI::Import {
+            TheWaySubcommand::Cp { index, stdout } => self.copy(index, stdout),
+            TheWaySubcommand::Edit { index } => self.edit(index),
+            TheWaySubcommand::Del { index, force } => self.delete(index, force),
+            TheWaySubcommand::View { index } => self.view(index),
+            TheWaySubcommand::List { filters } => self.list(&filters),
+            TheWaySubcommand::Import {
                 file,
                 gist_url,
                 the_way_url,
             } => self.import(file.as_deref(), gist_url, the_way_url),
-            TheWayCLI::Export { filters, file } => self.export(&filters, file.as_deref()),
-            TheWayCLI::Complete { shell } => {
+            TheWaySubcommand::Export { filters, file } => self.export(&filters, file.as_deref()),
+            TheWaySubcommand::Complete { shell } => {
                 Self::complete(shell);
                 Ok(())
             }
-            TheWayCLI::Themes { cmd } => self.themes(cmd),
-            TheWayCLI::Clear { force } => self.clear(force),
-            TheWayCLI::Config { cmd } => match cmd {
+            TheWaySubcommand::Themes { cmd } => self.themes(cmd),
+            TheWaySubcommand::Clear { force } => self.clear(force),
+            TheWaySubcommand::Config { cmd } => match cmd {
                 ConfigCommand::Default { file } => TheWayConfig::default_config(file.as_deref()), //Already handled
                 ConfigCommand::Get => TheWayConfig::print_config_location(),
             },
-            TheWayCLI::Sync { cmd, force } => self.sync(cmd, force),
+            TheWaySubcommand::Sync { cmd, force } => self.sync(cmd, force),
         }
     }
 
@@ -160,6 +164,7 @@ impl TheWay {
                     .unwrap_or(&Language::default()),
             ),
             false,
+            self.colorize,
         )?;
         Ok(())
     }
@@ -268,7 +273,7 @@ impl TheWay {
                 ),
             );
         }
-        utils::smart_print(&colorized, false)?;
+        utils::smart_print(&colorized, false, self.colorize)?;
         Ok(())
     }
 
@@ -392,7 +397,11 @@ impl TheWay {
 
     /// Adds some color to logging output, uses selected theme
     pub(crate) fn color_print(&self, input: &str) -> color_eyre::Result<()> {
-        utils::smart_print(&[(self.highlighter.main_style, input.to_string())], false)?;
+        utils::smart_print(
+            &[(self.highlighter.main_style, input.to_string())],
+            false,
+            self.colorize,
+        )?;
         Ok(())
     }
 }
