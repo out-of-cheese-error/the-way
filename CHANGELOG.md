@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.1] - 2022-02-19
+### Added
+- `--colorize` flag to force colorization even in non-tty environments.
+
 ## [0.16.0] - 2022-02-06
 **BREAKING RELEASE - Make sure to back up your snippets**
 **PLEASE RUN `the-way sync local` AFTER UPDATE (or delete and recreate the Gist)**
@@ -305,6 +309,7 @@ I'll make sure to add changes to it from now, the previous two releases weren't 
 - A first working version of the-way
 - cargo install option
 
+[0.16.1]: https://github.com/out-of-cheese-error/the-way/compare/v0.16.0...v0.16.1
 [0.16.0]: https://github.com/out-of-cheese-error/the-way/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/out-of-cheese-error/the-way/compare/v0.14.4...v0.15.0
 [0.14.4]: https://github.com/out-of-cheese-error/the-way/compare/v0.14.3...v0.14.4
