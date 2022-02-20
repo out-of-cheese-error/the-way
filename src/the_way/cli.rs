@@ -15,7 +15,17 @@ rename_all = "kebab-case",
 global_settings = & [AppSettings::DeriveDisplayOrder]
 )]
 /// Record, retrieve, search, and categorize code snippets
-pub enum TheWayCLI {
+pub struct TheWayCLI {
+    /// Force colorization even when not in TTY mode
+    #[structopt(short, long, global = true)]
+    pub colorize: bool,
+    #[structopt(subcommand)]
+    pub cmd: TheWaySubcommand,
+}
+
+#[derive(Debug, StructOpt)]
+/// Record, retrieve, search, and categorize code snippets
+pub enum TheWaySubcommand {
     /// Add a new code snippet
     New,
     /// Add a new shell snippet

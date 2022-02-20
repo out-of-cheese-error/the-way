@@ -283,4 +283,4 @@ copy_cmd = 'xsel -ib'
 ```
 
 # Why "The Way"?
-The name is a reference to [the Way of Mrs.Cosmopilite](https://wiki.lspace.org/mediawiki/The_Way_of_Mrs._Cosmopilite), kōans for every situation.
+The name is a reference to [the Way of Mrs.Cosmopilite](https://wiki.lspace.org/The_Way_of_Mrs._Cosmopilite), kōans for every situation.
