@@ -271,7 +271,12 @@ impl TheWay {
     }
 
     /// Syncs local and Gist snippets according to user-selected source
-    pub(crate) fn sync_gist(&mut self, source: SyncCommand, force: bool) -> color_eyre::Result<()> {
+    pub(crate) fn sync_gist(
+        &mut self,
+        github_access_token: Option<&str>,
+        source: SyncCommand,
+        force: bool,
+    ) -> color_eyre::Result<()> {
         // Retrieve local snippets
         let mut snippets = self.list_snippets()?;
         if snippets.is_empty() && source == SyncCommand::Local {
@@ -279,7 +284,7 @@ impl TheWay {
             return Ok(());
         }
         // Make client
-        let client = GistClient::new(self.config.github_access_token.as_deref())?;
+        let client = GistClient::new(github_access_token)?;
 
         // Start sync
         let spinner = utils::get_spinner("Syncing...");
@@ -301,8 +306,7 @@ impl TheWay {
                 "Gist not found.",
                 self.highlighter.main_style,
             ));
-            self.config.gist_id =
-                Some(self.make_gist(self.config.github_access_token.as_ref().unwrap())?);
+            self.config.gist_id = Some(self.make_gist(github_access_token.as_ref().unwrap())?);
             return Ok(());
         }
         let gist = gist?;

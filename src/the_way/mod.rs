@@ -332,24 +332,26 @@ impl TheWay {
 
     /// Syncs snippets to Gist
     fn sync(&mut self, cmd: SyncCommand, force: bool) -> color_eyre::Result<()> {
-        // Check if environment variable has changed
-        self.config.github_access_token = std::env::var("THE_WAY_GITHUB_TOKEN")
+        // Take token from environment variable or config file
+        let mut github_access_token = std::env::var("THE_WAY_GITHUB_TOKEN")
             .ok()
             .or_else(|| self.config.github_access_token.clone());
         // Get token from user if not set
-        if self.config.github_access_token.is_none() {
+        if github_access_token.is_none() {
             self.color_print("Get a GitHub access token from https://github.com/settings/tokens/new (add the \"gist\" scope)\n\n")?;
-            self.config.github_access_token = Some(
+            github_access_token = Some(
                 dialoguer::Password::with_theme(&ColorfulTheme::default())
                     .with_prompt("GitHub access token")
                     .interact()?,
             );
+            if utils::confirm("Save to config?", false)? {
+                self.config.github_access_token = github_access_token.clone();
+            }
         }
         if self.config.gist_id.is_some() {
-            self.sync_gist(cmd, force)?;
+            self.sync_gist(github_access_token.as_deref(), cmd, force)?;
         } else {
-            self.config.gist_id =
-                Some(self.make_gist(self.config.github_access_token.as_ref().unwrap())?);
+            self.config.gist_id = Some(self.make_gist(github_access_token.as_ref().unwrap())?);
         }
         self.config.store()?;
         Ok(())
