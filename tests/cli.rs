@@ -676,6 +676,7 @@ fn sync_date() -> color_eyre::Result<()> {
     // sync - downloads snippet_1 locally + deletes snippet_2 in Gist + adds snippet_3 to Gist
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
+        .env("THE_WAY_GITHUB_TOKEN", token)
         .arg("sync")
         .arg("date")
         .assert()
@@ -690,6 +691,7 @@ fn sync_date() -> color_eyre::Result<()> {
     // sync again - nothing changed
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
+        .env("THE_WAY_GITHUB_TOKEN", token)
         .arg("sync")
         .arg("date")
         .assert()
@@ -744,6 +746,7 @@ fn sync_local() -> color_eyre::Result<()> {
     // sync - uploads local snippet_1 to Gist + deletes snippet_2 from Gist + adds snippet_3 to Gist
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
+        .env("THE_WAY_GITHUB_TOKEN", token)
         .arg("sync")
         .arg("local")
         .assert()
@@ -758,6 +761,7 @@ fn sync_local() -> color_eyre::Result<()> {
     // sync again - nothing changed
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
+        .env("THE_WAY_GITHUB_TOKEN", token)
         .arg("sync")
         .arg("local")
         .assert()
@@ -782,6 +786,7 @@ fn sync_local() -> color_eyre::Result<()> {
     // check snippet_1 not downloaded
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
+        .env("THE_WAY_GITHUB_TOKEN", token)
         .arg("view")
         .arg("1")
         .assert()
@@ -813,6 +818,7 @@ fn sync_gist() -> color_eyre::Result<()> {
     // sync - downloads snippet 1 locally + adds snippet 2 locally + deletes snippet 3 locally
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
+        .env("THE_WAY_GITHUB_TOKEN", token)
         .arg("sync")
         .arg("-f")
         .arg("gist")
@@ -828,6 +834,7 @@ fn sync_gist() -> color_eyre::Result<()> {
     // sync again - nothing changed
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
+        .env("THE_WAY_GITHUB_TOKEN", token)
         .arg("sync")
         .arg("gist")
         .assert()
@@ -851,6 +858,7 @@ fn sync_gist() -> color_eyre::Result<()> {
     // downloaded snippet_1 locally
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
+        .env("THE_WAY_GITHUB_TOKEN", token)
         .arg("view")
         .arg("1")
         .assert()
