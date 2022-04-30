@@ -67,8 +67,7 @@ impl TheWay {
         language_key: &[u8],
         index_key: &[u8],
     ) -> color_eyre::Result<()> {
-        self.language_tree()?
-            .merge(language_key.to_vec(), index_key.to_vec())?;
+        self.language_tree()?.merge(language_key, index_key)?;
         Ok(())
     }
 
@@ -138,8 +137,7 @@ impl TheWay {
     ) -> color_eyre::Result<()> {
         for tag in tags {
             let tag_key = tag.as_bytes();
-            self.tag_tree()?
-                .merge(tag_key.to_vec(), index_key.to_vec())?;
+            self.tag_tree()?.merge(tag_key, index_key)?;
         }
         Ok(())
     }
@@ -190,10 +188,8 @@ impl TheWay {
         if new_indices.is_empty() {
             self.delete_language(language_key)?;
         } else {
-            self.language_tree()?.insert(
-                language_key.to_vec(),
-                utils::make_indices_string(&new_indices)?,
-            )?;
+            self.language_tree()?
+                .insert(language_key, utils::make_indices_string(&new_indices)?)?;
         }
         Ok(())
     }
