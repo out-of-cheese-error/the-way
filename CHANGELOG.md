@@ -313,6 +313,7 @@ I'll make sure to add changes to it from now, the previous two releases weren't 
 - A first working version of the-way
 - cargo install option
 
+[0.17.0]: https://github.com/out-of-cheese-error/the-way/compare/v0.16.1...v0.17.0
 [0.16.1]: https://github.com/out-of-cheese-error/the-way/compare/v0.16.0...v0.16.1
 [0.16.0]: https://github.com/out-of-cheese-error/the-way/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/out-of-cheese-error/the-way/compare/v0.14.4...v0.15.0
