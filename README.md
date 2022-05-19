@@ -4,6 +4,8 @@
 [![dependency status](https://deps.rs/repo/github/out-of-cheese-error/the-way/status.svg)](https://deps.rs/repo/github/out-of-cheese-error/the-way)
 [![GitHub license](https://img.shields.io/github/license/out-of-cheese-error/the-way.svg)](https://github.com/out-of-cheese-error/the-way/blob/master/LICENSE)
 
+[!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/ninjani)
+
 # The Way
 A code snippets manager for your terminal.
 
