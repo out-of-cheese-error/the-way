@@ -53,7 +53,7 @@ Table of Contents
 # Install
 
 ## Requirements
-`xclip` on Linux and `pbcopy` on OSX
+`xclip` on Linux and `pbcopy` on OSX (see [here](https://github.com/out-of-cheese-error/the-way#copy-command) for more options)
 
 ## Binaries
 See the [releases](https://github.com/out-of-cheese-error/the-way/releases/latest)
@@ -61,6 +61,7 @@ See the [releases](https://github.com/out-of-cheese-error/the-way/releases/lates
 * OSX - allow `the-way` via System Preferences (necessary in Catalina at least)
 * Linux - `chmod +x the-way` 
 * Currently doesn't work on Windows (waiting on [this issue](https://github.com/lotabout/skim/issues/293))
+* Can work on Windows Subsystem for Linux by changing the copy command as described [here](https://github.com/out-of-cheese-error/the-way/issues/134#issuecomment-1144645554) 
 
 ## With brew
 ```bash
