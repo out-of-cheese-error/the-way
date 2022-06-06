@@ -72,9 +72,10 @@ pub fn copy_to_clipboard(copy_cmd_field: &Option<String>, text: &str) -> color_e
         .args(copy_args)
         .stdin(Stdio::piped())
         .spawn()
-        .map_err(|_e| LostTheWay::ClipboardError {
+        .map_err(|e| LostTheWay::ClipboardError {
             message: format!(
-                "is {} available? Also check your `copy_cmd` settings ({})",
+                "{}: is {} available? Also check your `copy_cmd` settings ({})",
+                e,
                 copy_cmd,
                 // Never fails as it's checked above
                 copy_cmd_field.as_ref().unwrap()
