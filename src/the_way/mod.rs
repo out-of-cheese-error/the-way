@@ -4,11 +4,11 @@ use std::io::{ErrorKind, Write};
 use std::path::Path;
 use std::{fs, io, process};
 
+use clap::CommandFactory;
+use clap_complete::Shell;
 use color_eyre::Help;
 use dialoguer::theme::ColorfulTheme;
 use dialoguer::{Confirm, Select};
-use structopt::clap::Shell;
-use structopt::StructOpt;
 
 use crate::configuration::{ConfigCommand, TheWayConfig};
 use crate::errors::LostTheWay;
@@ -162,7 +162,7 @@ impl TheWay {
                 self.languages
                     .get(&snippet.language)
                     .unwrap_or(&Language::default()),
-            ),
+            )?,
             false,
             self.colorize,
         )?;
@@ -270,7 +270,7 @@ impl TheWay {
                     self.languages
                         .get(&snippet.language)
                         .unwrap_or(&default_language),
-                ),
+                )?,
             );
         }
         utils::smart_print(&colorized, false, self.colorize)?;
@@ -302,7 +302,8 @@ impl TheWay {
 
     /// Generates shell completions
     fn complete(shell: Shell) {
-        TheWayCLI::clap().gen_completions_to(utils::NAME, shell, &mut io::stdout());
+        let mut cmd = TheWayCLI::command();
+        clap_complete::generate(shell, &mut cmd, utils::NAME, &mut io::stdout());
     }
 
     /// Removes all `sled` trees

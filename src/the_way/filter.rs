@@ -3,28 +3,28 @@ use std::collections::HashSet;
 use std::ffi::OsString;
 
 use chrono::{Date, Utc};
+use clap::Parser;
 use regex::Regex;
-use structopt::StructOpt;
 
 use crate::the_way::{snippet::Snippet, TheWay};
 use crate::utils;
 
-#[derive(StructOpt, Debug)]
+#[derive(Parser, Debug)]
 pub struct Filters {
     /// Snippets written in <language> (multiple with 'lang1 lang2')
-    #[structopt(short, long)]
+    #[clap(short, long)]
     pub(crate) languages: Option<Vec<String>>,
     /// Snippets with <tag> (multiple with 'tag1 tag2')
-    #[structopt(short, long)]
+    #[clap(short, long)]
     pub(crate) tags: Option<Vec<String>>,
     /// Snippets from <date> ("last friday" works too!)
-    #[structopt(long, parse(try_from_str = utils::parse_date))]
+    #[clap(long, parse(try_from_str = utils::parse_date))]
     pub(crate) from: Option<Date<Utc>>,
     /// Snippets before <date>
-    #[structopt(long, parse(try_from_str = utils::parse_date))]
+    #[clap(long, parse(try_from_str = utils::parse_date))]
     pub(crate) to: Option<Date<Utc>>,
     /// Snippets matching pattern
-    #[structopt(short, long)]
+    #[clap(short, long)]
     pub(crate) pattern: Option<OsString>,
 }
 
