@@ -5,6 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.17.1] - 2022-06-08
+- Fix shell completion (Issue #[135](https://github.com/out-of-cheese-error/the-way/issues/135))
+
 ## [0.17.0] - 2022-05-30
 - Don't save environment variable `THE_WAY_GITHUB_TOKEN` to config file
 - If `THE_WAY_GITHUB_TOKEN` not set and `github_access_token` not in config file, prompt for token and prompt for saving to config file
@@ -313,6 +316,7 @@ I'll make sure to add changes to it from now, the previous two releases weren't 
 - A first working version of the-way
 - cargo install option
 
+[0.17.1]: https://github.com/out-of-cheese-error/the-way/compare/v0.17.0...v0.17.1
 [0.17.0]: https://github.com/out-of-cheese-error/the-way/compare/v0.16.1...v0.17.0
 [0.16.1]: https://github.com/out-of-cheese-error/the-way/compare/v0.16.0...v0.16.1
 [0.16.0]: https://github.com/out-of-cheese-error/the-way/compare/v0.15.0...v0.16.0
