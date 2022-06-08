@@ -341,7 +341,11 @@ impl CodeHighlight {
     }
 
     /// Syntax highlight code block
-    pub(crate) fn highlight_code(&self, code: &str, extension: &str) -> Vec<(Style, String)> {
+    pub(crate) fn highlight_code(
+        &self,
+        code: &str,
+        extension: &str,
+    ) -> color_eyre::Result<Vec<(Style, String)>> {
         let mut colorized = Vec::new();
         let extension = extension.split('.').nth(1).unwrap_or("txt");
         let syntax = self.syntax_set.find_syntax_by_extension(extension);
@@ -352,11 +356,11 @@ impl CodeHighlight {
         let mut h = HighlightLines::new(syntax, &self.theme_set.themes[&self.theme_name]);
         for line in LinesWithEndings::from(code) {
             colorized.extend(
-                h.highlight(line, &self.syntax_set)
+                h.highlight_line(line, &self.syntax_set)?
                     .into_iter()
                     .map(|(style, s)| (style, s.to_owned())),
             );
         }
-        colorized
+        Ok(colorized)
     }
 }

@@ -162,7 +162,7 @@ impl TheWay {
                 self.languages
                     .get(&snippet.language)
                     .unwrap_or(&Language::default()),
-            ),
+            )?,
             false,
             self.colorize,
         )?;
@@ -270,7 +270,7 @@ impl TheWay {
                     self.languages
                         .get(&snippet.language)
                         .unwrap_or(&default_language),
-                ),
+                )?,
             );
         }
         utils::smart_print(&colorized, false, self.colorize)?;

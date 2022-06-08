@@ -240,13 +240,13 @@ impl Snippet {
         &self,
         highlighter: &CodeHighlight,
         language: &Language,
-    ) -> Vec<(Style, String)> {
+    ) -> color_eyre::Result<Vec<(Style, String)>> {
         let mut colorized = vec![(Style::default(), String::from("\n"))];
         colorized.extend_from_slice(&self.pretty_print_header(highlighter, language));
         colorized.push((Style::default(), String::from("\n")));
-        colorized.extend_from_slice(&highlighter.highlight_code(&self.code, &self.extension));
+        colorized.extend_from_slice(&highlighter.highlight_code(&self.code, &self.extension)?);
         colorized.push((Style::default(), String::from("\n\n")));
-        colorized
+        Ok(colorized)
     }
 
     fn is_shell_snippet(&self) -> bool {

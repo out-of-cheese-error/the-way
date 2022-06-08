@@ -7,6 +7,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [0.17.1] - 2022-06-08
 - Fix shell completion (Issue #[135](https://github.com/out-of-cheese-error/the-way/issues/135))
+- Update dependencies
 
 ## [0.17.0] - 2022-05-30
 - Don't save environment variable `THE_WAY_GITHUB_TOKEN` to config file

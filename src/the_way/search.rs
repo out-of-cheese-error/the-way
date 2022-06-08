@@ -139,32 +139,30 @@ impl TheWay {
     ) -> color_eyre::Result<()> {
         let default_language = Language::default();
 
-        let search_snippets: Vec<_> = snippets
-            .into_iter()
-            .map(|snippet| {
-                let language = self
-                    .languages
-                    .get(&snippet.language)
-                    .unwrap_or(&default_language);
-                let code_fragments = self
-                    .highlighter
-                    .highlight_code(&snippet.code, &snippet.extension);
-                let code_highlight = utils::highlight_strings(&code_fragments, false);
-                SearchSnippet {
-                    code: SearchCode {
-                        code_fragments,
-                        selection_style,
-                        code_highlight,
-                        exact,
-                    },
-                    text_highlight: utils::highlight_strings(
-                        &snippet.pretty_print_header(&self.highlighter, language),
-                        false,
-                    ),
-                    index: snippet.index,
-                }
-            })
-            .collect();
+        let mut search_snippets = Vec::with_capacity(snippets.len());
+        for snippet in snippets {
+            let language = self
+                .languages
+                .get(&snippet.language)
+                .unwrap_or(&default_language);
+            let code_fragments = self
+                .highlighter
+                .highlight_code(&snippet.code, &snippet.extension)?;
+            let code_highlight = utils::highlight_strings(&code_fragments, false);
+            search_snippets.push(SearchSnippet {
+                code: SearchCode {
+                    code_fragments,
+                    selection_style,
+                    code_highlight,
+                    exact,
+                },
+                text_highlight: utils::highlight_strings(
+                    &snippet.pretty_print_header(&self.highlighter, language),
+                    false,
+                ),
+                index: snippet.index,
+            });
+        }
         let options = SkimOptionsBuilder::default()
             .height(Some("100%"))
             .preview(Some(""))
