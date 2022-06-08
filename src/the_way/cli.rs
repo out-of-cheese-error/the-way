@@ -80,7 +80,7 @@ pub enum TheWaySubcommand {
 
         /// URL to a gist file produced by `the-way sync`. If provided will import snippets with
         /// descriptions and tags taken from the `index.md` index file in the gist.
-        #[structopt(long, short = "w", conflicts_with = "gist_url")]
+        #[structopt(long, short = "w", conflicts_with = "gist-url")]
         the_way_url: Option<String>,
     },
     /// Saves (optionally filtered) snippets to JSON.
