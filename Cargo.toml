@@ -50,7 +50,7 @@ indicatif = "0.16.2"
 skim = "0.9.4"
 
 # Terminal syntax highlighting
-syntect = { version = "5.0.0", default-features = false, features = ["default-fancy"] }
+syntect = { version = "4.6.0", default-features = false, features = ["default-fancy"] }
 hex = "0.4.3"
 grep-cli = "0.1.6"
 termcolor = "1.1.3"
