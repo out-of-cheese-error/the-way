@@ -152,7 +152,7 @@ impl CodeHighlight {
         theme_set
             .add_from_folder(&syntect_dir)
             .map_err(|_e| LostTheWay::ThemeError {
-                theme: String::from((&syntect_dir).to_str().unwrap()),
+                theme: String::from((syntect_dir).to_str().unwrap()),
             })
             .suggestion(format!(
                 "Make sure {:#?} is a valid directory that has .tmTheme files",
@@ -162,7 +162,7 @@ impl CodeHighlight {
         syntax_set
             .add_from_folder(&syntect_dir, true)
             .map_err(|_e| LostTheWay::ThemeError {
-                theme: String::from((&syntect_dir).to_str().unwrap()),
+                theme: String::from((syntect_dir).to_str().unwrap()),
             })
             .suggestion(format!(
                 "Make sure {:#?} is a valid directory that has .sublime-syntax files",

@@ -44,7 +44,6 @@ pub fn copy_to_clipboard(copy_cmd_field: &Option<String>, text: &str) -> color_e
     let copy_cmd_vec = copy_cmd_field
         .as_ref()
         .ok_or(LostTheWay::NoDefaultCopyCommand)?
-        .trim()
         .split_whitespace()
         .map(|s| s.to_owned())
         .collect::<Vec<String>>();
