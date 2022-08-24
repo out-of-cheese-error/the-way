@@ -45,7 +45,7 @@ impl SkimItem for SearchCode {
     }
 }
 
-impl<'a> SkimItem for SearchSnippet {
+impl SkimItem for SearchSnippet {
     fn text(&self) -> Cow<str> {
         AnsiString::parse(&self.text_highlight).into_inner()
             + AnsiString::parse(&self.code.code_highlight).into_inner()

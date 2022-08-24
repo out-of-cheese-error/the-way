@@ -72,7 +72,7 @@ impl TheWay {
             }
             (None, None) => self.list_snippets_in_date_range(from_date, to_date),
         };
-        let snippets = match &filters.pattern {
+        match &filters.pattern {
             Some(pattern) => {
                 let regex = Regex::new(&pattern.to_string_lossy())?;
                 snippets.map(|snippets| {
@@ -87,7 +87,6 @@ impl TheWay {
                 })
             }
             None => snippets,
-        };
-        snippets
+        }
     }
 }

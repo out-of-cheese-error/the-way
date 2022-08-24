@@ -4,6 +4,8 @@
 [![dependency status](https://deps.rs/repo/github/out-of-cheese-error/the-way/status.svg)](https://deps.rs/repo/github/out-of-cheese-error/the-way)
 [![GitHub license](https://img.shields.io/github/license/out-of-cheese-error/the-way.svg)](https://github.com/out-of-cheese-error/the-way/blob/master/LICENSE)
 
+[!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/ninjani)
+
 # The Way
 A code snippets manager for your terminal.
 
@@ -51,7 +53,7 @@ Table of Contents
 # Install
 
 ## Requirements
-`xclip` on Linux and `pbcopy` on OSX
+`xclip` on Linux and `pbcopy` on OSX (see [here](https://github.com/out-of-cheese-error/the-way#copy-command) for more options)
 
 ## Binaries
 See the [releases](https://github.com/out-of-cheese-error/the-way/releases/latest)
@@ -59,6 +61,7 @@ See the [releases](https://github.com/out-of-cheese-error/the-way/releases/lates
 * OSX - allow `the-way` via System Preferences (necessary in Catalina at least)
 * Linux - `chmod +x the-way` 
 * Currently doesn't work on Windows (waiting on [this issue](https://github.com/lotabout/skim/issues/293))
+* Can work on Windows Subsystem for Linux by changing the copy command as described [here](https://github.com/out-of-cheese-error/the-way/issues/134#issuecomment-1144645554) 
 
 ## With brew
 ```bash

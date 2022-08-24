@@ -42,6 +42,8 @@ pub struct TheWay {
     highlighter: CodeHighlight,
     /// colorize output even if terminal is not in tty mode
     colorize: bool,
+    /// don't colorize output even if terminal is in tty mode
+    plain: bool,
 }
 
 // All command-line related functions
@@ -65,6 +67,7 @@ impl TheWay {
             highlighter: CodeHighlight::new(&config.theme, config.themes_dir.clone())?,
             config,
             colorize: cli.colorize,
+            plain: cli.plain,
         };
         the_way.set_merge()?;
         the_way.run(cli)?;
@@ -73,6 +76,7 @@ impl TheWay {
 
     fn run(&mut self, cli: TheWayCLI) -> color_eyre::Result<()> {
         self.colorize = cli.colorize;
+        self.plain = cli.plain;
         match cli.cmd {
             TheWaySubcommand::New => self.the_way(),
             TheWaySubcommand::Cmd { code } => self.the_way_cmd(code),
@@ -165,6 +169,7 @@ impl TheWay {
             )?,
             false,
             self.colorize,
+            self.plain,
         )?;
         Ok(())
     }
@@ -273,7 +278,7 @@ impl TheWay {
                 )?,
             );
         }
-        utils::smart_print(&colorized, false, self.colorize)?;
+        utils::smart_print(&colorized, false, self.colorize, self.plain)?;
         Ok(())
     }
 
@@ -404,6 +409,7 @@ impl TheWay {
             &[(self.highlighter.main_style, input.to_string())],
             false,
             self.colorize,
+            self.plain,
         )?;
         Ok(())
     }

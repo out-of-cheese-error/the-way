@@ -51,7 +51,6 @@ pub struct Gist {
 
 #[derive(Deserialize, Debug)]
 pub struct GistFile {
-    filename: String,
     pub content: String,
     pub language: String,
 }
