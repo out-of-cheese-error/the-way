@@ -180,7 +180,6 @@ fn change_snippet_interactive(config_file: &Path) -> color_eyre::Result<()> {
 
 fn add_two_cmd_snippets_interactive(config_file: &Path) -> color_eyre::Result<()> {
     let mut p = spawn_bash()?;
-    println!("Spawned");
     p.send_line(&format!(
         "export THE_WAY_CONFIG={}",
         config_file.to_string_lossy()
