@@ -356,7 +356,7 @@ impl CodeHighlight {
         let mut h = HighlightLines::new(syntax, &self.theme_set.themes[&self.theme_name]);
         for line in LinesWithEndings::from(code) {
             colorized.extend(
-                h.highlight(line, &self.syntax_set)
+                h.highlight_line(line, &self.syntax_set)?
                     .into_iter()
                     .map(|(style, s)| (style, s.to_owned())),
             );

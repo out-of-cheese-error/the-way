@@ -3,14 +3,14 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use assert_cmd::Command;
+use expectrl::repl::{spawn_bash, ReplSession};
 use predicates::prelude::*;
-use rexpect::session::PtyReplSession;
-use rexpect::spawn_bash;
 use tempfile::{tempdir, TempDir};
 use the_way::configuration::TheWayConfig;
 use the_way::gist::{Gist, GistClient, GistContent, UpdateGistPayload};
 
-fn make_config_file(temp_dir: &TempDir) -> color_eyre::Result<PathBuf> {
+fn setup_the_way() -> color_eyre::Result<(TempDir, PathBuf)> {
+    let temp_dir = tempdir()?;
     let db_dir = temp_dir.path().join("db");
     let themes_dir = temp_dir.path().join("themes");
     let config_contents = format!(
@@ -22,19 +22,19 @@ themes_dir = \"{}\"",
     );
     let config_file = temp_dir.path().join("the-way.toml");
     fs::write(&config_file, config_contents)?;
-    Ok(config_file.to_path_buf())
+    Ok((temp_dir, config_file))
 }
 
 #[test]
 fn it_works() -> color_eyre::Result<()> {
-    let temp_dir = tempdir()?;
-    let config_file = make_config_file(&temp_dir)?;
+    let (temp_dir, config_file) = setup_the_way()?;
     let mut cmd = Command::cargo_bin("the-way")?;
     // Pretty much the only command that works without assuming any input or modifying anything
-    cmd.env("THE_WAY_CONFIG", config_file)
+    cmd.env("THE_WAY_CONFIG", &config_file)
         .arg("list")
         .assert()
         .success();
+    drop(config_file);
     temp_dir.close()?;
     Ok(())
 }
@@ -44,29 +44,28 @@ fn change_config_file() -> color_eyre::Result<()> {
     // Test nonexistent file
     let config_file = "no-such-file";
     let mut cmd = Command::cargo_bin("the-way")?;
-    cmd.env("THE_WAY_CONFIG", config_file)
+    cmd.env("THE_WAY_CONFIG", &config_file)
         .arg("config")
         .arg("get")
         .assert()
         .failure();
 
     // Test changing file
-    let temp_dir = tempdir()?;
-    let config_file = make_config_file(&temp_dir)?;
+    let (temp_dir, config_file) = setup_the_way()?;
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
         .arg("config")
         .arg("get")
         .assert()
         .stdout(predicate::str::contains(config_file.to_string_lossy()));
+    drop(config_file);
     temp_dir.close()?;
     Ok(())
 }
 
 #[test]
 fn change_theme() -> color_eyre::Result<()> {
-    let temp_dir = tempdir()?;
-    let config_file = make_config_file(&temp_dir)?;
+    let (temp_dir, config_file) = setup_the_way()?;
     // Test nonexistent theme
     let theme = "no-such-theme";
     let mut cmd = Command::cargo_bin("the-way")?;
@@ -92,155 +91,160 @@ fn change_theme() -> color_eyre::Result<()> {
         .arg("get")
         .assert()
         .stdout(predicate::str::contains(theme));
+    drop(config_file);
     temp_dir.close()?;
     Ok(())
 }
 
-fn add_snippet_rexpect(config_file: PathBuf) -> rexpect::errors::Result<PtyReplSession> {
-    let mut p = spawn_bash(Some(3000))?;
+fn add_snippet_interactive(config_file: &Path) -> color_eyre::Result<ReplSession> {
+    let mut p = spawn_bash()?;
     p.send_line(&format!(
         "export THE_WAY_CONFIG={}",
         config_file.to_string_lossy()
     ))?;
 
     let executable = env!("CARGO_BIN_EXE_the-way");
-    p.wait_for_prompt()?;
+    p.expect_prompt()?;
     p.send_line(&format!("{} config get", executable))?;
-    p.exp_regex(config_file.to_string_lossy().as_ref())?;
-    p.wait_for_prompt()?;
-    p.execute(&format!("{} new", executable), "Description")?;
+    p.expect(config_file.to_string_lossy().as_ref())?;
+    p.expect_prompt()?;
+    p.send_line(&format!("{} new", executable))?;
+    p.expect("Description")?;
     p.send_line("test description 1")?;
-    p.exp_string("Language")?;
+    p.expect("Language")?;
     p.send_line("rust")?;
-    p.exp_regex("Tags")?;
+    p.expect("Tags")?;
     p.send_line("tag1 tag2")?;
-    p.exp_regex("Code snippet")?;
+    p.expect("Code snippet")?;
     p.send_line("code")?;
-    p.exp_regex("Snippet #1 added")?;
-    p.wait_for_prompt()?;
+    p.expect("Snippet #1 added")?;
+    p.expect_prompt()?;
     Ok(p)
 }
 
-fn add_two_snippets_rexpect(config_file: PathBuf) -> rexpect::errors::Result<()> {
-    let mut p = spawn_bash(Some(3000))?;
+fn add_two_snippets_interactive(config_file: &Path) -> color_eyre::Result<()> {
+    let mut p = spawn_bash()?;
     p.send_line(&format!(
         "export THE_WAY_CONFIG={}",
         config_file.to_string_lossy()
     ))?;
 
     let executable = env!("CARGO_BIN_EXE_the-way");
-    p.wait_for_prompt()?;
+    p.expect_prompt()?;
     p.send_line(&format!("{} config get", executable))?;
-    p.exp_regex(config_file.to_string_lossy().as_ref())?;
-    p.execute(&format!("{} new", executable), "Description")?;
+    p.expect(config_file.to_string_lossy().as_ref())?;
+    p.send_line(&format!("{} new", executable))?;
+    p.expect("Description")?;
     p.send_line("test description 1")?;
-    p.exp_string("Language")?;
+    p.expect("Language")?;
     p.send_line("rust")?;
-    p.exp_regex("Tags")?;
+    p.expect("Tags")?;
     p.send_line("tag1 tag2")?;
-    p.exp_regex("Code snippet")?;
+    p.expect("Code snippet")?;
     p.send_line("code")?;
-    p.exp_regex("Snippet #1 added")?;
-    p.wait_for_prompt()?;
-    p.execute(&format!("{} new", executable), "Description")?;
+    p.expect("Snippet #1 added")?;
+    p.expect_prompt()?;
+    p.send_line(&format!("{} new", executable))?;
+    p.expect("Description")?;
     p.send_line("test description 2")?;
-    p.exp_string("Language")?;
+    p.expect("Language")?;
     p.send_line("python")?;
-    p.exp_regex("Tags")?;
+    p.expect("Tags")?;
     p.send_line("tag1 tag2")?;
-    p.exp_regex("Code snippet")?;
+    p.expect("Code snippet")?;
     p.send_line("code")?;
-    p.exp_regex("Snippet #2 added")?;
+    p.expect("Snippet #2 added")?;
     Ok(())
 }
 
-fn change_snippet_rexpect(config_file: PathBuf) -> rexpect::errors::Result<()> {
-    let mut p = add_snippet_rexpect(config_file)?;
+fn change_snippet_interactive(config_file: &Path) -> color_eyre::Result<()> {
+    let mut p = add_snippet_interactive(config_file)?;
     let executable = env!("CARGO_BIN_EXE_the-way");
-    p.execute(&format!("{} edit 1", executable), "Description")?;
+    p.send_line(&format!("{} edit 1", executable))?;
+    p.expect("Description")?;
     p.send_line("test description 2")?;
-    p.exp_string("Language")?;
+    p.expect("Language")?;
     p.send_line("")?;
-    p.exp_regex("Tags")?;
+    p.expect("Tags")?;
     p.send_line("")?;
-    p.exp_regex("Date")?;
+    p.expect("Date")?;
     p.send_line("")?;
-    p.exp_regex("Edit snippet")?;
+    p.expect("Edit snippet")?;
     p.send_line("")?;
-    p.exp_regex("Snippet #1 changed")?;
-    p.wait_for_prompt()?;
+    p.expect("Snippet #1 changed")?;
+    p.expect_prompt()?;
     p.send_line(&format!("{} view 1", executable))?;
-    assert!(p.wait_for_prompt()?.contains("test description 2"));
+    p.expect("test description 2")?;
     Ok(())
 }
 
-fn add_two_cmd_snippets_rexpect(config_file: PathBuf) -> rexpect::errors::Result<()> {
-    let mut p = spawn_bash(Some(3000))?;
+fn add_two_cmd_snippets_interactive(config_file: &Path) -> color_eyre::Result<()> {
+    let mut p = spawn_bash()?;
+    println!("Spawned");
     p.send_line(&format!(
         "export THE_WAY_CONFIG={}",
         config_file.to_string_lossy()
     ))?;
 
     let executable = env!("CARGO_BIN_EXE_the-way");
-    p.wait_for_prompt()?;
+    p.expect_prompt()?;
     p.send_line(&format!("{} config get", executable))?;
-    p.exp_regex(config_file.to_string_lossy().as_ref())?;
+    p.expect(config_file.to_string_lossy().as_ref())?;
     // as argument
-    p.execute(
-        &format!("{} cmd \"shell snippet 1\"", executable),
-        "Command",
-    )?;
+    p.send_line(&format!("{} cmd \"shell snippet 1\"", executable))?;
+    p.expect("Command")?;
     p.send_line("\n")?;
-    p.exp_string("Description")?;
+    p.expect("Description")?;
     p.send_line("test description 1")?;
-    p.exp_regex("Tags")?;
+    p.expect("Tags")?;
     p.send_line("tag1 tag2")?;
-    p.exp_regex("Snippet #1 added")?;
-    p.wait_for_prompt()?;
+    p.expect("Snippet #1 added")?;
+    p.expect_prompt()?;
     // interactively
-    p.execute(&format!("{} cmd", executable), "Command")?;
+    p.send_line(&format!("{} cmd", executable))?;
+    p.expect("Command")?;
     p.send_line("shell snippet 2")?;
-    p.exp_string("Description")?;
+    p.expect("Description")?;
     p.send_line("test description 2")?;
-    p.exp_regex("Tags")?;
+    p.expect("Tags")?;
     p.send_line("tag1 tag2")?;
-    p.exp_regex("Snippet #2 added")?;
+    p.expect("Snippet #2 added")?;
     Ok(())
 }
 
 #[ignore] // expensive, and change_snippet tests both
 #[test]
 fn add_snippet() -> color_eyre::Result<()> {
-    let temp_dir = tempdir()?;
-    let config_file = make_config_file(&temp_dir)?;
-    assert!(add_snippet_rexpect(config_file).is_ok());
+    let (temp_dir, config_file) = setup_the_way()?;
+    assert!(add_snippet_interactive(&config_file).is_ok());
+    drop(config_file);
     temp_dir.close()?;
     Ok(())
 }
 
 #[test]
 fn add_two_snippets() -> color_eyre::Result<()> {
-    let temp_dir = tempdir()?;
-    let config_file = make_config_file(&temp_dir)?;
-    assert!(add_two_snippets_rexpect(config_file).is_ok());
+    let (temp_dir, config_file) = setup_the_way()?;
+    add_two_snippets_interactive(&config_file).unwrap();
+    drop(config_file);
     temp_dir.close()?;
     Ok(())
 }
 
 #[test]
 fn add_two_cmd_snippets() -> color_eyre::Result<()> {
-    let temp_dir = tempdir()?;
-    let config_file = make_config_file(&temp_dir)?;
-    assert!(add_two_cmd_snippets_rexpect(config_file).is_ok());
+    let (temp_dir, config_file) = setup_the_way()?;
+    add_two_cmd_snippets_interactive(&config_file).unwrap();
+    drop(config_file);
     temp_dir.close()?;
     Ok(())
 }
 
 #[test]
 fn change_snippet() -> color_eyre::Result<()> {
-    let temp_dir = tempdir()?;
-    let config_file = make_config_file(&temp_dir)?;
-    assert!(change_snippet_rexpect(config_file).is_ok());
+    let (temp_dir, config_file) = setup_the_way()?;
+    assert!(change_snippet_interactive(&config_file).is_ok());
+    drop(config_file);
     temp_dir.close()?;
     Ok(())
 }
@@ -248,8 +252,8 @@ fn change_snippet() -> color_eyre::Result<()> {
 #[test]
 fn import_single_show() -> color_eyre::Result<()> {
     let contents = r#"{"description":"test description","language":"rust","tags":["tag1","tag2"],"code":"some\ntest\ncode\n"}"#;
-    let temp_dir = tempdir()?;
-    let config_file = make_config_file(&temp_dir)?;
+
+    let (temp_dir, config_file) = setup_the_way()?;
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
         .arg("import")
@@ -262,6 +266,7 @@ fn import_single_show() -> color_eyre::Result<()> {
         .arg("1")
         .assert()
         .stdout(predicate::str::contains("test description"));
+    drop(config_file);
     temp_dir.close()?;
     Ok(())
 }
@@ -272,8 +277,8 @@ fn import_multiple_no_tags() -> color_eyre::Result<()> {
     let contents_2 =
         r#"{"description":"test description 2","language":"python","code":"some\ntest\ncode\n"}"#;
     let contents = format!("{}\n{}", contents_1, contents_2);
-    let temp_dir = tempdir()?;
-    let config_file = make_config_file(&temp_dir)?;
+
+    let (temp_dir, config_file) = setup_the_way()?;
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
         .arg("import")
@@ -288,6 +293,7 @@ fn import_multiple_no_tags() -> color_eyre::Result<()> {
             predicate::str::contains("test description 1")
                 .and(predicate::str::contains("test description 2")),
         );
+    drop(config_file);
     temp_dir.close()?;
     Ok(())
 }
@@ -297,8 +303,7 @@ fn import_multiple_no_tags() -> color_eyre::Result<()> {
 #[ignore]
 #[test]
 fn import_gist() -> color_eyre::Result<()> {
-    let temp_dir = tempdir()?;
-    let config_file = make_config_file(&temp_dir)?;
+    let (temp_dir, config_file) = setup_the_way()?;
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
         .arg("import")
@@ -313,6 +318,7 @@ fn import_gist() -> color_eyre::Result<()> {
         .stdout(predicate::str::contains(
             "the-way Test - e5deab8d78ce838f22f160c9b14daf17 - TestTheWay.java",
         ));
+    drop(config_file);
     temp_dir.close()?;
     Ok(())
 }
@@ -323,9 +329,7 @@ fn import_gist() -> color_eyre::Result<()> {
 #[test]
 fn import_the_way_gist() -> color_eyre::Result<()> {
     use the_way::the_way::snippet::Snippet;
-
-    let temp_dir = tempdir()?;
-    let config_file = make_config_file(&temp_dir)?;
+    let (temp_dir, config_file) = setup_the_way()?;
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
         .arg("import")
@@ -354,6 +358,7 @@ fn import_the_way_gist() -> color_eyre::Result<()> {
             .collect::<Result<HashSet<_>, _>>()?;
 
     assert_eq!(snippets, test_snippets);
+    drop(config_file);
     temp_dir.close()?;
     Ok(())
 }
@@ -366,8 +371,7 @@ fn export() -> color_eyre::Result<()> {
     let contents_2 =
         r#"{"description":"test description 2","language":"python","code":"some\ntest\ncode\n"}"#;
     let contents = format!("{}\n{}", contents_1, contents_2);
-    let temp_dir = tempdir()?;
-    let config_file = make_config_file(&temp_dir)?;
+    let (temp_dir, config_file) = setup_the_way()?;
 
     // import
     let mut cmd = Command::cargo_bin("the-way")?;
@@ -395,6 +399,7 @@ fn export() -> color_eyre::Result<()> {
     for snippet in snippets {
         assert_eq!(snippet.code, "some\ntest\ncode\n");
     }
+    drop(config_file);
     temp_dir.close()?;
     Ok(())
 }
@@ -405,8 +410,7 @@ fn delete() -> color_eyre::Result<()> {
     let contents_2 =
         r#"{"description":"test description 2","language":"python","code":"some\ntest\ncode\n"}"#;
     let contents = format!("{}\n{}", contents_1, contents_2);
-    let temp_dir = tempdir()?;
-    let config_file = make_config_file(&temp_dir)?;
+    let (temp_dir, config_file) = setup_the_way()?;
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
         .arg("import")
@@ -456,6 +460,7 @@ fn delete() -> color_eyre::Result<()> {
         .arg("2")
         .assert()
         .failure();
+    drop(config_file);
     temp_dir.close()?;
     Ok(())
 }
@@ -466,8 +471,7 @@ fn copy() -> color_eyre::Result<()> {
     use clipboard::{ClipboardContext, ClipboardProvider};
 
     let contents = r#"{"description":"test description","language":"rust","tags":["tag1","tag2"],"code":"some\ntest\ncode\n"}"#;
-    let temp_dir = tempdir()?;
-    let config_file = make_config_file(&temp_dir)?;
+    let (temp_dir, config_file) = setup_the_way()?;
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
         .arg("import")
@@ -497,6 +501,7 @@ fn copy() -> color_eyre::Result<()> {
     assert!(contents.is_ok());
     let contents = contents.unwrap();
     assert!(contents.contains("some\ntest\ncode"));
+    drop(config_file);
     temp_dir.close()?;
     Ok(())
 }
@@ -505,10 +510,8 @@ fn copy() -> color_eyre::Result<()> {
 #[test]
 fn copy_shell_script() -> color_eyre::Result<()> {
     use clipboard::{ClipboardContext, ClipboardProvider};
-
-    let temp_dir = tempdir()?;
-    let config_file = make_config_file(&temp_dir)?;
-    assert!(copy_shell_script_rexpect(config_file).is_ok());
+    let (temp_dir, config_file) = setup_the_way()?;
+    assert!(copy_shell_script_interactive(&config_file).is_ok());
     let ctx: color_eyre::Result<ClipboardContext, _> = ClipboardProvider::new();
     assert!(ctx.is_ok());
     let mut ctx = ctx.unwrap();
@@ -516,42 +519,42 @@ fn copy_shell_script() -> color_eyre::Result<()> {
     assert!(contents.is_ok());
     let contents = contents.unwrap();
     assert!(contents.contains("shell snippet value1 code value2 value1"));
+    drop(config_file);
     temp_dir.close()?;
     Ok(())
 }
 
-fn copy_shell_script_rexpect(config_file: PathBuf) -> rexpect::errors::Result<()> {
-    let mut p = spawn_bash(Some(3000))?;
+fn copy_shell_script_interactive(config_file: &Path) -> color_eyre::Result<()> {
+    let mut p = spawn_bash()?;
     p.send_line(&format!(
         "export THE_WAY_CONFIG={}",
         config_file.to_string_lossy()
     ))?;
 
     let executable = env!("CARGO_BIN_EXE_the-way");
-    p.wait_for_prompt()?;
+    p.expect_prompt()?;
     p.send_line(&format!("{} config get", executable))?;
-    p.exp_regex(config_file.to_string_lossy().as_ref())?;
+    p.expect(config_file.to_string_lossy().as_ref())?;
     // add a shell snippet
-    p.execute(
-        &format!(
-            "{} cmd \"shell snippet <param1=value1> code <param2> <param1>\"",
-            executable
-        ),
-        "Command",
-    )?;
+    p.send_line(&format!(
+        "{} cmd \"shell snippet <param1=value1> code <param2> <param1>\"",
+        executable
+    ))?;
+    p.expect("Command")?;
     p.send_line("\n")?;
-    p.exp_string("Description")?;
+    p.expect("Description")?;
     p.send_line("test description 1")?;
-    p.exp_regex("Tags")?;
+    p.expect("Tags")?;
     p.send_line("tag1 tag2")?;
-    p.exp_regex("Snippet #1 added")?;
-    p.wait_for_prompt()?;
+    p.expect("Snippet #1 added")?;
+    p.expect_prompt()?;
     // Test interactive copy
-    p.execute(&format!("{} cp 1", executable), "param1")?;
+    p.send_line(&format!("{} cp 1", executable))?;
+    p.expect("param1")?;
     p.send_line("\n")?;
-    p.exp_string("param2")?;
+    p.expect("param2")?;
     p.send_line("value2")?;
-    p.exp_regex("Snippet #1 copied to clipboard")?;
+    p.expect("Snippet #1 copied to clipboard")?;
     Ok(())
 }
 
@@ -663,8 +666,7 @@ fn sync_edit(config_file: &Path, gist: &Gist, client: &GistClient) -> color_eyre
 /// Tests `the-way sync date` functionality. Needs to have the environment variable $THE_WAY_GITHUB_TOKEN set!
 /// Ignored by default since Travis doesn't allow secret/encrypted environment variables in PRs
 fn sync_date() -> color_eyre::Result<()> {
-    let temp_dir = tempdir()?;
-    let config_file = make_config_file(&temp_dir)?;
+    let (temp_dir, config_file) = setup_the_way()?;
     let token = &std::env::var("THE_WAY_GITHUB_TOKEN")?;
     let client = GistClient::new(Some(token))?;
 
@@ -724,6 +726,7 @@ fn sync_date() -> color_eyre::Result<()> {
     // delete Gist
     assert!(client.delete_gist(&gist.id).is_ok());
     assert!(client.get_gist(&gist.id).is_err());
+    drop(config_file);
     temp_dir.close()?;
     Ok(())
 }
@@ -733,8 +736,7 @@ fn sync_date() -> color_eyre::Result<()> {
 /// Tests `the-way sync local` functionality. Needs to have the environment variable $THE_WAY_GITHUB_TOKEN set!
 /// Ignored by default since Travis doesn't allow secret/encrypted environment variables in PRs
 fn sync_local() -> color_eyre::Result<()> {
-    let temp_dir = tempdir()?;
-    let config_file = make_config_file(&temp_dir)?;
+    let (temp_dir, config_file) = setup_the_way()?;
     let token = &std::env::var("THE_WAY_GITHUB_TOKEN")?;
     let client = GistClient::new(Some(token))?;
 
@@ -795,6 +797,7 @@ fn sync_local() -> color_eyre::Result<()> {
     // delete Gist
     assert!(client.delete_gist(&gist.id).is_ok());
     assert!(client.get_gist(&gist.id).is_err());
+    drop(config_file);
     temp_dir.close()?;
     Ok(())
 }
@@ -804,8 +807,7 @@ fn sync_local() -> color_eyre::Result<()> {
 /// Tests `the-way sync gist` functionality. Needs to have the environment variable $THE_WAY_GITHUB_TOKEN set!
 /// Ignored by default since Travis doesn't allow secret/encrypted environment variables in PRs
 fn sync_gist() -> color_eyre::Result<()> {
-    let temp_dir = tempdir()?;
-    let config_file = make_config_file(&temp_dir)?;
+    let (temp_dir, config_file) = setup_the_way()?;
 
     let token = &std::env::var("THE_WAY_GITHUB_TOKEN")?;
     let client = GistClient::new(Some(token))?;
@@ -883,6 +885,7 @@ fn sync_gist() -> color_eyre::Result<()> {
     // delete Gist
     assert!(client.delete_gist(&gist.id).is_ok());
     assert!(client.get_gist(&gist.id).is_err());
+    drop(config_file);
     temp_dir.close()?;
     Ok(())
 }
