@@ -2,7 +2,7 @@ use std::io::Write;
 use std::process::{Command, Stdio};
 use std::str;
 
-use chrono::{Date, DateTime, Utc, MAX_DATE, MIN_DATE};
+use chrono::{Date, DateTime, Utc};
 use chrono_english::{parse_date_string, Dialect};
 use color_eyre::Help;
 use dialoguer::{Confirm, Editor, Input};
@@ -142,7 +142,7 @@ pub fn parse_date(date_string: &str) -> color_eyre::Result<Date<Utc>> {
 pub fn date_start(from_date: Option<Date<Utc>>) -> DateTime<Utc> {
     match from_date {
         Some(from_date) => from_date.and_hms(0, 0, 0),
-        None => MIN_DATE.and_hms(0, 0, 0),
+        None => Date::<Utc>::MIN_UTC.and_hms(0, 0, 0),
     }
 }
 
@@ -151,7 +151,7 @@ pub fn date_start(from_date: Option<Date<Utc>>) -> DateTime<Utc> {
 pub fn date_end(to_date: Option<Date<Utc>>) -> DateTime<Utc> {
     match to_date {
         Some(to_date) => to_date.and_hms(23, 59, 59),
-        None => MAX_DATE.and_hms(23, 59, 59),
+        None => Date::<Utc>::MAX_UTC.and_hms(23, 59, 59),
     }
 }
 
@@ -240,11 +240,18 @@ pub fn highlight_strings(inputs: &[(Style, String)], bg: bool) -> String {
 }
 
 /// Print with color if stdout is tty else without
-pub fn smart_print(inputs: &[(Style, String)], bg: bool, colorize: bool) -> color_eyre::Result<()> {
+/// if colorize, always uses color
+/// if plain, doesn't use color
+pub fn smart_print(
+    inputs: &[(Style, String)],
+    bg: bool,
+    colorize: bool,
+    plain: bool,
+) -> color_eyre::Result<()> {
     write!(
         grep_cli::stdout(termcolor::ColorChoice::Auto),
         "{}",
-        if grep_cli::is_tty_stdout() | colorize {
+        if !plain & (grep_cli::is_tty_stdout() | colorize) {
             highlight_strings(inputs, bg)
         } else {
             inputs

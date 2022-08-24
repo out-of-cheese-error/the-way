@@ -17,8 +17,11 @@ global_settings = & [AppSettings::DeriveDisplayOrder]
 /// Record, retrieve, search, and categorize code snippets
 pub struct TheWayCLI {
     /// Force colorization even when not in TTY mode
-    #[structopt(short, long, global = true)]
+    #[structopt(short, long)]
     pub colorize: bool,
+    /// Turn off colorization
+    #[structopt(short, long, conflicts_with = "colorize")]
+    pub plain: bool,
     #[structopt(subcommand)]
     pub cmd: TheWaySubcommand,
 }
