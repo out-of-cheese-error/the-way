@@ -1,32 +1,32 @@
 //! `StructOpt` data
 use std::path::PathBuf;
 
-use structopt::clap::AppSettings;
-use structopt::clap::Shell;
-use structopt::StructOpt;
+use clap::AppSettings;
+use clap::Parser;
+use clap_complete::Shell;
 
 use crate::configuration::ConfigCommand;
 use crate::the_way::filter::Filters;
 
-#[derive(Debug, StructOpt)]
-#[structopt(
-name = "the-way",
-rename_all = "kebab-case",
-global_settings = & [AppSettings::DeriveDisplayOrder]
-)]
+#[derive(Debug, Parser)]
+#[clap(name = "the-way")]
 /// Record, retrieve, search, and categorize code snippets
 pub struct TheWayCLI {
     /// Force colorization even when not in TTY mode
-    #[structopt(short, long)]
+    #[clap(short, long)]
     pub colorize: bool,
     /// Turn off colorization
-    #[structopt(short, long, conflicts_with = "colorize")]
+    #[clap(short, long, conflicts_with = "colorize")]
     pub plain: bool,
-    #[structopt(subcommand)]
+    #[clap(subcommand)]
     pub cmd: TheWaySubcommand,
 }
 
-#[derive(Debug, StructOpt)]
+#[derive(Debug, Parser)]
+#[clap(
+rename_all = "kebab-case",
+setting = AppSettings::DeriveDisplayOrder
+)]
 /// Record, retrieve, search, and categorize code snippets
 pub enum TheWaySubcommand {
     /// Add a new code snippet
@@ -38,13 +38,13 @@ pub enum TheWaySubcommand {
     },
     /// Fuzzy search to find a snippet and copy, edit or delete it
     Search {
-        #[structopt(flatten)]
+        #[clap(flatten)]
         filters: Filters,
         /// Print to stdout instead of copying (with Enter)
-        #[structopt(long, short)]
+        #[clap(long, short)]
         stdout: bool,
         /// Use exact search instead of fuzzy
-        #[structopt(long, short)]
+        #[clap(long, short)]
         exact: bool,
     },
     /// Sync snippets to a Gist
@@ -52,15 +52,15 @@ pub enum TheWaySubcommand {
     /// Controlled by $THE_WAY_GITHUB_TOKEN env variable.
     /// Set this to an access token with the "gist" scope obtained from https://github.com/settings/tokens/new
     Sync {
-        #[structopt(subcommand)]
+        #[clap(subcommand)]
         cmd: SyncCommand,
         /// Don't ask for confirmation before deleting local snippets
-        #[structopt(long, short)]
+        #[clap(long, short)]
         force: bool,
     },
     /// Lists (optionally filtered) snippets
     List {
-        #[structopt(flatten)]
+        #[clap(flatten)]
         filters: Filters,
     },
     /// Imports code snippets from JSON.
@@ -68,7 +68,7 @@ pub enum TheWaySubcommand {
     /// Looks for description, language, and code fields.
     Import {
         /// filename, reads from stdin if not given
-        #[structopt(parse(from_os_str))]
+        #[clap(parse(from_os_str))]
         file: Option<PathBuf>,
 
         /// URL to a Gist, if provided will import snippets from given Gist
@@ -78,46 +78,46 @@ pub enum TheWaySubcommand {
         /// "<gist_description> - <gist_id> - <file_name>".
         /// Each snippet will be tagged with "gist" and its Gist ID.
         /// Works for both secret and public gists.
-        #[structopt(long, short)]
+        #[clap(long, short)]
         gist_url: Option<String>,
 
         /// URL to a gist file produced by `the-way sync`. If provided will import snippets with
         /// descriptions and tags taken from the `index.md` index file in the gist.
-        #[structopt(long, short = "w", conflicts_with = "gist-url")]
+        #[clap(long, short = 'w', conflicts_with = "gist-url")]
         the_way_url: Option<String>,
     },
     /// Saves (optionally filtered) snippets to JSON.
     Export {
         /// filename, writes to stdout if not given
-        #[structopt(parse(from_os_str))]
+        #[clap(parse(from_os_str))]
         file: Option<PathBuf>,
-        #[structopt(flatten)]
+        #[clap(flatten)]
         filters: Filters,
     },
     /// Clears all data
     Clear {
         /// Don't ask for confirmation
-        #[structopt(long, short)]
+        #[clap(long, short)]
         force: bool,
     },
     /// Generate shell completions
     Complete {
         /// Shell to generate completions for
-        #[structopt(possible_values = & Shell::variants())]
+        #[clap(arg_enum)]
         shell: Shell,
     },
     /// Manage syntax highlighting themes
     Themes {
-        #[structopt(subcommand)]
+        #[clap(subcommand)]
         cmd: ThemeCommand,
     },
     /// Manage the-way data locations.
     ///
     /// Controlled by $THE_WAY_CONFIG env variable,
     /// use this to have independent snippet sources for different projects.
-    #[structopt(alias = "configure")]
+    #[clap(alias = "configure")]
     Config {
-        #[structopt(subcommand)]
+        #[clap(subcommand)]
         cmd: ConfigCommand,
     },
     /// Change snippet
@@ -126,21 +126,21 @@ pub enum TheWaySubcommand {
         index: usize,
     },
     /// Delete snippet
-    #[structopt(alias = "delete")]
+    #[clap(alias = "delete")]
     Del {
         /// Index of snippet to delete
         index: usize,
         /// Don't ask for confirmation
-        #[structopt(long, short)]
+        #[clap(long, short)]
         force: bool,
     },
     /// Copy snippet to clipboard
-    #[structopt(alias = "copy")]
+    #[clap(alias = "copy")]
     Cp {
         /// Index of snippet to copy
         index: usize,
         /// Print to stdout instead of copying
-        #[structopt(long, short)]
+        #[clap(long, short)]
         stdout: bool,
     },
     /// View snippet
@@ -150,27 +150,27 @@ pub enum TheWaySubcommand {
     },
 }
 
-#[derive(StructOpt, Debug)]
+#[derive(Parser, Debug)]
 pub enum ThemeCommand {
     /// Set your preferred syntax highlighting theme
     Set { theme: Option<String> },
     /// Add a theme from a Sublime Text ".tmTheme" file.
     Add {
         /// .tmTheme file path
-        #[structopt(parse(from_os_str))]
+        #[clap(parse(from_os_str))]
         file: PathBuf,
     },
     /// Add highlight support for a language using a ".sublime-syntax" file.
     Language {
         /// .sublime-syntax file path
-        #[structopt(parse(from_os_str))]
+        #[clap(parse(from_os_str))]
         file: PathBuf,
     },
     /// Prints the current theme name
     Get,
 }
 
-#[derive(StructOpt, Debug, Eq, PartialEq)]
+#[derive(Parser, Debug, Eq, PartialEq)]
 pub enum SyncCommand {
     /// Sync by comparing each snippet's updated date to Gist updated date
     Date,

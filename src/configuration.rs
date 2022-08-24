@@ -2,20 +2,20 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::{env, fs, io};
 
+use clap::Parser;
 use color_eyre::Help;
 use directories_next::ProjectDirs;
-use structopt::StructOpt;
 
 use crate::errors::LostTheWay;
 use crate::utils::{get_default_copy_cmd, NAME};
 
-#[derive(StructOpt, Debug)]
+#[derive(Parser, Debug)]
 pub enum ConfigCommand {
     /// Prints / writes the default configuration options.
     /// Set the generated config file as default by setting the $THE_WAY_CONFIG environment variable
     Default {
         /// File to save the configuration to.
-        #[structopt(parse(from_os_str))]
+        #[clap(parse(from_os_str))]
         file: Option<PathBuf>,
     },
     /// Prints location of currently set configuration file
