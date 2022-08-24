@@ -7,13 +7,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [0.18.0] - 2022-08-24
 
-- Added `-p`/`--plain` option to remove ANSI colors from output. (Issue
-  #[138](https://github.com/out-of-cheese-error/the-way/issues/138))
-- Update dependencies
-
-## [0.17.1] - 2022-06-08
-
 - Fix shell completion (Issue #[135](https://github.com/out-of-cheese-error/the-way/issues/135))
+- Migrate from structopt to clap
 - Update dependencies
 
 ## [0.17.0] - 2022-05-30
@@ -437,6 +432,8 @@ This uses the correct release directory now based on the TARGET environment vari
 
 - A first working version of the-way
 - cargo install option
+
+[0.18.0]: https://github.com/out-of-cheese-error/the-way/compare/v0.17.1...v0.18.0
 
 [0.17.1]: https://github.com/out-of-cheese-error/the-way/compare/v0.17.0...v0.17.1
 
