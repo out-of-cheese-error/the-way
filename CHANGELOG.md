@@ -7,8 +7,14 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [0.18.0] - 2022-08-24
 
-- Fix shell completion (Issue #[135](https://github.com/out-of-cheese-error/the-way/issues/135))
+- Add `-p`/`--plain` flag to remove ANSI color codes from output. (Issue
+  #[138](https://github.com/out-of-cheese-error/the-way/issues/138))
 - Migrate from structopt to clap
+- Update dependencies
+
+## [0.17.1] - 2022-06-08
+
+- Fix shell completion (Issue #[135](https://github.com/out-of-cheese-error/the-way/issues/135))
 - Update dependencies
 
 ## [0.17.0] - 2022-05-30
