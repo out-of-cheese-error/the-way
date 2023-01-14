@@ -255,7 +255,7 @@ impl TheWay {
         utils::split_indices_usize(
             &self
                 .language_tree()?
-                .get(&language.to_ascii_lowercase().as_bytes())?
+                .get(language.to_ascii_lowercase().as_bytes())?
                 .ok_or(LostTheWay::LanguageNotFound {
                     language: language.to_owned(),
                 })?,
