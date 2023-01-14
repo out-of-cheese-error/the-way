@@ -1,7 +1,6 @@
-//! `StructOpt` data
+//! `Clap` data
 use std::path::PathBuf;
 
-use clap::AppSettings;
 use clap::Parser;
 use clap_complete::Shell;
 
@@ -9,7 +8,9 @@ use crate::configuration::ConfigCommand;
 use crate::the_way::filter::Filters;
 
 #[derive(Debug, Parser)]
-#[clap(name = "the-way")]
+#[command(name = "the-way", author, version, about, long_about)]
+/// A code snippets manager for your terminal
+///
 /// Record, retrieve, search, and categorize code snippets
 pub struct TheWayCLI {
     /// Force colorization even when not in TTY mode
@@ -23,11 +24,6 @@ pub struct TheWayCLI {
 }
 
 #[derive(Debug, Parser)]
-#[clap(
-rename_all = "kebab-case",
-setting = AppSettings::DeriveDisplayOrder
-)]
-/// Record, retrieve, search, and categorize code snippets
 pub enum TheWaySubcommand {
     /// Add a new code snippet
     New,
@@ -68,7 +64,6 @@ pub enum TheWaySubcommand {
     /// Looks for description, language, and code fields.
     Import {
         /// filename, reads from stdin if not given
-        #[clap(parse(from_os_str))]
         file: Option<PathBuf>,
 
         /// URL to a Gist, if provided will import snippets from given Gist
@@ -78,18 +73,17 @@ pub enum TheWaySubcommand {
         /// "<gist_description> - <gist_id> - <file_name>".
         /// Each snippet will be tagged with "gist" and its Gist ID.
         /// Works for both secret and public gists.
-        #[clap(long, short)]
+        #[clap(long, short, value_name = "URL")]
         gist_url: Option<String>,
 
         /// URL to a gist file produced by `the-way sync`. If provided will import snippets with
         /// descriptions and tags taken from the `index.md` index file in the gist.
-        #[clap(long, short = 'w', conflicts_with = "gist-url")]
+        #[clap(long, short = 'w', conflicts_with = "gist_url", value_name = "URL")]
         the_way_url: Option<String>,
     },
     /// Saves (optionally filtered) snippets to JSON.
     Export {
         /// filename, writes to stdout if not given
-        #[clap(parse(from_os_str))]
         file: Option<PathBuf>,
         #[clap(flatten)]
         filters: Filters,
@@ -103,7 +97,7 @@ pub enum TheWaySubcommand {
     /// Generate shell completions
     Complete {
         /// Shell to generate completions for
-        #[clap(arg_enum)]
+        #[clap(value_enum)]
         shell: Shell,
     },
     /// Manage syntax highlighting themes
@@ -157,13 +151,11 @@ pub enum ThemeCommand {
     /// Add a theme from a Sublime Text ".tmTheme" file.
     Add {
         /// .tmTheme file path
-        #[clap(parse(from_os_str))]
         file: PathBuf,
     },
     /// Add highlight support for a language using a ".sublime-syntax" file.
     Language {
         /// .sublime-syntax file path
-        #[clap(parse(from_os_str))]
         file: PathBuf,
     },
     /// Prints the current theme name

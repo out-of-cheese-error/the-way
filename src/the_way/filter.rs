@@ -2,7 +2,7 @@
 use std::collections::HashSet;
 use std::ffi::OsString;
 
-use chrono::{Date, Utc};
+use chrono::{DateTime, Utc};
 use clap::Parser;
 use regex::Regex;
 
@@ -18,11 +18,11 @@ pub struct Filters {
     #[clap(short, long)]
     pub(crate) tags: Option<Vec<String>>,
     /// Snippets from <date> ("last friday" works too!)
-    #[clap(long, parse(try_from_str = utils::parse_date))]
-    pub(crate) from: Option<Date<Utc>>,
+    #[clap(long, value_parser = utils::parse_date)]
+    pub(crate) from: Option<DateTime<Utc>>,
     /// Snippets before <date>
-    #[clap(long, parse(try_from_str = utils::parse_date))]
-    pub(crate) to: Option<Date<Utc>>,
+    #[clap(long, value_parser = utils::parse_date)]
+    pub(crate) to: Option<DateTime<Utc>>,
     /// Snippets matching pattern
     #[clap(short, long)]
     pub(crate) pattern: Option<OsString>,
