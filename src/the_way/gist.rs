@@ -433,6 +433,7 @@ impl TheWay {
         spinner.finish_with_message("Done!");
         for snippet in add_snippets {
             self.add_snippet(snippet)?;
+            self.increment_snippet_index()?;
         }
         let delete = if delete_snippets.is_empty() || force {
             true
