@@ -112,7 +112,7 @@ impl<'a> GistClient<'a> {
         let url = format!("{}{}/gists", GITHUB_API_URL, GITHUB_BASE_PATH);
         let response = self
             .add_headers(self.client.post(&url))
-            .send_json(ureq::serde_json::to_value(payload)?);
+            .send_json(serde_json::to_value(payload)?);
         Self::get_response(response)
     }
 
@@ -128,7 +128,7 @@ impl<'a> GistClient<'a> {
                 self.client
                     .request("PATCH", &format!("{}/{}", url, gist_id)),
             )
-            .send_json(ureq::serde_json::to_value(payload)?);
+            .send_json(serde_json::to_value(payload)?);
         Self::get_response(response)
     }
 

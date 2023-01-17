@@ -431,9 +431,14 @@ impl TheWay {
             )?;
         }
         spinner.finish_with_message("Done!");
+        let mut max_index = 0;
         for snippet in add_snippets {
-            self.add_snippet(snippet)?;
+            let index = self.add_snippet(snippet)?;
+            if index > max_index {
+                max_index = index;
+            }
         }
+        self.modify_snippet_index(max_index + 1)?;
         let delete = if delete_snippets.is_empty() || force {
             true
         } else {

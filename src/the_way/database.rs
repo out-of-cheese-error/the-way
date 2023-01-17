@@ -129,6 +129,12 @@ impl TheWay {
         Ok(())
     }
 
+    pub(crate) fn modify_snippet_index(&mut self, index: usize) -> color_eyre::Result<()> {
+        self.db
+            .insert("snippet_index", index.to_string().as_bytes())?;
+        Ok(())
+    }
+
     /// Add a snippet index to each of the tags it's associated with
     pub(crate) fn add_to_tags(
         &mut self,
@@ -255,7 +261,7 @@ impl TheWay {
         utils::split_indices_usize(
             &self
                 .language_tree()?
-                .get(&language.to_ascii_lowercase().as_bytes())?
+                .get(language.to_ascii_lowercase().as_bytes())?
                 .ok_or(LostTheWay::LanguageNotFound {
                     language: language.to_owned(),
                 })?,

@@ -50,7 +50,7 @@ impl Language {
     fn get_color(color_string: Option<String>) -> color_eyre::Result<Color> {
         let mut language_color = [0; 3];
         if let Some(color) = color_string {
-            language_color = <[u8; 3]>::from_hex(&color.get(1..).unwrap_or("FFFFFF"))?;
+            language_color = <[u8; 3]>::from_hex(color.get(1..).unwrap_or("FFFFFF"))?;
         }
         Ok(Color {
             r: language_color[0],
@@ -278,7 +278,7 @@ impl CodeHighlight {
     /// The file is copied to the themes folder
     // TODO: should it automatically be set?
     pub(crate) fn add_theme(&mut self, theme_file: &Path) -> color_eyre::Result<String> {
-        let theme = ThemeSet::get_theme(&theme_file)
+        let theme = ThemeSet::get_theme(theme_file)
             .map_err(|_e| LostTheWay::ThemeError {
                 theme: theme_file.to_str().unwrap().into(),
             })
@@ -304,7 +304,7 @@ impl CodeHighlight {
     /// The file is copied to the themes folder
     pub(crate) fn add_syntax(&mut self, syntax_file: &Path) -> color_eyre::Result<String> {
         let syntax = SyntaxDefinition::load_from_str(
-            &fs::read_to_string(&syntax_file)?,
+            &fs::read_to_string(syntax_file)?,
             true,
             None,
         )

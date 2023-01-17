@@ -100,7 +100,7 @@ impl Snippet {
                 Some(s.description.as_str()),
                 Some(s.language.as_str()),
                 Some(s.tags.join(" ")),
-                Some(s.date.date().format("%Y-%m-%d").to_string()),
+                Some(s.date.date_naive().format("%Y-%m-%d").to_string()),
                 Some(s.code.as_str()),
             ),
             None => (None, None, None, None, None),
@@ -117,8 +117,7 @@ impl Snippet {
                 old_date.as_deref(),
                 true,
                 false,
-            )?)?
-            .and_hms(0, 0, 0),
+            )?)?,
             None => Utc::now(),
         };
 

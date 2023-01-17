@@ -15,7 +15,6 @@ pub enum ConfigCommand {
     /// Set the generated config file as default by setting the $THE_WAY_CONFIG environment variable
     Default {
         /// File to save the configuration to.
-        #[clap(parse(from_os_str))]
         file: Option<PathBuf>,
     },
     /// Prints location of currently set configuration file
@@ -74,7 +73,7 @@ impl Default for TheWayConfig {
 impl TheWayConfig {
     /// Write default configuration file
     pub(crate) fn default_config(file: Option<&Path>) -> color_eyre::Result<()> {
-        let writer: Box<dyn io::Write> = match file {
+        let writer: Box<dyn Write> = match file {
             Some(file) => Box::new(fs::File::create(file)?),
             None => Box::new(io::stdout()),
         };
@@ -165,7 +164,7 @@ impl TheWayConfig {
                 }
             }
             None => {
-                Ok(confy::load(NAME).suggestion(LostTheWay::ConfigError {
+                Ok(confy::load(NAME, None).suggestion(LostTheWay::ConfigError {
                     message: "Couldn't load from the default config location, maybe you don't have access? \
                     Try running `the-way config default config_file.toml`, modify the generated file if necessary, \
                 then `export THE_WAY_CONFIG=<full/path/to/config_file.toml>`".into()
@@ -179,11 +178,11 @@ impl TheWayConfig {
         // Reads THE_WAY_CONFIG environment variable to get config file location
         let config_file = env::var("THE_WAY_CONFIG").ok();
         match config_file {
-            Some(file) => confy::store_path(Path::new(&file), &(*self).clone()).suggestion(LostTheWay::ConfigError {
+            Some(file) => confy::store_path(Path::new(&file), (*self).clone()).suggestion(LostTheWay::ConfigError {
                 message: "The current config_file location does not seem to have write access. \
                    Use `export THE_WAY_CONFIG=<full/path/to/config_file.toml>` to set a new location".into()
             })?,
-            None => confy::store(NAME, &(*self).clone()).suggestion(LostTheWay::ConfigError {
+            None => confy::store(NAME, None, (*self).clone()).suggestion(LostTheWay::ConfigError {
                 message: "The current config_file location does not seem to have write access. \
                     Use `export THE_WAY_CONFIG=<full/path/to/config_file.toml>` to set a new location".into()
             })?,

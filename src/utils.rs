@@ -2,7 +2,7 @@ use std::io::Write;
 use std::process::{Command, Stdio};
 use std::str;
 
-use chrono::{Date, DateTime, Utc};
+use chrono::{DateTime, NaiveDateTime, Utc};
 use chrono_english::{parse_date_string, Dialect};
 use color_eyre::Help;
 use dialoguer::{Confirm, Editor, Input};
@@ -130,30 +130,24 @@ pub fn make_indices_string(index_list: &[usize]) -> color_eyre::Result<Vec<u8>> 
 }
 
 /// Makes a date from a string, can be colloquial like "next Friday"
-pub fn parse_date(date_string: &str) -> color_eyre::Result<Date<Utc>> {
+pub fn parse_date(date_string: &str) -> color_eyre::Result<DateTime<Utc>> {
     if date_string.to_ascii_lowercase() == "today" {
-        Ok(Utc::now().date())
+        Ok(Utc::now())
     } else {
-        Ok(parse_date_string(date_string, Utc::now(), Dialect::Uk)?.date())
+        Ok(parse_date_string(date_string, Utc::now(), Dialect::Uk)?)
     }
 }
 
 /// Some(date) => date
 /// None => minimum possible date
-pub fn date_start(from_date: Option<Date<Utc>>) -> DateTime<Utc> {
-    match from_date {
-        Some(from_date) => from_date.and_hms(0, 0, 0),
-        None => Date::<Utc>::MIN_UTC.and_hms(0, 0, 0),
-    }
+pub fn date_start(from_date: Option<DateTime<Utc>>) -> DateTime<Utc> {
+    from_date.unwrap_or_else(|| DateTime::from_utc(NaiveDateTime::MIN, Utc))
 }
 
 /// Some(date) => date
 /// None => maximum possible date
-pub fn date_end(to_date: Option<Date<Utc>>) -> DateTime<Utc> {
-    match to_date {
-        Some(to_date) => to_date.and_hms(23, 59, 59),
-        None => Date::<Utc>::MAX_UTC.and_hms(23, 59, 59),
-    }
+pub fn date_end(to_date: Option<DateTime<Utc>>) -> DateTime<Utc> {
+    to_date.unwrap_or_else(|| DateTime::from_utc(NaiveDateTime::MAX, Utc))
 }
 
 /// Gets input from external editor, optionally displays default text in editor

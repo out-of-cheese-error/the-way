@@ -44,7 +44,7 @@ fn change_config_file() -> color_eyre::Result<()> {
     // Test nonexistent file
     let config_file = "no-such-file";
     let mut cmd = Command::cargo_bin("the-way")?;
-    cmd.env("THE_WAY_CONFIG", &config_file)
+    cmd.env("THE_WAY_CONFIG", config_file)
         .arg("config")
         .arg("get")
         .assert()
@@ -562,7 +562,7 @@ fn make_gist(config_file: &Path, client: &GistClient) -> color_eyre::Result<Gist
     let contents_2 =
         r#"{"description":"test description 2","language":"python","code":"code\nthe\nsecond\n"}"#;
     let contents_3 =
-        r#"{"description":"test description 3","language":"python","code":"code\nthe\nfourth\n"}"#;
+        r#"{"description":"test description 3","language":"python","code":"code\nthe\nthird\n"}"#;
     let contents = format!("{}\n{}\n{}", contents_1, contents_2, contents_3);
 
     // import
@@ -582,7 +582,7 @@ fn make_gist(config_file: &Path, client: &GistClient) -> color_eyre::Result<Gist
         .success();
 
     // get gist_id from config
-    std::env::set_var("THE_WAY_CONFIG", &config_file);
+    std::env::set_var("THE_WAY_CONFIG", config_file);
     let config = TheWayConfig::load();
     assert!(config.is_ok());
     let config = config?;
@@ -595,13 +595,14 @@ fn make_gist(config_file: &Path, client: &GistClient) -> color_eyre::Result<Gist
 
     // check Gist contents
     assert_eq!(gist.files.len(), 4);
+    println!("{:?}", gist.files);
     for (filename, gistfile) in &gist.files {
         assert!(
             (filename.starts_with("snippet_1") && (gistfile.content == "code\nthe\nfirst\n"))
                 || (filename.starts_with("snippet_2")
                     && (gistfile.content == "code\nthe\nsecond\n"))
                 || (filename.starts_with("snippet_3")
-                    && (gistfile.content == "code\nthe\nfourth\n"))
+                    && (gistfile.content == "code\nthe\nthird\n"))
                 || filename.starts_with("index")
         );
     }
@@ -615,7 +616,7 @@ fn sync_edit(config_file: &Path, gist: &Gist, client: &GistClient) -> color_eyre
         files: vec![(
             "snippet_1.rs".to_owned(),
             Some(GistContent {
-                content: "code\nthe\nthird\n",
+                content: "code\nthe\nfirstx\n",
             }),
         )]
         .into_iter()
@@ -625,7 +626,7 @@ fn sync_edit(config_file: &Path, gist: &Gist, client: &GistClient) -> color_eyre
 
     // delete snippet_2 locally
     let mut cmd = Command::cargo_bin("the-way")?;
-    cmd.env("THE_WAY_CONFIG", &config_file)
+    cmd.env("THE_WAY_CONFIG", config_file)
         .arg("del")
         .arg("-f")
         .arg("2")
@@ -641,18 +642,51 @@ fn sync_edit(config_file: &Path, gist: &Gist, client: &GistClient) -> color_eyre
     };
     assert!(client.update_gist(&gist.id, &update_payload).is_ok());
 
+    // add snippet_4 to Gist
+    let mut index_file_content = gist.files.get("index.md").unwrap().content.clone();
+    index_file_content.push_str(&format!(
+        "* [{}]({}#file-{}){}\n",
+        "test description 4",
+        gist.html_url,
+        "snippet_4.txt",
+        String::new()
+    ));
+
+    let add_payload = UpdateGistPayload {
+        description: &gist.description,
+        files: vec![
+            (
+                "snippet_4.txt".to_owned(),
+                Some(GistContent {
+                    content: "code\nthe\nfourth\n",
+                }),
+            ),
+            (
+                "index.md".to_owned(),
+                Some(GistContent {
+                    content: &index_file_content,
+                }),
+            ),
+        ]
+        .into_iter()
+        .collect(),
+    };
+    assert!(client.update_gist(&gist.id, &add_payload).is_ok());
+
     // get Gist
     let gist = client.get_gist(&gist.id);
     assert!(gist.is_ok());
     let gist = gist?;
 
     // check Gist contents
-    assert_eq!(gist.files.len(), 3);
+    assert_eq!(gist.files.len(), 4);
     for (filename, gistfile) in &gist.files {
         assert!(
-            (filename.starts_with("snippet_1") && (gistfile.content == "code\nthe\nthird\n"))
+            (filename.starts_with("snippet_1") && (gistfile.content == "code\nthe\nfirstx\n"))
                 || (filename.starts_with("snippet_2")
                     && (gistfile.content == "code\nthe\nsecond\n"))
+                || (filename.starts_with("snippet_4")
+                    && (gistfile.content == "code\nthe\nfourth\n"))
                 || filename.starts_with("index")
         );
     }
@@ -671,10 +705,10 @@ fn sync_date() -> color_eyre::Result<()> {
 
     // make Gist with 3 snippets
     let gist = make_gist(&config_file, &client)?;
-    // make edits: edit snippet_1 in Gist, delete snippet_2 locally, delete snippet_3 in Gist
+    // make edits: edit snippet_1 in Gist, delete snippet_2 locally, delete snippet_3 in Gist, add snippet_4 to Gist
     sync_edit(&config_file, &gist, &client)?;
 
-    // sync - downloads snippet_1 locally + deletes snippet_2 in Gist + adds snippet_3 to Gist
+    // sync - downloads snippet_1 locally + deletes snippet_2 in Gist + adds snippet_3 to Gist + deletes snippet_4 from Gist
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
         .env("THE_WAY_GITHUB_TOKEN", token)
@@ -706,21 +740,29 @@ fn sync_date() -> color_eyre::Result<()> {
     assert_eq!(gist.files.len(), 3);
     for (filename, gistfile) in &gist.files {
         assert!(
-            (filename.starts_with("snippet_1") && (gistfile.content == "code\nthe\nthird\n"))
-                // added snippet 3 to Gist
+            (filename.starts_with("snippet_1") && (gistfile.content == "code\nthe\nfirstx\n"))
+                // adds snippet 3 to Gist
                 || (filename.starts_with("snippet_3")
-                    && (gistfile.content == "code\nthe\nfourth\n"))
-                || filename.starts_with("index") // deleted snippet 2 from Gist
+                    && (gistfile.content == "code\nthe\nthird\n"))
+                || filename.starts_with("index") // deleted snippet_2 and snippet_4 from Gist
         );
     }
 
-    // downloaded snippet 1 locally
+    // check snippet_1 downloaded
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
         .arg("view")
         .arg("1")
         .assert()
-        .stdout(predicate::str::contains("third"));
+        .stdout(predicate::str::contains("firstx"));
+
+    // check snippet_4 not downloaded
+    let mut cmd = Command::cargo_bin("the-way")?;
+    cmd.env("THE_WAY_CONFIG", &config_file)
+        .arg("view")
+        .arg("4")
+        .assert()
+        .failure();
 
     // delete Gist
     assert!(client.delete_gist(&gist.id).is_ok());
@@ -741,10 +783,10 @@ fn sync_local() -> color_eyre::Result<()> {
 
     // make Gist with 3 snippets
     let gist = make_gist(&config_file, &client)?;
-    // make edits: edit snippet_1 in Gist, delete snippet_2 locally, delete snippet_3 in Gist
+    // make edits: edit snippet_1 in Gist, delete snippet_2 locally, delete snippet_3 in Gist, adds snippet_4 to Gist
     sync_edit(&config_file, &gist, &client)?;
 
-    // sync - uploads local snippet_1 to Gist + deletes snippet_2 from Gist + adds snippet_3 to Gist
+    // sync - uploads local snippet_1 to Gist + deletes snippet_2 from Gist + adds snippet_3 to Gist + deletes snippet_4 from Gist
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
         .env("THE_WAY_GITHUB_TOKEN", token)
@@ -779,19 +821,28 @@ fn sync_local() -> color_eyre::Result<()> {
             // uploaded local snippet_1 to Gist
             (filename.starts_with("snippet_1") && (gistfile.content == "code\nthe\nfirst\n"))
                 // added snippet_3 to Gist
-                || (filename.starts_with("snippet_3") && (gistfile.content == "code\nthe\nfourth\n"))
-                || filename.starts_with("index") // deleted snippet_2 from Gist
+                || (filename.starts_with("snippet_3") && (gistfile.content == "code\nthe\nthird\n"))
+                || filename.starts_with("index") // deleted snippet_2 and snippet_4 from Gist
         );
     }
 
-    // check snippet_1 not downloaded
+    // check snippet_1 not changed
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
         .env("THE_WAY_GITHUB_TOKEN", token)
         .arg("view")
         .arg("1")
         .assert()
-        .stdout(predicate::str::contains("third").not());
+        .stdout(predicate::str::contains("firstx").not());
+
+    // check snippet_4 not downloaded
+    let mut cmd = Command::cargo_bin("the-way")?;
+    cmd.env("THE_WAY_CONFIG", &config_file)
+        .env("THE_WAY_GITHUB_TOKEN", token)
+        .arg("view")
+        .arg("4")
+        .assert()
+        .failure();
 
     // delete Gist
     assert!(client.delete_gist(&gist.id).is_ok());
@@ -813,10 +864,10 @@ fn sync_gist() -> color_eyre::Result<()> {
 
     // make Gist with 3 snippets
     let gist = make_gist(&config_file, &client)?;
-    // make edits: edit snippet_1 in Gist, delete snippet_2 locally, delete snippet_3 in Gist
+    // make edits: edit snippet_1 in Gist, delete snippet_2 locally, delete snippet_3 in Gist, adds snippet_4 to Gist
     sync_edit(&config_file, &gist, &client)?;
 
-    // sync - downloads snippet 1 locally + adds snippet 2 locally + deletes snippet 3 locally
+    // sync - downloads snippet 1 locally + adds snippet 2 locally + deletes snippet 3 locally + downloads snippet 4 locally
     let mut cmd = Command::cargo_bin("the-way")?;
     cmd.env("THE_WAY_CONFIG", &config_file)
         .env("THE_WAY_GITHUB_TOKEN", token)
@@ -846,12 +897,14 @@ fn sync_gist() -> color_eyre::Result<()> {
     assert!((*updated - gist.updated_at) < chrono::Duration::seconds(1));
 
     // check Gist contents
-    assert_eq!(gist.files.len(), 3);
+    assert_eq!(gist.files.len(), 4);
     for (filename, gistfile) in &gist.files {
         assert!(
-            (filename.starts_with("snippet_1") && (gistfile.content == "code\nthe\nthird\n"))
+            (filename.starts_with("snippet_1") && (gistfile.content == "code\nthe\nfirstx\n"))
                 || (filename.starts_with("snippet_2")
                     && (gistfile.content == "code\nthe\nsecond\n"))
+                || (filename.starts_with("snippet_4")
+                    && (gistfile.content == "code\nthe\nfourth\n"))
                 || filename.starts_with("index")
         );
     }
@@ -863,7 +916,7 @@ fn sync_gist() -> color_eyre::Result<()> {
         .arg("view")
         .arg("1")
         .assert()
-        .stdout(predicate::str::contains("third"));
+        .stdout(predicate::str::contains("firstx"));
 
     // added snippet_2 locally
     let mut cmd = Command::cargo_bin("the-way")?;
@@ -880,6 +933,14 @@ fn sync_gist() -> color_eyre::Result<()> {
         .arg("3")
         .assert()
         .failure();
+
+    // added snippet_4 locally
+    let mut cmd = Command::cargo_bin("the-way")?;
+    cmd.env("THE_WAY_CONFIG", &config_file)
+        .arg("view")
+        .arg("4")
+        .assert()
+        .stdout(predicate::str::contains("fourth"));
 
     // delete Gist
     assert!(client.delete_gist(&gist.id).is_ok());
