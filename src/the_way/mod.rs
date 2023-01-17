@@ -115,7 +115,7 @@ impl TheWay {
         let snippet =
             Snippet::from_user(self.get_current_snippet_index()? + 1, &self.languages, None)?;
         let index = self.add_snippet(&snippet)?;
-        self.color_print(&format!("Snippet #{} added\n", index))?;
+        self.color_print(&format!("Snippet #{index} added\n"))?;
         self.increment_snippet_index()?;
         Ok(())
     }
@@ -125,7 +125,7 @@ impl TheWay {
         let snippet =
             Snippet::cmd_from_user(self.get_current_snippet_index()? + 1, code.as_deref())?;
         let index = self.add_snippet(&snippet)?;
-        self.color_print(&format!("Snippet #{} added\n", index))?;
+        self.color_print(&format!("Snippet #{index} added\n"))?;
         self.increment_snippet_index()?;
         Ok(())
     }
@@ -134,12 +134,12 @@ impl TheWay {
     fn delete(&mut self, index: usize, force: bool) -> color_eyre::Result<()> {
         if force
             || Confirm::with_theme(&ColorfulTheme::default())
-                .with_prompt(&format!("Delete snippet #{}?\n", index))
+                .with_prompt(&format!("Delete snippet #{index}?\n"))
                 .default(false)
                 .interact()?
         {
             self.delete_snippet(index)?;
-            self.color_print(&format!("Snippet #{} deleted\n", index))?;
+            self.color_print(&format!("Snippet #{index} deleted\n"))?;
             Ok(())
         } else {
             let error: color_eyre::Result<()> = Err(LostTheWay::DoingNothing.into());
@@ -153,7 +153,7 @@ impl TheWay {
         let new_snippet = Snippet::from_user(index, &self.languages, Some(&old_snippet))?;
         self.delete_snippet(index)?;
         self.add_snippet(&new_snippet)?;
-        self.color_print(&format!("Snippet #{} changed\n", index))?;
+        self.color_print(&format!("Snippet #{index} changed\n"))?;
         Ok(())
     }
 
@@ -180,9 +180,9 @@ impl TheWay {
         let code = snippet.fill_snippet(self.highlighter.selection_style)?;
         if to_stdout {
             // See https://github.com/rust-lang/rust/issues/46016
-            if let Err(e) = writeln!(std::io::stdout(), "{}", code) {
+            if let Err(e) = writeln!(io::stdout(), "{code}") {
                 if e.kind() != ErrorKind::BrokenPipe {
-                    eprintln!("{}", e);
+                    eprintln!("{e}");
                     process::exit(1);
                 }
             }
@@ -191,7 +191,7 @@ impl TheWay {
             eprintln!(
                 "{}",
                 utils::highlight_string(
-                    &format!("Snippet #{} copied to clipboard\n", index),
+                    &format!("Snippet #{index} copied to clipboard\n"),
                     self.highlighter.main_style
                 )
             );
@@ -231,7 +231,7 @@ impl TheWay {
                 .into());
             }
         }
-        self.color_print(&format!("Imported {} snippets\n", num))?;
+        self.color_print(&format!("Imported {num} snippets\n"))?;
         Ok(())
     }
 
@@ -378,19 +378,19 @@ impl TheWay {
                     themes[theme_index].clone()
                 };
                 self.highlighter.set_theme(theme.clone())?;
-                self.color_print(&format!("Theme changed to {}\n", theme))?;
+                self.color_print(&format!("Theme changed to {theme}\n"))?;
                 self.config.theme = theme;
                 self.config.store()?;
                 Ok(())
             }
             ThemeCommand::Add { file } => {
                 let theme = self.highlighter.add_theme(&file)?;
-                self.color_print(&format!("Added theme {}\n", theme))?;
+                self.color_print(&format!("Added theme {theme}\n"))?;
                 Ok(())
             }
             ThemeCommand::Language { file } => {
                 let language = self.highlighter.add_syntax(&file)?;
-                self.color_print(&format!("Added {} syntax\n", language))?;
+                self.color_print(&format!("Added {language} syntax\n"))?;
                 Ok(())
             }
             ThemeCommand::Get => {

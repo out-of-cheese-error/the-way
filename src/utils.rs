@@ -62,7 +62,7 @@ pub fn copy_to_clipboard(copy_cmd_field: &Option<String>, text: &str) -> color_e
                 // Should never fails due to previous checking
                 _ => unreachable!(),
             };
-            eprintln!("The `copy_cmd` field is empty, defaulting to `{}`", cmd);
+            eprintln!("The `copy_cmd` field is empty, defaulting to `{cmd}`");
             (cmd, args)
         }
     };
@@ -73,9 +73,7 @@ pub fn copy_to_clipboard(copy_cmd_field: &Option<String>, text: &str) -> color_e
         .spawn()
         .map_err(|e| LostTheWay::ClipboardError {
             message: format!(
-                "{}: is {} available? Also check your `copy_cmd` settings ({})",
-                e,
-                copy_cmd,
+                "{e}: is {copy_cmd} available? Also check your `copy_cmd` settings ({})",
                 // Never fails as it's checked above
                 copy_cmd_field.as_ref().unwrap()
             ),

@@ -74,7 +74,7 @@ impl<'a> GistClient<'a> {
             .set("user-agent", USER_AGENT)
             .set("content-type", ACCEPT);
         if let Some(access_token) = &self.access_token {
-            request = request.set("Authorization", &format!("token {}", access_token));
+            request = request.set("Authorization", &format!("token {access_token}"));
         }
         request
     }
@@ -85,11 +85,11 @@ impl<'a> GistClient<'a> {
                 Ok(response
                     .into_json::<Gist>()
                     .map_err(|e| LostTheWay::SyncError {
-                        message: format!("{}", e),
+                        message: format!("{e}"),
                     })?)
             }
             Err(ureq::Error::Status(code, response)) => Err(LostTheWay::SyncError {
-                message: format!("{} {}", code, response.into_string()?),
+                message: format!("{code} {}", response.into_string()?),
             })
             .suggestion(
                 "Make sure your GitHub access token is valid.\n\
@@ -109,7 +109,7 @@ impl<'a> GistClient<'a> {
 
     /// Create a new Gist with the given payload
     pub fn create_gist(&self, payload: &CreateGistPayload<'_>) -> color_eyre::Result<Gist> {
-        let url = format!("{}{}/gists", GITHUB_API_URL, GITHUB_BASE_PATH);
+        let url = format!("{GITHUB_API_URL}{GITHUB_BASE_PATH}/gists");
         let response = self
             .add_headers(self.client.post(&url))
             .send_json(serde_json::to_value(payload)?);
@@ -122,20 +122,17 @@ impl<'a> GistClient<'a> {
         gist_id: &str,
         payload: &UpdateGistPayload<'_>,
     ) -> color_eyre::Result<Gist> {
-        let url = format!("{}{}/gists", GITHUB_API_URL, GITHUB_BASE_PATH);
+        let url = format!("{GITHUB_API_URL}{GITHUB_BASE_PATH}/gists");
         let response = self
-            .add_headers(
-                self.client
-                    .request("PATCH", &format!("{}/{}", url, gist_id)),
-            )
+            .add_headers(self.client.request("PATCH", &format!("{url}/{gist_id}")))
             .send_json(serde_json::to_value(payload)?);
         Self::get_response(response)
     }
 
     /// Retrieve a Gist by ID
     pub fn get_gist(&self, gist_id: &str) -> color_eyre::Result<Gist> {
-        let url = format!("{}{}/gists", GITHUB_API_URL, GITHUB_BASE_PATH);
-        let response = self.add_headers(self.client.get(&format!("{}/{}", url, gist_id)));
+        let url = format!("{GITHUB_API_URL}{GITHUB_BASE_PATH}/gists");
+        let response = self.add_headers(self.client.get(&format!("{url}/{gist_id}")));
         Self::get_response(response.call())
     }
 
@@ -145,7 +142,7 @@ impl<'a> GistClient<'a> {
         match gist_id {
             Some(gist_id) => self.get_gist(gist_id),
             None => Err(LostTheWay::GistUrlError {
-                message: format!("Problem extracting gist ID from {}", gist_url),
+                message: format!("Problem extracting gist ID from {gist_url}"),
             })
             .suggestion("The URL should look like https://gist.github.com/<user>/<gist_id>."),
         }
@@ -153,11 +150,11 @@ impl<'a> GistClient<'a> {
 
     /// Delete Gist by ID
     pub fn delete_gist(&self, gist_id: &str) -> color_eyre::Result<()> {
-        let url = format!("{}{}/gists", GITHUB_API_URL, GITHUB_BASE_PATH);
-        let status = self.add_headers(self.client.delete(&format!("{}/{}", url, gist_id)));
+        let url = format!("{GITHUB_API_URL}{GITHUB_BASE_PATH}/gists");
+        let status = self.add_headers(self.client.delete(&format!("{url}/{gist_id}")));
         if status.call().is_err() {
             Err(LostTheWay::GistUrlError {
-                message: format!("Couldn't delete gist with ID {}", gist_id),
+                message: format!("Couldn't delete gist with ID {gist_id}"),
             }
             .into())
         } else {

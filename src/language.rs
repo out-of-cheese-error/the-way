@@ -294,7 +294,7 @@ impl CodeHighlight {
             })
             .suggestion("Something's fishy with the filename, valid Unicode?")?;
         // Copy theme to theme file directory
-        let new_theme_file = self.syntect_dir.join(format!("{}.tmTheme", basename));
+        let new_theme_file = self.syntect_dir.join(format!("{basename}.tmTheme"));
         fs::copy(theme_file, new_theme_file)?;
         self.theme_set.themes.insert(basename.to_owned(), theme);
         Ok(basename.to_owned())

@@ -84,7 +84,7 @@ impl TheWayConfig {
                 "theme = 'base16-ocean.dark'\ndb_dir = 'the_way_db'\nthemes_dir = 'the_way_themes'\ncopy_cmd = '{}'",
                 copy_cmd
             );
-        write!(&mut buffered, "{}", contents)?;
+        write!(&mut buffered, "{contents}")?;
         Ok(())
     }
 
@@ -98,13 +98,13 @@ impl TheWayConfig {
     fn make_dirs(&self) -> color_eyre::Result<()> {
         if !self.db_dir.exists() {
             fs::create_dir_all(&self.db_dir).map_err(|e: io::Error| LostTheWay::ConfigError {
-                message: format!("Couldn't create db dir {:?}, {}", self.db_dir, e),
+                message: format!("Couldn't create db dir {:?}, {e}", self.db_dir),
             })?;
         }
         if !self.themes_dir.exists() {
             fs::create_dir_all(&self.themes_dir).map_err(|e: io::Error| {
                 LostTheWay::ConfigError {
-                    message: format!("Couldn't create themes dir {:?}, {}", self.themes_dir, e),
+                    message: format!("Couldn't create themes dir {:?}, {e}", self.themes_dir),
                 }
             })?;
         }
@@ -113,9 +113,7 @@ impl TheWayConfig {
 
     /// Get default configuration file location according to XDG specification
     fn get_default_config_file() -> color_eyre::Result<PathBuf> {
-        let dir = get_project_dir()?;
-        let config_dir = dir.config_dir();
-        Ok(config_dir.join(format!("{}.toml", NAME)))
+        Ok(confy::get_configuration_file_path(NAME, None)?)
     }
 
     /// Gets the current config file location
@@ -128,12 +126,11 @@ impl TheWayConfig {
                     Ok(path)
                 } else {
                     let error: color_eyre::Result<PathBuf> = Err(LostTheWay::ConfigError {
-                        message: format!("No such file {}", file),
+                        message: format!("No such file {file}"),
                     }
                     .into());
                     error.suggestion(format!(
-                        "Use `the-way config default {}` to write out the default configuration",
-                        file
+                        "Use `the-way config default {file}` to write out the default configuration",
                     ))
                 }
             }
@@ -154,12 +151,11 @@ impl TheWayConfig {
                     Ok(config)
                 } else {
                     let error: color_eyre::Result<Self> = Err(LostTheWay::ConfigError {
-                        message: format!("No such file {}", file),
+                        message: format!("No such file {file}"),
                     }
                         .into());
                     error.suggestion(format!(
-                        "Use `the-way config default {}` to write out the default configuration",
-                        file
+                        "Use `the-way config default {file}` to write out the default configuration",
                     ))
                 }
             }
