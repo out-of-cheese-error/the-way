@@ -59,7 +59,7 @@ impl Hash for Snippet {
 impl Snippet {
     /// New snippet
     #[allow(clippy::too_many_arguments)]
-    pub(crate) fn new(
+    pub fn new(
         index: usize,
         description: String,
         language: String,

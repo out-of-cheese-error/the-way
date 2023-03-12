@@ -3,11 +3,14 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use assert_cmd::Command;
+use chrono::Utc;
 use expectrl::repl::{spawn_bash, ReplSession};
+use expectrl::Regex;
 use predicates::prelude::*;
 use tempfile::{tempdir, TempDir};
 use the_way::configuration::TheWayConfig;
 use the_way::gist::{Gist, GistClient, GistContent, UpdateGistPayload};
+use the_way::the_way::snippet::Snippet;
 
 fn setup_the_way() -> color_eyre::Result<(TempDir, PathBuf)> {
     let temp_dir = tempdir()?;
@@ -96,30 +99,28 @@ fn change_theme() -> color_eyre::Result<()> {
     Ok(())
 }
 
-fn add_snippet_interactive(config_file: &Path) -> color_eyre::Result<ReplSession> {
-    let mut p = spawn_bash()?;
-    p.send_line(&format!(
-        "export THE_WAY_CONFIG={}",
-        config_file.to_string_lossy()
-    ))?;
-
+fn add_snippet_interactive(
+    p: &mut ReplSession,
+    snippet: &Snippet,
+    index: usize,
+) -> color_eyre::Result<()> {
     let executable = env!("CARGO_BIN_EXE_the-way");
-    p.expect_prompt()?;
-    p.send_line(&format!("{executable} config get"))?;
-    p.expect(config_file.to_string_lossy().as_ref())?;
-    p.expect_prompt()?;
     p.send_line(&format!("{executable} new"))?;
     p.expect("Description")?;
-    p.send_line("test description 1")?;
+    p.send_line(&snippet.description)?;
     p.expect("Language")?;
-    p.send_line("rust")?;
+    p.send_line(&snippet.language)?;
     p.expect("Tags")?;
-    p.send_line("tag1 tag2")?;
+    p.send_line(snippet.tags.join(" "))?;
     p.expect("Code snippet")?;
-    p.send_line("code")?;
-    p.expect("Snippet #1 added")?;
+    p.send_line(&snippet.code)?;
+    let index_match = p.expect(Regex("Snippet #([0-9]+) added")).unwrap();
+    assert_eq!(
+        index,
+        String::from_utf8(index_match.get(1).unwrap().to_vec())?.parse::<usize>()?
+    );
     p.expect_prompt()?;
-    Ok(p)
+    Ok(())
 }
 
 fn add_two_snippets_interactive(config_file: &Path) -> color_eyre::Result<()> {
@@ -133,33 +134,61 @@ fn add_two_snippets_interactive(config_file: &Path) -> color_eyre::Result<()> {
     p.expect_prompt()?;
     p.send_line(&format!("{executable} config get"))?;
     p.expect(config_file.to_string_lossy().as_ref())?;
-    p.send_line(&format!("{executable} new"))?;
-    p.expect("Description")?;
-    p.send_line("test description 1")?;
-    p.expect("Language")?;
-    p.send_line("rust")?;
-    p.expect("Tags")?;
-    p.send_line("tag1 tag2")?;
-    p.expect("Code snippet")?;
-    p.send_line("code")?;
-    p.expect("Snippet #1 added")?;
-    p.expect_prompt()?;
-    p.send_line(&format!("{executable} new"))?;
-    p.expect("Description")?;
-    p.send_line("test description 2")?;
-    p.expect("Language")?;
-    p.send_line("python")?;
-    p.expect("Tags")?;
-    p.send_line("tag1 tag2")?;
-    p.expect("Code snippet")?;
-    p.send_line("code")?;
-    p.expect("Snippet #2 added")?;
+    add_snippet_interactive(
+        &mut p,
+        &Snippet::new(
+            1,
+            "test description 1".to_string(),
+            "rust".to_string(),
+            "rs".to_string(),
+            "tag1 tag2",
+            Utc::now(),
+            Utc::now(),
+            "code".to_string(),
+        ),
+        1,
+    )?;
+    add_snippet_interactive(
+        &mut p,
+        &Snippet::new(
+            2,
+            "test description 2".to_string(),
+            "python".to_string(),
+            "py".to_string(),
+            "tag1 tag2",
+            Utc::now(),
+            Utc::now(),
+            "code".to_string(),
+        ),
+        2,
+    )?;
     Ok(())
 }
 
 fn change_snippet_interactive(config_file: &Path) -> color_eyre::Result<()> {
-    let mut p = add_snippet_interactive(config_file)?;
+    let mut p = spawn_bash()?;
+    p.send_line(&format!(
+        "export THE_WAY_CONFIG={}",
+        config_file.to_string_lossy()
+    ))?;
     let executable = env!("CARGO_BIN_EXE_the-way");
+    p.expect_prompt()?;
+    p.send_line(&format!("{executable} config get"))?;
+    p.expect(config_file.to_string_lossy().as_ref())?;
+    add_snippet_interactive(
+        &mut p,
+        &Snippet::new(
+            1,
+            "test description 1".to_string(),
+            "rust".to_string(),
+            "rs".to_string(),
+            "tag1 tag2",
+            Utc::now(),
+            Utc::now(),
+            "code".to_string(),
+        ),
+        1,
+    )?;
     p.send_line(&format!("{executable} edit 1"))?;
     p.expect("Description")?;
     p.send_line("test description 2")?;
@@ -208,16 +237,6 @@ fn add_two_cmd_snippets_interactive(config_file: &Path) -> color_eyre::Result<()
     p.expect("Tags")?;
     p.send_line("tag1 tag2")?;
     p.expect("Snippet #2 added")?;
-    Ok(())
-}
-
-#[ignore] // expensive, and change_snippet tests both
-#[test]
-fn add_snippet() -> color_eyre::Result<()> {
-    let (temp_dir, config_file) = setup_the_way()?;
-    assert!(add_snippet_interactive(&config_file).is_ok());
-    drop(config_file);
-    temp_dir.close()?;
     Ok(())
 }
 
@@ -763,6 +782,38 @@ fn sync_date() -> color_eyre::Result<()> {
         .assert()
         .failure();
 
+    // check adding new snippet locally has index 4
+    let mut p = spawn_bash()?;
+    p.send_line(&format!(
+        "export THE_WAY_CONFIG={}",
+        config_file.to_string_lossy()
+    ))?;
+    let executable = env!("CARGO_BIN_EXE_the-way");
+    p.expect_prompt()?;
+    p.send_line(&format!("{executable} config get"))?;
+    p.expect(config_file.to_string_lossy().as_ref())?;
+    add_snippet_interactive(
+        &mut p,
+        &Snippet::new(
+            4,
+            "test description 1".to_string(),
+            "rust".to_string(),
+            "rs".to_string(),
+            "tag1 tag2",
+            Utc::now(),
+            Utc::now(),
+            "code".to_string(),
+        ),
+        4,
+    )?;
+    let mut cmd = Command::cargo_bin("the-way")?;
+    cmd.env("THE_WAY_CONFIG", &config_file)
+        .env("THE_WAY_GITHUB_TOKEN", token)
+        .arg("view")
+        .arg("4")
+        .assert()
+        .success();
+
     // delete Gist
     assert!(client.delete_gist(&gist.id).is_ok());
     assert!(client.get_gist(&gist.id).is_err());
@@ -842,6 +893,38 @@ fn sync_local() -> color_eyre::Result<()> {
         .arg("4")
         .assert()
         .failure();
+
+    // check adding new snippet locally has index 4
+    let mut p = spawn_bash()?;
+    p.send_line(&format!(
+        "export THE_WAY_CONFIG={}",
+        config_file.to_string_lossy()
+    ))?;
+    let executable = env!("CARGO_BIN_EXE_the-way");
+    p.expect_prompt()?;
+    p.send_line(&format!("{executable} config get"))?;
+    p.expect(config_file.to_string_lossy().as_ref())?;
+    add_snippet_interactive(
+        &mut p,
+        &Snippet::new(
+            4,
+            "test description 1".to_string(),
+            "rust".to_string(),
+            "rs".to_string(),
+            "tag1 tag2",
+            Utc::now(),
+            Utc::now(),
+            "code".to_string(),
+        ),
+        4,
+    )?;
+    let mut cmd = Command::cargo_bin("the-way")?;
+    cmd.env("THE_WAY_CONFIG", &config_file)
+        .env("THE_WAY_GITHUB_TOKEN", token)
+        .arg("view")
+        .arg("4")
+        .assert()
+        .success();
 
     // delete Gist
     assert!(client.delete_gist(&gist.id).is_ok());
@@ -940,6 +1023,38 @@ fn sync_gist() -> color_eyre::Result<()> {
         .arg("4")
         .assert()
         .stdout(predicate::str::contains("fourth"));
+
+    // check adding new snippet locally has index 5
+    let mut p = spawn_bash()?;
+    p.send_line(&format!(
+        "export THE_WAY_CONFIG={}",
+        config_file.to_string_lossy()
+    ))?;
+    let executable = env!("CARGO_BIN_EXE_the-way");
+    p.expect_prompt()?;
+    p.send_line(&format!("{executable} config get"))?;
+    p.expect(config_file.to_string_lossy().as_ref())?;
+    add_snippet_interactive(
+        &mut p,
+        &Snippet::new(
+            5,
+            "test description 1".to_string(),
+            "rust".to_string(),
+            "rs".to_string(),
+            "tag1 tag2",
+            Utc::now(),
+            Utc::now(),
+            "code".to_string(),
+        ),
+        5,
+    )?;
+    let mut cmd = Command::cargo_bin("the-way")?;
+    cmd.env("THE_WAY_CONFIG", &config_file)
+        .env("THE_WAY_GITHUB_TOKEN", token)
+        .arg("view")
+        .arg("5")
+        .assert()
+        .success();
 
     // delete Gist
     assert!(client.delete_gist(&gist.id).is_ok());
