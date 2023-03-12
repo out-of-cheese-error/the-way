@@ -17,8 +17,8 @@ exclude = [
 
 [dependencies]
 # Argument parsing
-clap = { version = "4.1.1", features = ["derive"] }
-clap_complete = "4.1.0"
+clap = { version = "4.1.8", features = ["derive"] }
+clap_complete = "4.1.4"
 
 # Configuration management
 confy = "0.5.1"
@@ -27,17 +27,17 @@ directories-next = "1.0.2"
 # Error management
 eyre = "0.6.8"
 color-eyre = { version = "0.6.2", default-features = false }
-thiserror = "1.0.38"
+thiserror = "1.0.39"
 
 # Database related
 sled = "0.34.7"
 bincode = "1.3.3"
 
 # Serializing
-serde = "1.0.152"
-serde_json = "1.0.91"
-serde_derive = "1.0.152"
-serde_yaml = "0.9.16"
+serde = "1.0.154"
+serde_json = "1.0.94"
+serde_derive = "1.0.154"
+serde_yaml = "0.9.19"
 
 # Parsing and manipulating dates
 chrono = { version = "0.4.23", features = ["serde"] }
@@ -48,7 +48,7 @@ dialoguer = "0.10.3"
 indicatif = "0.17.3"
 
 # Fuzzy search
-skim = "0.10.2"
+skim = "0.10.4"
 
 # Terminal syntax highlighting
 syntect = { version = "5.0.0", default-features = false, features = ["default-fancy"] }
@@ -67,7 +67,7 @@ regex = "1.7.1"
 [dev-dependencies]
 assert_cmd = "2.0.8"
 predicates = "2.1.5"
-tempfile = "3.3.0"
+tempfile = "3.4.0"
 expectrl = "0.6.0"
 
 [target.'cfg(target_os = "macos")'.dev-dependencies]

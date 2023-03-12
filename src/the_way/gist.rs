@@ -354,12 +354,13 @@ impl TheWay {
                     );
                     SyncAction::Uploaded
                 } else if source == SyncCommand::Gist
-                    || (source == SyncCommand::Date && snippet.updated < gist.updated_at)
+                    || (source == SyncCommand::Date && snippet.updated <= gist.updated_at)
                 {
                     // Snippet updated in Gist or source is Gist => update local snippet
                     let index_key = gist_snippet.index.to_string();
                     let index_key = index_key.as_bytes();
                     self.add_to_snippet(index_key, &gist_snippet.to_bytes()?)?;
+                    *snippet = gist_snippet.clone();
                     SyncAction::Downloaded
                 } else {
                     // Update dates match
@@ -442,15 +443,15 @@ impl TheWay {
                 },
             )?;
         }
-        spinner.finish_with_message("Done!");
-        let mut max_index = 0;
+        let mut max_index = self.get_current_snippet_index()?;
         for snippet in add_snippets {
             let index = self.add_snippet(snippet)?;
             if index > max_index {
                 max_index = index;
             }
         }
-        self.modify_snippet_index(max_index + 1)?;
+        self.modify_snippet_index(max_index)?;
+        spinner.finish_with_message("Done!");
         let delete = if delete_snippets.is_empty() || force {
             true
         } else {
