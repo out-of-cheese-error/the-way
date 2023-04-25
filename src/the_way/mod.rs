@@ -112,8 +112,13 @@ impl TheWay {
 
     /// Adds a new snippet
     fn the_way(&mut self) -> color_eyre::Result<()> {
-        let snippet =
-            Snippet::from_user(self.get_current_snippet_index()? + 1, &self.languages, None)?;
+        let snippet = Snippet::from_user(
+            self.get_current_snippet_index()? + 1,
+            &self.languages,
+            self.list_tags()?,
+            self.list_languages()?,
+            None,
+        )?;
         let index = self.add_snippet(&snippet)?;
         self.color_print(&format!("Snippet #{index} added\n"))?;
         self.increment_snippet_index()?;
@@ -122,8 +127,11 @@ impl TheWay {
 
     /// Adds a new shell snippet
     fn the_way_cmd(&mut self, code: Option<String>) -> color_eyre::Result<()> {
-        let snippet =
-            Snippet::cmd_from_user(self.get_current_snippet_index()? + 1, code.as_deref())?;
+        let snippet = Snippet::cmd_from_user(
+            self.get_current_snippet_index()? + 1,
+            code.as_deref(),
+            self.list_tags()?,
+        )?;
         let index = self.add_snippet(&snippet)?;
         self.color_print(&format!("Snippet #{index} added\n"))?;
         self.increment_snippet_index()?;
@@ -150,7 +158,13 @@ impl TheWay {
     /// Modify a stored snippet's information
     fn edit(&mut self, index: usize) -> color_eyre::Result<()> {
         let old_snippet = self.get_snippet(index)?;
-        let new_snippet = Snippet::from_user(index, &self.languages, Some(&old_snippet))?;
+        let new_snippet = Snippet::from_user(
+            index,
+            &self.languages,
+            self.list_tags()?,
+            self.list_languages()?,
+            Some(&old_snippet),
+        )?;
         self.delete_snippet(index)?;
         self.add_snippet(&new_snippet)?;
         self.color_print(&format!("Snippet #{index} changed\n"))?;

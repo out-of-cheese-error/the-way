@@ -93,6 +93,8 @@ impl Snippet {
     pub(crate) fn from_user(
         index: usize,
         languages: &HashMap<String, Language>,
+        all_tags: Vec<String>,
+        all_used_languages: Vec<String>,
         old_snippet: Option<&Self>,
     ) -> color_eyre::Result<Self> {
         let (old_description, old_language, old_tags, old_date, old_code) = match old_snippet {
@@ -105,18 +107,35 @@ impl Snippet {
             ),
             None => (None, None, None, None, None),
         };
-
-        let description = utils::user_input("Description", old_description, true, false)?;
+        let description = utils::user_input(
+            "Description",
+            old_description,
+            true,
+            false,
+            utils::TheWayCompletion::Empty,
+        )?;
+        let mut all_languages = all_used_languages;
+        all_languages.extend(languages.keys().map(|s| s.to_ascii_lowercase()));
+        let language_completions = utils::TheWayCompletion::Language(all_languages);
         let language =
-            utils::user_input("Language", old_language, true, false)?.to_ascii_lowercase();
+            utils::user_input("Language", old_language, true, false, language_completions)?
+                .to_ascii_lowercase();
         let extension = Language::get_extension(&language, languages);
-        let tags = utils::user_input("Tags (space separated)", old_tags.as_deref(), true, true)?;
+        let tag_completions = utils::TheWayCompletion::Tag(all_tags);
+        let tags = utils::user_input(
+            "Tags (space separated)",
+            old_tags.as_deref(),
+            true,
+            true,
+            tag_completions,
+        )?;
         let date = match old_date {
             Some(_) => utils::parse_date(&utils::user_input(
                 "Date",
                 old_date.as_deref(),
                 true,
                 false,
+                utils::TheWayCompletion::Empty,
             )?)?,
             None => Utc::now(),
         };
@@ -130,9 +149,10 @@ impl Snippet {
         } else {
             let mut input = utils::user_input(
                 "Code snippet (leave empty to open external editor)",
-                None,  // default
-                false, // show default
-                true,  // allow empty
+                None,                           // default
+                false,                          // show default
+                true,                           // allow empty,
+                utils::TheWayCompletion::Empty, // completions
             )?;
             if input.is_empty() {
                 input = utils::external_editor_input(None, &extension)?;
@@ -152,10 +172,26 @@ impl Snippet {
     }
 
     /// Queries user for new shell snippet info
-    pub(crate) fn cmd_from_user(index: usize, code: Option<&str>) -> color_eyre::Result<Self> {
-        let code = utils::user_input("Command", code, true, false)?;
-        let description = utils::user_input("Description", None, true, false)?;
-        let tags = utils::user_input("Tags (space separated)", None, true, true)?;
+    pub(crate) fn cmd_from_user(
+        index: usize,
+        code: Option<&str>,
+        all_tags: Vec<String>,
+    ) -> color_eyre::Result<Self> {
+        let code = utils::user_input("Command", code, true, false, utils::TheWayCompletion::Empty)?;
+        let description = utils::user_input(
+            "Description",
+            None,
+            true,
+            false,
+            utils::TheWayCompletion::Empty,
+        )?;
+        let tags = utils::user_input(
+            "Tags (space separated)",
+            None,
+            true,
+            true,
+            utils::TheWayCompletion::Tag(all_tags),
+        )?;
         Ok(Self::new(
             index,
             description,
@@ -283,7 +319,13 @@ impl Snippet {
             if let std::collections::hash_map::Entry::Vacant(e) =
                 filled_parameters.entry(parameter_name.clone())
             {
-                let filled = utils::user_input(&parameter_name, default, true, false)?;
+                let filled = utils::user_input(
+                    &parameter_name,
+                    default,
+                    true,
+                    false,
+                    utils::TheWayCompletion::Empty,
+                )?;
                 e.insert(filled);
             }
         }
