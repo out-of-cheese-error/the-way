@@ -310,10 +310,10 @@ variable `$THE_WAY_CONFIG` to point to this file.
 
 By default `xclip` is used on Linux, `pbcopy` on OSX and `termux-clipboard-set` on Android.
 You can override the default command by setting the `copy_cmd` field in the configuration file.
-For example to use `xsel` as a copy command, set the `copy_cmd` field as follows:
+For example to use `wl-copy` as a copy command on Wayland, set the `copy_cmd` field as follows:
 
 ```toml
-copy_cmd = 'xsel -ib'
+copy_cmd = 'wl-copy --trim-newline'
 ```
 
 # Why "The Way"?
