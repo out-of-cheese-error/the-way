@@ -118,6 +118,38 @@ impl TheWay {
             .collect::<color_eyre::Result<Vec<_>>>()
     }
 
+    /// List all tags
+    pub(crate) fn list_tags(&self) -> color_eyre::Result<Vec<String>> {
+        self.tag_tree()?
+            .iter()
+            .map(|item| {
+                item.map_err(|_e| {
+                    LostTheWay::OutOfCheeseError {
+                        message: "sled PageCache Error".into(),
+                    }
+                    .into()
+                })
+                .and_then(|(tag, _)| String::from_utf8(tag.to_vec()).map_err(|e| e.into()))
+            })
+            .collect::<color_eyre::Result<Vec<_>>>()
+    }
+
+    /// List all tags
+    pub(crate) fn list_languages(&self) -> color_eyre::Result<Vec<String>> {
+        self.language_tree()?
+            .iter()
+            .map(|item| {
+                item.map_err(|_e| {
+                    LostTheWay::OutOfCheeseError {
+                        message: "sled PageCache Error".into(),
+                    }
+                    .into()
+                })
+                .and_then(|(tag, _)| String::from_utf8(tag.to_vec()).map_err(|e| e.into()))
+            })
+            .collect::<color_eyre::Result<Vec<_>>>()
+    }
+
     // TODO: think about how deletions should affect snippet indices
     pub(crate) fn increment_snippet_index(&mut self) -> color_eyre::Result<()> {
         self.db.insert(
