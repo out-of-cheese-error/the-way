@@ -118,21 +118,24 @@ A code snippets manager for your terminal
 Usage: the-way [OPTIONS] <COMMAND>
 
 Commands:
-  new       Add a new code snippet
-  cmd       Add a new shell snippet
-  search    Fuzzy search to find a snippet and copy, edit or delete it
-  sync      Sync snippets to a Gist
-  list      Lists (optionally filtered) snippets
-  import    Imports code snippets from JSON
-  export    Saves (optionally filtered) snippets to JSON
-  clear     Clears all data
-  complete  Generate shell completions
-  themes    Manage syntax highlighting themes
-  config    Manage the-way data locations
-  edit      Change snippet
-  del       Delete snippet
-  cp        Copy snippet to clipboard
-  view      View snippet
+  new        Add a new code snippet
+  cmd        Add a new shell snippet
+  search     Fuzzy search to find a snippet and copy, edit or delete it
+  sync       Sync snippets to a Gist
+  list       Lists (optionally filtered) snippets
+  import     Imports code snippets from JSON
+  export     Saves (optionally filtered) snippets to JSON
+  clear      Clears all data
+  complete   Generate shell completions
+  themes     Manage syntax highlighting themes
+  config     Manage the-way data locations
+  edit       Change snippet
+  del        Delete snippet
+  cp         Copy snippet to clipboard
+  view       View snippet
+  tags       Lists (optionally filtered) tags
+  languages  Lists (optionally filtered) languages
+  help       Print this message or the help of the given subcommand(s)
 
 Options:
   -c, --colorize  Force colorization even when not in TTY mode
@@ -236,7 +239,14 @@ variable `$THE_WAY_GITHUB_TOKEN`.
 You can also import snippets from a Gist created by the-way using `the-way import -w <gist_url>`.
 
 ## Shell completions
+Generate for your shell of interest and save to the appropriate completions folder
 
+```bash
+the-way complete bash > the-way-completion.bash
+source the-way-completion.bash
+```
+
+E.g for oh-my-zsh
 ```bash
 the-way complete zsh > .oh-my-zsh/completions/_the-way
 exec zsh
