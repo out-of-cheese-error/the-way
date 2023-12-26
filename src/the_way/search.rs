@@ -125,6 +125,36 @@ impl SkimItem for SearchSnippet {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub(crate) enum SkimCommand {
+    Copy,
+    Delete,
+    Edit,
+    View,
+    All,
+}
+
+impl SkimCommand {
+    pub fn keys(&self) -> Vec<&'static str> {
+        match self {
+            SkimCommand::Copy | SkimCommand::Delete | SkimCommand::Edit | SkimCommand::View => {
+                vec!["Enter"]
+            }
+            SkimCommand::All => vec!["Enter", "shift-left", "shift-right"],
+        }
+    }
+
+    pub fn names(&self) -> Vec<&'static str> {
+        match self {
+            SkimCommand::Copy => vec!["copy"],
+            SkimCommand::Delete => vec!["delete"],
+            SkimCommand::Edit => vec!["edit"],
+            SkimCommand::View => vec!["view"],
+            SkimCommand::All => vec!["copy", "delete", "edit"],
+        }
+    }
+}
+
 impl TheWay {
     /// Converts a list of snippets into searchable objects and opens a fuzzy search window with the
     /// bottom panel listing each snippet's index, description, language and tags
@@ -134,8 +164,10 @@ impl TheWay {
         snippets: Vec<Snippet>,
         skim_theme: String,
         selection_style: Style,
-        stdout: bool,
         exact: bool,
+        command: SkimCommand,
+        stdout: bool,
+        force: bool,
     ) -> color_eyre::Result<()> {
         let default_language = Language::default();
 
@@ -163,18 +195,28 @@ impl TheWay {
                 index: snippet.index,
             });
         }
+        let bind = command
+            .keys()
+            .into_iter()
+            .map(|s| format!("{s}:accept"))
+            .collect::<Vec<_>>();
+        let header = format!(
+            "Press {}",
+            command
+                .keys()
+                .into_iter()
+                .zip(command.names().into_iter())
+                .map(|(key, name)| format!("{key} to {name}"))
+                .collect::<Vec<_>>()
+                .join(", "),
+        );
+
         let options = SkimOptionsBuilder::default()
             .height(Some("100%"))
             .preview(Some(""))
             .preview_window(Some("up:70%:wrap"))
-            .bind(vec![
-                "shift-left:accept",
-                "shift-right:accept",
-                "Enter:accept",
-            ])
-            .header(Some(
-                "Press Enter to copy, Shift-left to delete, Shift-right to edit",
-            ))
+            .bind(bind.iter().map(|s| s.as_ref()).collect())
+            .header(Some(&header))
             .exact(exact)
             .multi(true)
             .reverse(true)
@@ -195,14 +237,27 @@ impl TheWay {
                     .as_any()
                     .downcast_ref::<SearchSnippet>()
                     .ok_or(LostTheWay::SearchError)?;
-                match key {
-                    Key::Enter => {
+
+                match (command, key) {
+                    (SkimCommand::Copy, Key::Enter) => {
                         self.copy(snippet.index, stdout)?;
                     }
-                    Key::ShiftLeft => {
-                        self.delete(snippet.index, false)?;
+                    (SkimCommand::Delete, Key::Enter) => {
+                        self.delete(snippet.index, force)?;
                     }
-                    Key::ShiftRight => {
+                    (SkimCommand::Edit, Key::Enter) => {
+                        self.edit(snippet.index)?;
+                    }
+                    (SkimCommand::View, Key::Enter) => {
+                        self.view(snippet.index)?;
+                    }
+                    (SkimCommand::All, Key::Enter) => {
+                        self.copy(snippet.index, stdout)?;
+                    }
+                    (SkimCommand::All, Key::ShiftLeft) => {
+                        self.delete(snippet.index, force)?;
+                    }
+                    (SkimCommand::All, Key::ShiftRight) => {
                         self.edit(snippet.index)?;
                     }
                     _ => (),
