@@ -88,13 +88,44 @@ impl TheWay {
             TheWaySubcommand::Cmd { code } => self.the_way_cmd(code),
             TheWaySubcommand::Search {
                 filters,
-                stdout,
                 exact,
-            } => self.search(&filters, stdout, exact),
-            TheWaySubcommand::Cp { index, stdout } => self.copy(index, stdout),
-            TheWaySubcommand::Edit { index } => self.edit(index),
-            TheWaySubcommand::Del { index, force } => self.delete(index, force),
-            TheWaySubcommand::View { index } => self.view(index),
+                stdout,
+                force,
+            } => self.search(&filters, stdout, search::SkimCommand::All, exact, force),
+            TheWaySubcommand::Cp {
+                index,
+                filters,
+                exact,
+                stdout,
+            } => match index {
+                Some(index) => self.copy(index, stdout),
+                None => self.search(&filters, stdout, search::SkimCommand::Copy, exact, false),
+            },
+            TheWaySubcommand::Edit {
+                index,
+                filters,
+                exact,
+            } => match index {
+                Some(index) => self.edit(index),
+                None => self.search(&filters, exact, search::SkimCommand::Edit, false, false),
+            },
+            TheWaySubcommand::Del {
+                index,
+                filters,
+                exact,
+                force,
+            } => match index {
+                Some(index) => self.delete(index, force),
+                None => self.search(&filters, exact, search::SkimCommand::Delete, false, force),
+            },
+            TheWaySubcommand::View {
+                index,
+                filters,
+                exact,
+            } => match index {
+                Some(index) => self.view(index),
+                None => self.search(&filters, exact, search::SkimCommand::View, false, false),
+            },
             TheWaySubcommand::List { filters } => self.list(&filters, ListType::Snippet),
             TheWaySubcommand::Import {
                 file,
@@ -358,15 +389,24 @@ impl TheWay {
 
     /// Displays all snippet descriptions in a skim fuzzy search window
     /// A preview window on the right shows the indices of snippets matching the query
-    fn search(&mut self, filters: &Filters, stdout: bool, exact: bool) -> color_eyre::Result<()> {
+    fn search(
+        &mut self,
+        filters: &Filters,
+        exact: bool,
+        command: search::SkimCommand,
+        stdout: bool,
+        force: bool,
+    ) -> color_eyre::Result<()> {
         let mut snippets = self.filter_snippets(filters)?;
         snippets.sort_by(|a, b| a.index.cmp(&b.index));
         self.make_search(
             snippets,
             self.highlighter.skim_theme.clone(),
             self.highlighter.selection_style,
-            stdout,
             exact,
+            command,
+            stdout,
+            force,
         )?;
         Ok(())
     }

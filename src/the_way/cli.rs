@@ -32,16 +32,19 @@ pub enum TheWaySubcommand {
         /// shell snippet code
         code: Option<String>,
     },
-    /// Fuzzy search to find a snippet and copy, edit or delete it
+    /// Search to find a snippet and copy, edit or delete it
     Search {
         #[clap(flatten)]
         filters: Filters,
-        /// Print to stdout instead of copying (with Enter)
-        #[clap(long, short)]
-        stdout: bool,
         /// Use exact search instead of fuzzy
         #[clap(long, short)]
         exact: bool,
+        /// Print to stdout instead of copying (with Enter)
+        #[clap(long, short)]
+        stdout: bool,
+        /// Don't ask for confirmation when deleting
+        #[clap(long, short)]
+        force: bool,
     },
     /// Sync snippets to a Gist
     ///
@@ -116,14 +119,24 @@ pub enum TheWaySubcommand {
     },
     /// Change snippet
     Edit {
-        /// Index of snippet to change
-        index: usize,
+        /// Index of snippet to change, opens a search window if not given
+        index: Option<usize>,
+        #[clap(flatten)]
+        filters: Filters,
+        /// Use exact search instead of fuzzy
+        #[clap(long, short)]
+        exact: bool,
     },
     /// Delete snippet
     #[clap(alias = "delete")]
     Del {
-        /// Index of snippet to delete
-        index: usize,
+        /// Index of snippet to delete, opens a search window if not given
+        index: Option<usize>,
+        #[clap(flatten)]
+        filters: Filters,
+        /// Use exact search instead of fuzzy
+        #[clap(long, short)]
+        exact: bool,
         /// Don't ask for confirmation
         #[clap(long, short)]
         force: bool,
@@ -131,16 +144,26 @@ pub enum TheWaySubcommand {
     /// Copy snippet to clipboard
     #[clap(alias = "copy")]
     Cp {
-        /// Index of snippet to copy
-        index: usize,
+        /// Index of snippet to copy, opens a search window if not given
+        index: Option<usize>,
+        #[clap(flatten)]
+        filters: Filters,
+        /// Use exact search instead of fuzzy
+        #[clap(long, short)]
+        exact: bool,
         /// Print to stdout instead of copying
         #[clap(long, short)]
         stdout: bool,
     },
     /// View snippet
     View {
-        /// Index of snippet to show
-        index: usize,
+        /// Index of snippet to show, opens a search window if not given
+        index: Option<usize>,
+        #[clap(flatten)]
+        filters: Filters,
+        /// Use exact search instead of fuzzy
+        #[clap(long, short)]
+        exact: bool,
     },
     /// Lists (optionally filtered) tags
     Tags {
