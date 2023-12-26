@@ -17,58 +17,58 @@ exclude = [
 
 [dependencies]
 # Argument parsing
-clap = { version = "4.2.4", features = ["derive"] }
-clap_complete = "4.2.1"
+clap = { version = "4.4.11", features = ["derive"] }
+clap_complete = "4.4.4"
 
 # Configuration management
 confy = "0.5.1"
 directories-next = "1.0.2"
 
 # Error management
-eyre = "0.6.8"
+eyre = "0.6.11"
 color-eyre = { version = "0.6.2", default-features = false }
-thiserror = "1.0.40"
+thiserror = "1.0.52"
 
 # Database related
 sled = "0.34.7"
 bincode = "1.3.3"
 
 # Serializing
-serde = "1.0.160"
-serde_json = "1.0.96"
-serde_derive = "1.0.160"
-serde_yaml = "0.9.21"
+serde = "1.0.193"
+serde_json = "1.0.108"
+serde_derive = "1.0.193"
+serde_yaml = "0.9.29"
 
 # Parsing and manipulating dates
-chrono = { version = "0.4.24", features = ["serde"] }
+chrono = { version = "0.4.31", features = ["serde"] }
 chrono-english = "0.1.7"
 
 # Taking user input and showing progress
-dialoguer = {version = "0.11.0", features = ["completion", "history", "fuzzy-select"]}
-indicatif = "0.17.3"
+dialoguer = { version = "0.11.0", features = ["completion", "history", "fuzzy-select"] }
+indicatif = "0.17.7"
 
 # Fuzzy search
 skim = "0.10.4"
 
 # Terminal syntax highlighting
-syntect = { version = "5.0.0", default-features = false, features = ["default-fancy"] }
+syntect = { version = "5.1.0", default-features = false, features = ["default-fancy"] }
 hex = "0.4.3"
-grep-cli = "0.1.7"
-termcolor = "1.2.0"
+grep-cli = "0.1.10"
+termcolor = "1.4.0"
 
 # Sync to Gist/GitLab
-ureq = { version = "2.6.2", features = ["json"] }
+ureq = { version = "2.9.1", features = ["json"] }
 strum = "0.25.0"
 strum_macros = "0.25.3"
 
 # pattern filter and filling shell script variables
-regex = "1.8.1"
+regex = "1.10.2"
 
 [dev-dependencies]
-assert_cmd = "2.0.11"
-predicates = "3.0.3"
-tempfile = "3.5.0"
-expectrl = "0.7.0"
+assert_cmd = "2.0.12"
+predicates = "3.0.4"
+tempfile = "3.8.1"
+expectrl = "0.7.1"
 
 [target.'cfg(target_os = "macos")'.dev-dependencies]
 clipboard = "0.5.0"
