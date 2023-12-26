@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::io::Write;
 use std::process::{Command, Stdio};
 use std::str;
@@ -5,7 +6,7 @@ use std::str;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use chrono_english::{parse_date_string, Dialect};
 use color_eyre::Help;
-use dialoguer::{Confirm, Editor, Input};
+use dialoguer::{Completion, Confirm, Editor, Input};
 use syntect::highlighting::Style;
 use syntect::util::as_24_bit_terminal_escaped;
 
@@ -164,23 +165,25 @@ pub fn user_input(
     default: Option<&str>,
     show_default: bool,
     allow_empty: bool,
+    completions: TheWayCompletion,
 ) -> color_eyre::Result<String> {
     let theme = dialoguer::theme::ColorfulTheme::default();
     match default {
         Some(default) => {
-            let mut input = Input::with_theme(&theme);
-            input
+            let mut input = Input::with_theme(&theme)
                 .with_prompt(message)
+                .completion_with(&completions)
                 .allow_empty(allow_empty)
                 .default(default.to_owned())
                 .show_default(false);
             if show_default {
-                input.with_initial_text(default);
+                input = input.with_initial_text(default);
             }
             Ok(input.interact_text()?.trim().to_owned())
         }
         None => Ok(Input::<String>::with_theme(&theme)
             .with_prompt(message)
+            .completion_with(&completions)
             .allow_empty(allow_empty)
             .interact_text()?
             .trim()
@@ -255,4 +258,55 @@ pub fn smart_print(
         }
     )?;
     Ok(())
+}
+
+#[derive(Debug)]
+pub enum TheWayCompletion {
+    Language(Vec<String>),
+    Tag(Vec<String>),
+    Empty,
+}
+
+impl Completion for TheWayCompletion {
+    fn get(&self, input: &str) -> Option<String> {
+        match self {
+            Self::Language(languages) => {
+                let matches = languages
+                    .iter()
+                    .filter(|option| option.starts_with(input))
+                    .collect::<Vec<_>>();
+
+                if !matches.is_empty() {
+                    Some(matches[0].to_string())
+                } else {
+                    None
+                }
+            }
+            Self::Tag(tags) => {
+                let current_tags_list = input
+                    .split(' ')
+                    .map(|s| s.to_string())
+                    .collect::<HashSet<_>>();
+                let last_input = input.split(' ').last().unwrap_or("");
+                let last_space = input.rfind(' ').unwrap_or(0);
+                let matches = tags
+                    .iter()
+                    .filter(|option| {
+                        option.starts_with(last_input) && !current_tags_list.contains(*option)
+                    })
+                    .collect::<Vec<_>>();
+
+                if !matches.is_empty() {
+                    Some(
+                        (input[..last_space].trim().to_string() + " " + matches[0])
+                            .trim()
+                            .to_string(),
+                    )
+                } else {
+                    None
+                }
+            }
+            Self::Empty => None,
+        }
+    }
 }
