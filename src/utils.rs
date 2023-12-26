@@ -1,5 +1,5 @@
 use std::collections::HashSet;
-use std::io::Write;
+use std::io::{IsTerminal, Write};
 use std::process::{Command, Stdio};
 use std::str;
 
@@ -140,13 +140,13 @@ pub fn parse_date(date_string: &str) -> color_eyre::Result<DateTime<Utc>> {
 /// Some(date) => date
 /// None => minimum possible date
 pub fn date_start(from_date: Option<DateTime<Utc>>) -> DateTime<Utc> {
-    from_date.unwrap_or_else(|| DateTime::from_utc(NaiveDateTime::MIN, Utc))
+    from_date.unwrap_or_else(|| DateTime::from_naive_utc_and_offset(NaiveDateTime::MIN, Utc))
 }
 
 /// Some(date) => date
 /// None => maximum possible date
 pub fn date_end(to_date: Option<DateTime<Utc>>) -> DateTime<Utc> {
-    to_date.unwrap_or_else(|| DateTime::from_utc(NaiveDateTime::MAX, Utc))
+    to_date.unwrap_or_else(|| DateTime::from_naive_utc_and_offset(NaiveDateTime::MAX, Utc))
 }
 
 /// Gets input from external editor, optionally displays default text in editor
@@ -247,7 +247,7 @@ pub fn smart_print(
     write!(
         grep_cli::stdout(termcolor::ColorChoice::Auto),
         "{}",
-        if !plain & (grep_cli::is_tty_stdout() | colorize) {
+        if !plain & (std::io::stdout().is_terminal() | colorize) {
             highlight_strings(inputs, bg)
         } else {
             inputs

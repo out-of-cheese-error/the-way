@@ -308,8 +308,9 @@ impl CodeHighlight {
             true,
             None,
         )
-            .map_err(|_e| LostTheWay::SyntaxError {
-                syntax: syntax_file.to_str().unwrap().into(),
+            .map_err(|e| LostTheWay::SyntaxError {
+                syntax_file: syntax_file.to_str().unwrap().into(),
+                message: e.to_string(),
             })
             .suggestion(format!(
                 "Couldn't load a syntax from {}, are you sure this is a valid .sublime-syntax file with a \'name\' key?",
@@ -319,7 +320,8 @@ impl CodeHighlight {
             .file_name()
             .and_then(std::ffi::OsStr::to_str)
             .ok_or(LostTheWay::SyntaxError {
-                syntax: syntax_file.to_str().unwrap().into(),
+                syntax_file: syntax_file.to_str().unwrap().into(),
+                message: String::from("Filename is not valid Unicode"),
             })
             .suggestion("Something's fishy with the filename, valid Unicode?")?;
         // Copy syntax file to syntect dir
