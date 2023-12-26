@@ -44,7 +44,7 @@ chrono = { version = "0.4.24", features = ["serde"] }
 chrono-english = "0.1.7"
 
 # Taking user input and showing progress
-dialoguer = {version = "0.10.4", features = ["completion", "history", "fuzzy-select"]}
+dialoguer = {version = "0.11.0", features = ["completion", "history", "fuzzy-select"]}
 indicatif = "0.17.3"
 
 # Fuzzy search
@@ -58,8 +58,8 @@ termcolor = "1.2.0"
 
 # Sync to Gist/GitLab
 ureq = { version = "2.6.2", features = ["json"] }
-strum = "0.24.1"
-strum_macros = "0.24.3"
+strum = "0.25.0"
+strum_macros = "0.25.3"
 
 # pattern filter and filling shell script variables
 regex = "1.8.1"

@@ -93,8 +93,8 @@ impl Snippet {
     pub(crate) fn from_user(
         index: usize,
         languages: &HashMap<String, Language>,
-        all_tags: Vec<String>,
-        all_used_languages: Vec<String>,
+        used_tags: Vec<String>,
+        used_languages: Vec<String>,
         old_snippet: Option<&Self>,
     ) -> color_eyre::Result<Self> {
         let (old_description, old_language, old_tags, old_date, old_code) = match old_snippet {
@@ -114,14 +114,20 @@ impl Snippet {
             false,
             utils::TheWayCompletion::Empty,
         )?;
-        let mut all_languages = all_used_languages;
-        all_languages.extend(languages.keys().map(|s| s.to_ascii_lowercase()));
+        let mut all_languages = used_languages;
+        let mut unused_languages = languages
+            .keys()
+            .map(|s| s.to_ascii_lowercase())
+            .collect::<Vec<_>>();
+        unused_languages.sort();
+        all_languages.extend(unused_languages);
+
         let language_completions = utils::TheWayCompletion::Language(all_languages);
         let language =
             utils::user_input("Language", old_language, true, false, language_completions)?
                 .to_ascii_lowercase();
         let extension = Language::get_extension(&language, languages);
-        let tag_completions = utils::TheWayCompletion::Tag(all_tags);
+        let tag_completions = utils::TheWayCompletion::Tag(used_tags);
         let tags = utils::user_input(
             "Tags (space separated)",
             old_tags.as_deref(),

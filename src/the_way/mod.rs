@@ -46,6 +46,12 @@ pub struct TheWay {
     plain: bool,
 }
 
+pub enum ListType {
+    Snippet,
+    Tag,
+    Language,
+}
+
 // All command-line related functions
 impl TheWay {
     /// Initialize program with command line input.
@@ -89,7 +95,7 @@ impl TheWay {
             TheWaySubcommand::Edit { index } => self.edit(index),
             TheWaySubcommand::Del { index, force } => self.delete(index, force),
             TheWaySubcommand::View { index } => self.view(index),
-            TheWaySubcommand::List { filters } => self.list(&filters),
+            TheWaySubcommand::List { filters } => self.list(&filters, ListType::Snippet),
             TheWaySubcommand::Import {
                 file,
                 gist_url,
@@ -107,6 +113,8 @@ impl TheWay {
                 ConfigCommand::Get => TheWayConfig::print_config_location(),
             },
             TheWaySubcommand::Sync { cmd, force } => self.sync(cmd, force),
+            TheWaySubcommand::Tags { filters } => self.list(&filters, ListType::Tag),
+            TheWaySubcommand::Languages { filters } => self.list(&filters, ListType::Language),
         }
     }
 
@@ -296,11 +304,55 @@ impl TheWay {
         Ok(())
     }
 
+    fn show_counts(
+        &self,
+        object_to_count: HashMap<String, usize>,
+        list_type: ListType,
+    ) -> color_eyre::Result<()> {
+        let mut objects = object_to_count.iter().collect::<Vec<_>>();
+        objects.sort_by(|(_, a), (_, b)| b.cmp(a));
+        let mut colorized = Vec::new();
+        for (object, count) in objects {
+            match list_type {
+                ListType::Tag => {
+                    colorized.push((self.highlighter.tag_style, object.to_string()));
+                }
+                ListType::Language => {
+                    colorized.push((self.highlighter.accent_style, object.to_string()));
+                }
+                _ => unreachable!(),
+            }
+            colorized.push((self.highlighter.main_style, format!(" ({count})\n")));
+        }
+        utils::smart_print(&colorized, false, self.colorize, self.plain)?;
+        Ok(())
+    }
+
     /// Lists snippets (optionally filtered)
-    fn list(&self, filters: &Filters) -> color_eyre::Result<()> {
+    fn list(&self, filters: &Filters, list_type: ListType) -> color_eyre::Result<()> {
         let mut snippets = self.filter_snippets(filters)?;
-        snippets.sort_by(|a, b| a.index.cmp(&b.index));
-        self.show_snippets(&snippets)?;
+        match list_type {
+            ListType::Snippet => {
+                snippets.sort_by(|a, b| a.index.cmp(&b.index));
+                self.show_snippets(&snippets)?;
+            }
+            ListType::Tag => {
+                let mut tags = HashMap::new();
+                for snippet in &snippets {
+                    for tag in &snippet.tags {
+                        *tags.entry(tag.to_owned()).or_insert(0) += 1;
+                    }
+                }
+                self.show_counts(tags, list_type)?;
+            }
+            ListType::Language => {
+                let mut languages = HashMap::new();
+                for snippet in &snippets {
+                    *languages.entry(snippet.language.to_owned()).or_insert(0) += 1;
+                }
+                self.show_counts(languages, list_type)?;
+            }
+        }
         Ok(())
     }
 

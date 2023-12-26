@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::io::Write;
 use std::process::{Command, Stdio};
 use std::str;
@@ -169,15 +170,14 @@ pub fn user_input(
     let theme = dialoguer::theme::ColorfulTheme::default();
     match default {
         Some(default) => {
-            let mut input = Input::with_theme(&theme);
-            input
+            let mut input = Input::with_theme(&theme)
                 .with_prompt(message)
                 .completion_with(&completions)
                 .allow_empty(allow_empty)
                 .default(default.to_owned())
                 .show_default(false);
             if show_default {
-                input.with_initial_text(default);
+                input = input.with_initial_text(default);
             }
             Ok(input.interact_text()?.trim().to_owned())
         }
@@ -283,14 +283,25 @@ impl Completion for TheWayCompletion {
                 }
             }
             Self::Tag(tags) => {
+                let current_tags_list = input
+                    .split(' ')
+                    .map(|s| s.to_string())
+                    .collect::<HashSet<_>>();
                 let last_input = input.split(' ').last().unwrap_or("");
+                let last_space = input.rfind(' ').unwrap_or(0);
                 let matches = tags
                     .iter()
-                    .filter(|option| option.starts_with(last_input))
+                    .filter(|option| {
+                        option.starts_with(last_input) && !current_tags_list.contains(*option)
+                    })
                     .collect::<Vec<_>>();
 
                 if !matches.is_empty() {
-                    Some(input.replace(last_input, matches[0]))
+                    Some(
+                        (input[..last_space].trim().to_string() + " " + matches[0])
+                            .trim()
+                            .to_string(),
+                    )
                 } else {
                     None
                 }

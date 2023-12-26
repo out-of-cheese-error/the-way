@@ -142,6 +142,16 @@ pub enum TheWaySubcommand {
         /// Index of snippet to show
         index: usize,
     },
+    /// Lists (optionally filtered) tags
+    Tags {
+        #[clap(flatten)]
+        filters: Filters,
+    },
+    /// Lists (optionally filtered) languages
+    Languages {
+        #[clap(flatten)]
+        filters: Filters,
+    },
 }
 
 #[derive(Parser, Debug)]
