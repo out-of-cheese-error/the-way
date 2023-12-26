@@ -14,3 +14,5 @@ target/
 .DS_Store
 .idea
 .env
+.vscode
+ignore
