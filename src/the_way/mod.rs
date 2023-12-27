@@ -91,7 +91,7 @@ impl TheWay {
                 exact,
                 stdout,
                 force,
-            } => self.search(&filters, stdout, search::SkimCommand::All, exact, force),
+            } => self.search(&filters, exact, search::SkimCommand::All, stdout, force),
             TheWaySubcommand::Cp {
                 index,
                 filters,
@@ -99,7 +99,7 @@ impl TheWay {
                 stdout,
             } => match index {
                 Some(index) => self.copy(index, stdout),
-                None => self.search(&filters, stdout, search::SkimCommand::Copy, exact, false),
+                None => self.search(&filters, exact, search::SkimCommand::Copy, stdout, false),
             },
             TheWaySubcommand::Edit {
                 index,

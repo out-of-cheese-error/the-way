@@ -1783,7 +1783,7 @@ checksum = "222a222a5bfe1bba4a77b45ec488a741b3cb8872e5e499451fd7d0129c9c7c3d"
 
 [[package]]
 name = "the-way"
-version = "0.20.1"
+version = "0.20.2"
 dependencies = [
  "assert_cmd",
  "bincode",

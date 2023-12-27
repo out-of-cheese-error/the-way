@@ -5,6 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.20.2] - 2023-12-27
+- Bug fix for`--stdout` option (Issue #[159](https://github.com/out-of-cheese-error/the-way/issues/159))
+
 ## [0.20.1] - 2023-12-26
 - Updated dependencies
 - Fixes sublime-syntax loading issue (Issue #[152](https://github.com/out-of-cheese-error/the-way/issues/152))
@@ -462,6 +465,8 @@ This uses the correct release directory now based on the TARGET environment vari
 
 - A first working version of the-way
 - cargo install option
+
+[0.20.2]: https://github.com/out-of-cheese-error/the-way/compare/v0.20.1...v0.20.2
 
 [0.20.1]: https://github.com/out-of-cheese-error/the-way/compare/v0.20.0...v0.20.1
 
