@@ -91,7 +91,10 @@ impl TheWay {
                 exact,
                 stdout,
                 force,
-            } => self.search(&filters, exact, search::SkimCommand::All, stdout, force),
+            } => self.search(
+                &filters,
+                search::SearchOptions::new(search::SkimCommand::All, exact, stdout, force),
+            ),
             TheWaySubcommand::Cp {
                 index,
                 filters,
@@ -99,7 +102,10 @@ impl TheWay {
                 stdout,
             } => match index {
                 Some(index) => self.copy(index, stdout),
-                None => self.search(&filters, exact, search::SkimCommand::Copy, stdout, false),
+                None => self.search(
+                    &filters,
+                    search::SearchOptions::new(search::SkimCommand::Copy, exact, stdout, false),
+                ),
             },
             TheWaySubcommand::Edit {
                 index,
@@ -107,7 +113,10 @@ impl TheWay {
                 exact,
             } => match index {
                 Some(index) => self.edit(index),
-                None => self.search(&filters, exact, search::SkimCommand::Edit, false, false),
+                None => self.search(
+                    &filters,
+                    search::SearchOptions::new(search::SkimCommand::Edit, exact, false, false),
+                ),
             },
             TheWaySubcommand::Del {
                 index,
@@ -116,7 +125,10 @@ impl TheWay {
                 force,
             } => match index {
                 Some(index) => self.delete(index, force),
-                None => self.search(&filters, exact, search::SkimCommand::Delete, false, force),
+                None => self.search(
+                    &filters,
+                    search::SearchOptions::new(search::SkimCommand::Delete, exact, false, force),
+                ),
             },
             TheWaySubcommand::View {
                 index,
@@ -124,7 +136,10 @@ impl TheWay {
                 exact,
             } => match index {
                 Some(index) => self.view(index),
-                None => self.search(&filters, exact, search::SkimCommand::View, false, false),
+                None => self.search(
+                    &filters,
+                    search::SearchOptions::new(search::SkimCommand::View, exact, false, false),
+                ),
             },
             TheWaySubcommand::List { filters } => self.list(&filters, ListType::Snippet),
             TheWaySubcommand::Import {
@@ -392,10 +407,7 @@ impl TheWay {
     fn search(
         &mut self,
         filters: &Filters,
-        exact: bool,
-        command: search::SkimCommand,
-        stdout: bool,
-        force: bool,
+        search_options: search::SearchOptions,
     ) -> color_eyre::Result<()> {
         let mut snippets = self.filter_snippets(filters)?;
         snippets.sort_by(|a, b| a.index.cmp(&b.index));
@@ -403,10 +415,7 @@ impl TheWay {
             snippets,
             self.highlighter.skim_theme.clone(),
             self.highlighter.selection_style,
-            exact,
-            command,
-            stdout,
-            force,
+            search_options,
         )?;
         Ok(())
     }
